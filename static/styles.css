@@ -83,8 +83,10 @@ button { font: inherit; }
 .sidebar-section { margin-bottom: 36px; }
 .sidebar-label { margin: 0 0 14px; color: var(--muted); font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .profile-card { padding: 22px; border-radius: var(--radius); background: var(--surface-soft); }
-.profile-card strong { display: block; margin-bottom: 7px; }
-.profile-card p { margin: 0; color: var(--muted); font-size: 14px; }
+.profile-card strong { display: block; margin-bottom: 12px; font-family: var(--mono); }
+.profile-card ul { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.profile-card li { position: relative; padding-left: 13px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.profile-card li::before { content: ""; position: absolute; top: .7em; left: 0; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .topic-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .topic-list span { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 12px; }
 .site-footer { border-top: 1px solid var(--line); }

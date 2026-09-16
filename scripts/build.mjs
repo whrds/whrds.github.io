@@ -15,8 +15,12 @@ const copy = {
     navNotes: '글', navAbout: '소개', eyebrow: 'Security research notes',
     headline: '끄저끄적 작성 중...',
     intro: '취약점 연구, 리버스 엔지니어링, 퍼징과 펌웨어 분석 과정에서 얻은 생각과 시행착오를 기록합니다.',
-    latest: '최근 글', articles: '개의 글', profileTitle: 'whrds',
-    profile: '보안과 시스템을 탐구하고, 재현 가능한 과정으로 기록합니다.',
+    latest: '최근 글', articles: '개의 글', profileTitle: 'ZZoMb1E',
+    profile: [
+      '2026 · Synology Hall of Fame',
+      '2026 · DEF CON 34 CTF Finalist — 7th, Jinddabi’s',
+      '2026 · QNAP 취약점 제보'
+    ],
     topics: '관심 분야', back: '모든 글 보기', readIn: '이 글을 영어로 읽기',
     footer: '관찰하고, 검증하고, 기록합니다.', minRead: '분 읽기', notFound: '페이지를 찾을 수 없습니다', home: '홈으로 이동'
   },
@@ -25,8 +29,12 @@ const copy = {
     navNotes: 'Notes', navAbout: 'About', eyebrow: 'Security research notes',
     headline: 'Writing things down...',
     intro: 'Notes on the ideas, experiments, and mistakes behind vulnerability research, reverse engineering, fuzzing, and firmware analysis.',
-    latest: 'Latest notes', articles: 'articles', profileTitle: 'whrds',
-    profile: 'Exploring security and systems, then documenting the process so it can be reproduced.',
+    latest: 'Latest notes', articles: 'articles', profileTitle: 'ZZoMb1E',
+    profile: [
+      '2026 · Synology Hall of Fame',
+      '2026 · DEF CON 34 CTF Finalist — 7th, Jinddabi’s',
+      '2026 · QNAP vulnerability report'
+    ],
     topics: 'Focus areas', back: 'View all notes', readIn: 'Read this post in Korean',
     footer: 'Observe, verify, document.', minRead: 'min read', notFound: 'Page not found', home: 'Go home'
   }
@@ -112,7 +120,7 @@ function homePage(lang, posts) {
   </a>`).join('');
   const body = `<section class="hero"><div class="shell"><p class="eyebrow">${t.eyebrow}</p><h1>${t.headline}</h1><p class="hero-copy">${t.intro}</p><div class="hero-meta">${topics[lang].map((x) => `<span class="pill">${x}</span>`).join('')}</div></div></section>
   <div class="shell content-grid"><section><div class="section-head"><h2>${t.latest}</h2><span>${posts.length} ${t.articles}</span></div><div class="post-list">${cards}</div></section>
-  <aside class="sidebar"><div class="sidebar-section"><p class="sidebar-label">Profile</p><div class="profile-card"><strong>${t.profileTitle}</strong><p>${t.profile}</p></div></div><div class="sidebar-section"><p class="sidebar-label">${t.topics}</p><div class="topic-list">${topics[lang].map((x) => `<span>${x}</span>`).join('')}</div></div></aside></div>`;
+  <aside class="sidebar"><div class="sidebar-section"><p class="sidebar-label">Profile</p><div class="profile-card"><strong>${t.profileTitle}</strong><ul>${t.profile.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></div><div class="sidebar-section"><p class="sidebar-label">${t.topics}</p><div class="topic-list">${topics[lang].map((x) => `<span>${x}</span>`).join('')}</div></div></aside></div>`;
   return layout({ lang, description: t.siteDescription, route: `/${lang}/`, alternate: `/${lang === 'ko' ? 'en' : 'ko'}/`, body });
 }
 
