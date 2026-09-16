@@ -13,7 +13,7 @@ const copy = {
   ko: {
     siteDescription: '보안 연구, 리버스 엔지니어링, 퍼징과 펌웨어 분석에 관한 기록.',
     navNotes: '글', navAbout: '소개', eyebrow: 'Security research notes',
-    headline: '보안과 시스템을 깊이 들여다봅니다.',
+    headline: '끄저끄적 작성 중...',
     intro: '취약점 연구, 리버스 엔지니어링, 퍼징과 펌웨어 분석 과정에서 얻은 생각과 시행착오를 기록합니다.',
     latest: '최근 글', articles: '개의 글', profileTitle: 'whrds',
     profile: '보안과 시스템을 탐구하고, 재현 가능한 과정으로 기록합니다.',
@@ -23,7 +23,7 @@ const copy = {
   en: {
     siteDescription: 'Notes on security research, reverse engineering, fuzzing, and firmware analysis.',
     navNotes: 'Notes', navAbout: 'About', eyebrow: 'Security research notes',
-    headline: 'Looking closely at security and systems.',
+    headline: 'Writing things down...',
     intro: 'Notes on the ideas, experiments, and mistakes behind vulnerability research, reverse engineering, fuzzing, and firmware analysis.',
     latest: 'Latest notes', articles: 'articles', profileTitle: 'whrds',
     profile: 'Exploring security and systems, then documenting the process so it can be reproduced.',
