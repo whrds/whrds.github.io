@@ -17,6 +17,8 @@ const copy = {
     intro: '취약점 연구, 리버스 엔지니어링, 퍼징과 펌웨어 분석 과정에서 얻은 생각과 시행착오를 기록합니다.',
     latest: '최근 글', articles: '개의 글', profileTitle: 'ZZoMb1E',
     profile: [
+      '2024 · Incognito CTF — 1st',
+      '2025 · HOLYSHIELD CTF — 3rd',
       '2026 · Synology Hall of Fame',
       '2026 · DEF CON 34 CTF Finalist — 7th, Jinddabi’s',
       '2026 · QNAP 취약점 제보'
@@ -31,6 +33,8 @@ const copy = {
     intro: 'Notes on the ideas, experiments, and mistakes behind vulnerability research, reverse engineering, fuzzing, and firmware analysis.',
     latest: 'Latest notes', articles: 'articles', profileTitle: 'ZZoMb1E',
     profile: [
+      '2024 · Incognito CTF — 1st',
+      '2025 · HOLYSHIELD CTF — 3rd',
       '2026 · Synology Hall of Fame',
       '2026 · DEF CON 34 CTF Finalist — 7th, Jinddabi’s',
       '2026 · QNAP vulnerability report'
