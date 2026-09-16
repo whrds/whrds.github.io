@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] syscall · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 다음에 다룰 ROP 기법을 수행하는데 있어서 사용되는 개념이다. 미리 ROP에 대해 한가지 적어두자면 ASLR을 우회하기 위해 사용하는 기법이다. 공격을 수행하는데 있어서 read, write, system 등 함수들의 주소만 알아내면 되지 않을까?">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-syscall/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-syscall/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-syscall/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] syscall · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 다음에 다룰 ROP 기법을 수행하는데 있어서 사용되는 개념이다. 미리 ROP에 대해 한가지 적어두자면 ASLR을 우회하기 위해 사용하는 기법이다. 공격을 수행하는데 있어서 read, write, system 등 함수들의 주소만 알아내면 되지 않을까?"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-syscall/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] syscall","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 다음에 다룰 ROP 기법을 수행하는데 있어서 사용되는 개념이다. 미리 ROP에 대해 한가지 적어두자면 ASLR을 우회하기 위해 사용하는 기법이다. 공격을 수행하는데 있어서 read, write, system 등 함수들의 주소만 알아내면 되지 않을까?","datePublished":"2023-11-08","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-syscall/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-syscall/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] syscall</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 다음에 다룰 ROP 기법을 수행하는데 있어서 사용되는 개념이다. 미리 ROP에 대해 한가지 적어두자면 ASLR을 우회하기 위해 사용하는 기법이다. 공격을 수행하는데 있어서 read, write, system 등 함수들의 주소만 알아내면 되지 않을까?</p><div class="article-meta"><time datetime="2023-11-08">2023년 11월 8일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+<p>다음에 다룰 ROP 기법을 수행하는데 있어서 사용되는 개념이다.</p>
+<p>미리 ROP에 대해 한가지 적어두자면 ASLR을 우회하기 위해 사용하는 기법이다.</p>
+<p>공격을 수행하는데 있어서 read, write, system 등 함수들의 주소만 알아내면 되지 않을까?라고 생각할 수도 있다.</p>
+<p>답은 아니다!!</p>
+<p>모든 문제들이 그런 것은 아니지만 이런 유형의 문제들이 좀 있기 때문에 알아둬야 한다.</p>
+<p>read, write, system 등의 함수 자체가 구현이 안되어 있는 상황에서 ROP 공격을 수행해야 하는…</p>
+<p>RTL_Chaining 처럼 주소를 구해서 하면 되지 않을까?라고 생각할 수도 있다.</p>
+<p>RTL_Chaining과는 다르게 ROP는 ASLR로 인해 메모리가 참조되는 주소가 달라진다.</p>
+<p>이런 상황에서 셸을 따기 위해서 어떻게 해야할까?</p>
+<p>read와 write함수의 경우에는 syscall이라는 어셈블리어 명령어로 직접 구현이 가능하다.</p>
+<p>하지만 system은 구현할 수가 없다… 다행스럽게도 execve함수는 구현이 가능하다!!</p>
+<p>각 함수들을 구현하는 방법에 대해서 간략하게 알아보겠다.</p>
+<p>제대로 다루는 것은 후에 ROP의 각종 예제들을 풀어보면서…</p>
+<p>어셈블리어 명령어인 syscall은 rax 레지스터를 참조한다.</p>
+<p>자주 씌이는 몇가지 예를 들어보겠다.</p>
+<p>func</p>
+<p>rax</p>
+<p>rdi</p>
+<p>rsi</p>
+<p>rdx</p>
+<p>read</p>
+<p>0x0</p>
+<p>fd <br>
+일반적으로 0</p>
+<p>입력값을 저장할 버퍼의 주소</p>
+<p>입력할 데이터 크기</p>
+<p>write</p>
+<p>0x1</p>
+<p>fd<br>
+일반적으로 1</p>
+<p>출력할 데이터가 저장된 버퍼의 주소</p>
+<p>출력할 데이터 길이</p>
+<p>rt_Sigreturn</p>
+<p>0xf</p>
+<p>함수가 실행되는 순간 모든 레지스터 값을 저장 후 컨텍스트 스위칭 수행<br>
+- 후에 다룰 내용이기 때문에 인지만 해둬도 된다.</p>
+<p>execve</p>
+<p>0x3b</p>
+<p>터미널에서 실행할 문자열</p>
+<p>argv</p>
+<p>envp</p>
+<p>이 외에도 추가적인 정보를 찾고자 하면 아래의 링크를 참고하면 된다.</p>
+<p><a href="https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md">https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md</a></p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-syscall/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] .bss 확인하기 · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 메모리 구조를 다루면서 bss에 대한 초기화 되지 않은 변수들이 저장되는 영역이다라고 설명을 했었다. 앞으로 다양한 기법을 다루기에 해당 세그먼트가 중요하다. bss 세그먼트의 위치를 찾는 방법은 readelf라는 명령어를 사용하면 된다. reade">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-check-bss/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-check-bss/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-check-bss/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] .bss 확인하기 · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 메모리 구조를 다루면서 bss에 대한 초기화 되지 않은 변수들이 저장되는 영역이다라고 설명을 했었다. 앞으로 다양한 기법을 다루기에 해당 세그먼트가 중요하다. bss 세그먼트의 위치를 찾는 방법은 readelf라는 명령어를 사용하면 된다. reade"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-check-bss/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] .bss 확인하기","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 메모리 구조를 다루면서 bss에 대한 초기화 되지 않은 변수들이 저장되는 영역이다라고 설명을 했었다. 앞으로 다양한 기법을 다루기에 해당 세그먼트가 중요하다. bss 세그먼트의 위치를 찾는 방법은 readelf라는 명령어를 사용하면 된다. reade","datePublished":"2023-11-07","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-check-bss/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-check-bss/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] .bss 확인하기</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 메모리 구조를 다루면서 bss에 대한 초기화 되지 않은 변수들이 저장되는 영역이다라고 설명을 했었다. 앞으로 다양한 기법을 다루기에 해당 세그먼트가 중요하다. bss 세그먼트의 위치를 찾는 방법은 readelf라는 명령어를 사용하면 된다. reade</p><div class="article-meta"><time datetime="2023-11-07">2023년 11월 7일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
+<p>메모리 구조를 다루면서 bss에 대한 초기화 되지 않은 변수들이 저장되는 영역이다라고 설명을 했었다.</p>
+<p>앞으로 다양한 기법을 다루기에 해당 세그먼트가 중요하다.</p>
+<p>bss 세그먼트의 위치를 찾는 방법은 readelf라는 명령어를 사용하면 된다.</p>
+<pre><code>readelf -S [파일명]
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-3e7f3a390222/001.png" alt=""></p>
+<p>매핑된 영역들을 확인해보면 bss 영역이 있는 것을 확인할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-3e7f3a390222/002.png" alt=""></p>
+<p>bss 세그먼트의 주소는 0x404040인것을 확인할 수 있다.</p>
+<p>여기서 bss 세그먼트가 중요한 이유는 쓰기가 가능한 영역이라는 것이다.</p>
+<p>권한을 보면 WA인데 아래 테이블을 확인해보면 된다.</p>
+<p><img src="/assets/images/tistory/tistory-3e7f3a390222/003.png" alt=""></p>
+<p>읽기가 가능한 이유가 중요한 이유는 해당 영역에 /bin/sh라는 문자열을 넣어두고 이용하면 공격에 사용될 수 있기 때문이다.</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-check-bss/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

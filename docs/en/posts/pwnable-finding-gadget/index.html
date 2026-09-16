@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Finding Gadget · whrds.log</title><meta name="description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ In previous RTL, the explanation for &quot;gadget&quot; is as follows: 2023.10.22 - [STUDY/PWNABLE] - [PWNABLE] RTL generally refers to a &quot;code snippet.&quot; At first glance, this might sound confusing. A ret gadget">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-finding-gadget/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-finding-gadget/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-finding-gadget/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Finding Gadget · whrds.log"><meta property="og:description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ In previous RTL, the explanation for &quot;gadget&quot; is as follows: 2023.10.22 - [STUDY/PWNABLE] - [PWNABLE] RTL generally refers to a &quot;code snippet.&quot; At first glance, this might sound confusing. A ret gadget"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-finding-gadget/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Finding Gadget","description":"※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ In previous RTL, the explanation for \"gadget\" is as follows: 2023.10.22 - [STUDY/PWNABLE] - [PWNABLE] RTL generally refers to a \"code snippet.\" At first glance, this might sound confusing. A ret gadget","datePublished":"2023-11-07","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-finding-gadget/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-finding-gadget/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Finding Gadget</h1><p class="article-description">※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ In previous RTL, the explanation for &quot;gadget&quot; is as follows: 2023.10.22 - [STUDY/PWNABLE] - [PWNABLE] RTL generally refers to a &quot;code snippet.&quot; At first glance, this might sound confusing. A ret gadget</p><div class="article-meta"><time datetime="2023-11-07">Nov 7, 2023</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections.</strong> <strong>※</strong> </p>
+<p>In the previous RTL, the explanation for what a gadget is as follows:</p>
+<p><a href="https://whrdud727.tistory.com/22">2023.10.22 - [STUDY/PWNABLE] - [PWNABLE] RTL</a></p>
+<blockquote>
+<p>Generally, it refers to a “code snippet.”<br>
+At first glance, this might sound confusing.</p>
+<p>I will explain using the example of a ret gadget.<br>
+A ret gadget is literally a code snippet used to execute the ret instruction.</p>
+<p>When you disassemble, you will see code such as pop rdi, rsi, ret, etc.<br>
+This part is referred to as a code snippet, i.e., a “gadget.”</p>
+</blockquote>
+<p>Now, I will discuss how to find these gadgets.</p>
+<p>Among the methods for finding gadgets, ROPgadget is the most representative.</p>
+<pre><code>sudo pip3 install ropgadget
+</code></pre>
+<p>By entering the above command, you can install it. (You need to have pip3 installed beforehand.)</p>
+<p><img src="/assets/images/tistory/tistory-b1bf11c8e44d/001.png" alt=""></p>
+<p>This message appears because it is already installed. However, in the case of the first installation, it will run normally.</p>
+<p>The usage is simple.</p>
+<p>You just need to declare that you want to analyze the binary file with an option.</p>
+<pre><code>ROPgadget --binary [파일명]
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-b1bf11c8e44d/002.png" alt=""></p>
+<p>When you execute the command, you will see many gadgets.</p>
+<p>Among these gadgets, you will see a familiar pop | rdi gadget.</p>
+<p><img src="/assets/images/tistory/tistory-b1bf11c8e44d/003.png" alt=""></p>
+<p>You can confirm that there are gadgets for modifying rdi and rsi.</p>
+<p>It is important to note that the presence of gadgets may vary depending on the binary file.</p>
+<p>To view only the desired parts, you can use ‘grep’.</p>
+<pre><code>ROPgadget --binary [파일명] | grep [찾을 가젯]
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-b1bf11c8e44d/004.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-finding-gadget/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[FIRMWARE] Command · whrds.log</title><meta name="description" content="I would like to take note of frequently used commands when attempting firmware analysis. Since the style of each analyst is different, you can assume that this person mainly uses these commands just for reference. This is a tool that anyone who has seen binwalk firmware at least once has used it. It analyzes the detailed elements that make up the firmware in signature units.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/firmware-command/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/firmware-command/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/firmware-command/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[FIRMWARE] Command · whrds.log"><meta property="og:description" content="I would like to take note of frequently used commands when attempting firmware analysis. Since the style of each analyst is different, you can assume that this person mainly uses these commands just for reference. This is a tool that anyone who has seen binwalk firmware at least once has used it. It analyzes the detailed elements that make up the firmware in signature units."><meta property="og:url" content="https://whrds.github.io/en/posts/firmware-command/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[FIRMWARE] Command","description":"I would like to take note of frequently used commands when attempting firmware analysis. Since the style of each analyst is different, you can assume that this person mainly uses these commands just for reference. This is a tool that anyone who has seen binwalk firmware at least once has used it. It analyzes the detailed elements that make up the firmware in signature units.","datePublished":"2025-08-25","inLanguage":"en","url":"https://whrds.github.io/en/posts/firmware-command/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/firmware-command/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[FIRMWARE] Command</h1><p class="article-description">I would like to take note of frequently used commands when attempting firmware analysis. Since the style of each analyst is different, you can assume that this person mainly uses these commands just for reference. This is a tool that anyone who has seen binwalk firmware at least once has used it. It analyzes the detailed elements that make up the firmware in signature units.</p><div class="article-meta"><time datetime="2025-08-25">Aug 25, 2025</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p>I would like to take note of frequently used commands when attempting firmware analysis.</p>
+<p>Since the style of each analyst is different, you can assume that this person mainly uses these commands just for reference.</p>
+<h3>binwalk</h3>
+<p>It is a tool that anyone who has ever seen firmware has used.</p>
+<p>The detailed elements that make up the firmware are analyzed and displayed in signature units.</p>
+<p><img src="/assets/images/tistory/tistory-058612323cbb/001.png" alt=""></p>
+<p>Options used together include -eM.</p>
+<pre><code>binwalk -eM {firmware}
+</code></pre>
+<p>-e : Automatically extract to known file formats</p>
+<p>-M: Recursively search extracted files</p>
+<p>If you use these two options together, the firmware will be extracted first, the files inside will be downloaded again, the test will be performed again, and then extracted.</p>
+<p>In other words, it is used together because it digs into and extracts files until there are no more files to extract.</p>
+<h3>dd</h3>
+<p>This is an abbreviation for data description and is literally a command used when copying data from firmware or disk.</p>
+<p>Although it is a low-level data copy and conversion command, it is often used because the necessary commands can be extracted from the firmware.</p>
+<pre><code>dd if={firmware_name} of={output_file} bs=1 skip={start_offset} count={data_size}
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-058612323cbb/002.png" alt=""></p>
+<p>If you look at the picture above, the size data is grouped with $(( ~~~ )).</p>
+<p>Originally, as in skip, a decimal number value must be entered, so the data size must be calculated and entered manually, but it is cumbersome to do it one by one, so automatic calculation is performed by using it like this.</p>
+<p>###xxd</p>
+<p>This command allows you to view the HEX value of a file.</p>
+<p>Usually head | more | Used with the tail command.</p>
+<p><img src="/assets/images/tistory/tistory-058612323cbb/003.png" alt=""></p>
+<p>In a typical WSL environment, I would try using 010 Editor or HxD, but as a user of a personal server, I use it a lot because the process of downloading, modifying, and uploading it each time is cumbersome.</p>
+<p>For more detailed analysis, I save it and view it using the &gt; output.txt command.</p>
+<pre><code>xxd {firmware} 
+xxd {firmware} | head
+xxd {firmware} | more
+xxd {firmware} | tail
+xxd {firmware} &gt; output.txt
+xxd {firmware} | grep &quot;~~&quot;
+</code></pre>
+<h3>file</h3>
+<p>This command tells you what type of file it is.</p>
+<p>It is mainly used to check files extracted through the binwalk or dd command.</p>
+<p><img src="/assets/images/tistory/tistory-058612323cbb/004.png" alt=""></p>
+<h3>grep</h3>
+<p>It is mainly used when searching for specific strings/keywords in a file.</p>
+<p>Use the -rn option for full search.</p>
+<pre><code>grep -rn &quot;~~&quot;
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-058612323cbb/005.png" alt=""></p>
+<p>-r : Perform a recursive search to the specified directories and.</p>
+<p>-n: Shows which line of the file the string found by searching is on.</p>
+<h3>find</h3>
+<p>It is mainly used when searching for specific files.</p>
+<pre><code>find ./ -name &quot;*cgi*&quot;
+</code></pre>
+<h3>mount / umount</h3>
+<p>This method is mainly used when analyzing a firmware file by mounting it.</p>
+<p>The images used are in previous posts, so pass.</p>
+<pre><code>sudo mount -t {cramfs,squafs ...} -o loop,ro {firmware} {mnt}
+
+sudo umount {mnt}
+</code></pre>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/firmware-command/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

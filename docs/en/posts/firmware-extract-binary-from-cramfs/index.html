@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[FIRMWARE] EXTRACT BINARY FROM CRAMFS · whrds.log</title><meta name="description" content="In the process of analyzing the firmware, if it is not available online and shell access is blocked using a method such as UART, an attempt is made to extract the firmware directly from the chip. However, during this process, the firmware will generally be extracted normally, but in rare cases, a situation may arise where it is not extracted properly. Explained in an analogy that is easy for non-majors to understand">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/firmware-extract-binary-from-cramfs/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/firmware-extract-binary-from-cramfs/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/firmware-extract-binary-from-cramfs/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[FIRMWARE] EXTRACT BINARY FROM CRAMFS · whrds.log"><meta property="og:description" content="In the process of analyzing the firmware, if it is not available online and shell access is blocked using a method such as UART, an attempt is made to extract the firmware directly from the chip. However, during this process, the firmware will generally be extracted normally, but in rare cases, a situation may arise where it is not extracted properly. Explained in an analogy that is easy for non-majors to understand"><meta property="og:url" content="https://whrds.github.io/en/posts/firmware-extract-binary-from-cramfs/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[FIRMWARE] EXTRACT BINARY FROM CRAMFS","description":"In the process of analyzing the firmware, if it is not available online and shell access is blocked using a method such as UART, an attempt is made to extract the firmware directly from the chip. However, during this process, the firmware will generally be extracted normally, but in rare cases, a situation may arise where it is not extracted properly. Explained in an analogy that is easy for non-majors to understand","datePublished":"2025-08-23","inLanguage":"en","url":"https://whrds.github.io/en/posts/firmware-extract-binary-from-cramfs/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/firmware-extract-binary-from-cramfs/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[FIRMWARE] EXTRACT BINARY FROM CRAMFS</h1><p class="article-description">In the process of analyzing the firmware, if it is not available online and shell access is blocked using a method such as UART, an attempt is made to extract the firmware directly from the chip. However, during this process, the firmware will generally be extracted normally, but in rare cases, a situation may arise where it is not extracted properly. Explained in an analogy that is easy for non-majors to understand</p><div class="article-meta"><time datetime="2025-08-23">Aug 23, 2025</time><span>·</span><span>4 min read</span></div></header><div class="prose"><p>In the process of analyzing the firmware, if it is not available online and shell access is blocked using a method such as UART, an attempt is made to extract the firmware directly from the chip.</p>
+<p>However, during this process, the firmware will generally be extracted normally, but in rare cases, a situation may arise where it is not extracted properly.</p>
+<p>Let me explain it with an analogy that is easy for non-majors to understand:</p>
+<p>There is a solid tower of blocks stacked well together. However, in the process of moving this, the block located in the middle is missing or the direction is disturbed.</p>
+<p>In this situation, can it be said that the tower in question is exactly the same as the original solid tower?</p>
+<p>The firmware is also like this.</p>
+<p>If the internal data changes because the firmware is not extracted properly during the extraction process, it is no longer the exact same firmware as the original. </p>
+<p>Therefore, there may be parts that are not properly extracted from the internal binary or script. </p>
+<p>Of course, you won’t be able to decompress it before that. </p>
+<p>There are various compression methods such as gzip and cramfs.</p>
+<p>And each method has its own unique structure, and if this is broken or tampered with, decompression will not work properly.</p>
+<p>In this situation, should I just give up??</p>
+<p>If it’s cramfs, there is a way!!!</p>
+<p>Even if you cannot properly analyze the entire firmware, you can extract some of the internal scripts or binaries.</p>
+<p>Of course, compressing the entire data like gzip is close to impossible because the integrity due to CRC cannot be maintained, but it is possible with cramfs.</p>
+<p>The cramfs structure is simpler than you think.</p>
+<p><img src="/assets/images/tistory/tistory-daa9a0bc0337/001.png" alt=""></p>
+<p>[Image source: <a href="https://blog.naver.com/lovinghc/30039653478%5C">https://blog.naver.com/lovinghc/30039653478\</a>]</p>
+<p>Now, for illustration purposes, we will prepare a file system compressed with cramfs.</p>
+<p>The rfs of iptime a2004ml was recompressed into cramfs.</p>
+<p><img src="/assets/images/tistory/tistory-daa9a0bc0337/002.png" alt=""></p>
+<p>If you check the compressed file with the xxd command, you can see file names such as binary and directory.</p>
+<p><img src="/assets/images/tistory/tistory-daa9a0bc0337/003.png" alt=""></p>
+<p>Now, let’s find the compressed data of the binary along with information about the file in the header of the file compressed with cramfs.</p>
+<p><img src="/assets/images/tistory/tistory-daa9a0bc0337/004.png" alt=""></p>
+<p>The above definition is expressed graphically as shown above.</p>
+<p>In a situation where file decryption is complex, there is no need to check that part.</p>
+<p>There is no major problem if you just check blocks and files. (BLOCKS: 0x133e, FILES: 0x02b9)</p>
+<p>Now we will look at the INODE part. This contains information about which OFFSET the compressed data is located in, whether the file is a binary/directory, and what the permissions are.</p>
+<p>There are many directories and binaries in rfs. Among these, let’s look at the httpd directory.</p>
+<p><img src="/assets/images/tistory/tistory-daa9a0bc0337/005.png" alt=""></p>
+<p>If you search httpd in the INODE section, you can confirm that httpd data exists starting from 0x1068.</p>
+<p>To explain each piece of information in INODE,</p>
+<p>1. [ fd41 e803 -&gt; 0x03e841fd ] </p>
+<p>-UID: 0xe803</p>
+<ul>
+<li>MODE: 0x41fd (0x4000: direcotry, permission: 0775)</li>
+</ul>
+<p>2. [ fc00 00e8 -&gt; 0xe80000fc ]</p>
+<ul>
+<li>SIZE: 0xfc = 252 Bytes</li>
+<li>GID: 0xe8</li>
+</ul>
+<p>3. [ c207 0100 -&gt; 0x000107c2 ]</p>
+<ul>
+<li>Top 6 bits: namelen -&gt; 0x2 (8 bytes)</li>
+<li>Lower 26 bits: data offset -&gt; 0x107c</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-daa9a0bc0337/006.png" alt=""></p>
+<p>0x107c is also an INODE structure section and contains binary information.</p>
+<p># Because httpd is a directory, it does not have separate data information, so it has data about files that exist inside.</p>
+<p>Now, if you want to decrypt the binary, you can trace it in the same way.</p>
+<p><img src="/assets/images/tistory/tistory-daa9a0bc0337/007.png" alt=""></p>
+<p>Now I’m going to try to recover files, but this time I’m not going to decrypt directories or other files, but busybox.</p>
+<p>It is a busybox file with 755 permissions on regular binary files.</p>
+<p>The offset is 0x13408.</p>
+<p><img src="/assets/images/tistory/tistory-daa9a0bc0337/008.png" alt=""></p>
+<p>When you enter that section, you can see that there is not compressed data, but a pointer table pointing to another location.</p>
+<p>INODE’s data offset does not mean the location of the compressed data, but has a value for a pointer table that contains the actual location of the compressed data.</p>
+<p>At this time, the reason why there are multiple pointers instead of a single pointer is because the data is separated by page. </p>
+<p>This is because the firmware in the flash memory is not loaded and operated as is, but is divided into pages and updated.</p>
+<p>Additionally, data compressed by cramfs is compressed by zlib. Because the compression method has a limited maximum size when compressed, multiple compressed data exist within it. </p>
+<p><img src="/assets/images/tistory/tistory-daa9a0bc0337/009.png" alt=""></p>
+<p>Now, if we look at the pointers, there is a signature called 0x78da.</p>
+<p>This is the beginning of the zlib file compressed with DEFLATE, and it is a single chunk of data until the next zlib signature appears.</p>
+<p>Now, you can try decoding by detecting the zlib signature from this 0x14b2a offset to the end of the data size.</p>
+<p>If you don’t want to bother writing code, you can just ask the AI ​​and it will tell you well, so I won’t post it.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/firmware-extract-binary-from-cramfs/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

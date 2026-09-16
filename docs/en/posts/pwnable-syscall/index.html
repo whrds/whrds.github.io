@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] syscall · whrds.log</title><meta name="description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is a concept used when performing the ROP technique that will be discussed next. Before proceeding, let me mention one thing about ROP: it is a technique used to bypass ASLR. When carrying out an attack, wouldn&#039;t it be enough to just find out the addresses of functions such as read, write, and system?">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-syscall/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-syscall/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-syscall/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] syscall · whrds.log"><meta property="og:description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is a concept used when performing the ROP technique that will be discussed next. Before proceeding, let me mention one thing about ROP: it is a technique used to bypass ASLR. When carrying out an attack, wouldn&#039;t it be enough to just find out the addresses of functions such as read, write, and system?"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-syscall/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] syscall","description":"※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is a concept used when performing the ROP technique that will be discussed next. Before proceeding, let me mention one thing about ROP: it is a technique used to bypass ASLR. When carrying out an attack, wouldn't it be enough to just find out the addresses of functions such as read, write, and system?","datePublished":"2023-11-08","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-syscall/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-syscall/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] syscall</h1><p class="article-description">※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is a concept used when performing the ROP technique that will be discussed next. Before proceeding, let me mention one thing about ROP: it is a technique used to bypass ASLR. When carrying out an attack, wouldn&#039;t it be enough to just find out the addresses of functions such as read, write, and system?</p><div class="article-meta"><time datetime="2023-11-08">Nov 8, 2023</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections.</strong>※</p>
+<p>This is a concept used in performing the ROP technique that will be discussed next.</p>
+<p>Before proceeding, let me mention one thing about ROP: it is a technique used to bypass ASLR.</p>
+<p>One might think that in order to perform an attack, it would be sufficient to know the addresses of functions such as read, write, and system.</p>
+<p>The answer is no!!</p>
+<p>Although not all problems are of this type, there are some problems of this type, so it is important to be aware of them.</p>
+<p>In situations where the functions such as read, write, and system are not implemented, it may be thought that we can perform an ROP attack by obtaining the addresses, similar to RTL_Chaining.</p>
+<p>However, unlike RTL_Chaining, ROP is affected by ASLR, which causes the memory address to be referenced differently.</p>
+<p>In such a situation, how can we get a shell?</p>
+<p>For the read and write functions, it is possible to directly implement them using the assembly instruction syscall.</p>
+<p>However, it is not possible to implement the system function. Fortunately, the execve function can be implemented!!</p>
+<p>I will briefly look into the ways to implement each function.</p>
+<p>A more detailed discussion will be done later when solving various ROP examples.</p>
+<p>The assembly instruction syscall refers to the rax register.</p>
+<p>I will give a few commonly used examples.</p>
+<table>
+<thead>
+<tr>
+<th>func</th>
+<th>rax</th>
+<th>rdi</th>
+<th>rsi</th>
+<th>rdx</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>read</td>
+<td>0x0</td>
+<td>fd</td>
+<td>generally 0</td>
+<td>address of buffer where input is stored</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>size of data to be input</td>
+</tr>
+<tr>
+<td>write</td>
+<td>0x1</td>
+<td>fd</td>
+<td>generally 1</td>
+<td>address of buffer where output data is stored</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>length of output data</td>
+</tr>
+<tr>
+<td>rt_Sigreturn</td>
+<td>0xf</td>
+<td>saves all register values at the moment the function is executed and performs context switching</td>
+<td>- it’s enough to just note this for now as it will be discussed later</td>
+<td></td>
+</tr>
+<tr>
+<td>execve</td>
+<td>0x3b</td>
+<td>string to be executed in the terminal</td>
+<td>argv</td>
+<td>envp</td>
+</tr>
+</tbody>
+</table>
+<p>If you want to find more information, you can refer to the following link.</p>
+<p><a href="https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md">https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md</a></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-syscall/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

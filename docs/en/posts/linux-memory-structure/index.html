@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[LINUX] Memory structure · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment]. CODE segment This is the area where the code written by the user is stored. The code of the program to be executed is stored.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/linux-memory-structure/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/linux-memory-structure/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/linux-memory-structure/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[LINUX] Memory structure · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment]. CODE segment This is the area where the code written by the user is stored. The code of the program to be executed is stored."><meta property="og:url" content="https://whrds.github.io/en/posts/linux-memory-structure/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[LINUX] Memory structure","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment]. CODE segment This is the area where the code written by the user is stored. The code of the program to be executed is stored.","datePublished":"2023-09-04","inLanguage":"en","url":"https://whrds.github.io/en/posts/linux-memory-structure/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/linux-memory-structure/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[LINUX] Memory structure</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment]. CODE segment This is the area where the code written by the user is stored. The code of the program to be executed is stored.</p><div class="article-meta"><time datetime="2023-09-04">Sep 4, 2023</time><span>·</span><span>3 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let us know. We will check and correct it. <strong>※</strong></strong> </p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/001.png" alt=""></p>
+<p>The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment].</p>
+<h3><strong>CODE Segment</strong></h3>
+<p>This is the area where the code written by the user is stored, and the code of the program to be executed is stored. </p>
+<p>Because the CPU must read and execute this code, it has read and execute permissions.</p>
+<pre><code>void func1(){ ... }
+void func2(){ ... }
+int main(){ ... }
+</code></pre>
+<h3><strong>DATA Segment</strong></h3>
+<p>This is an area where initialized global variables or static variables are stored, and is allocated at the start of the program and destroyed at the end.</p>
+<p>It consists of data that can be read and written and rodata (Read Only Data) that can only be read.</p>
+<pre><code>int num1 = 1; //data
+const int num2 = 2; //rodata
+
+void func1(){
+	static int num3 = 3; //data
+}
+</code></pre>
+<h3><strong>BSS Segment</strong></h3>
+<p>Unlike the DATA segment, this is an area where uninitialized global or static variables are stored. </p>
+<pre><code>int num; //bss
+const int num2; //rodata
+
+void func1(){
+	static int num3 = 3; //bss
+}
+</code></pre>
+<h3><strong>STACK Segment</strong></h3>
+<p>This is an area where data including local variables and parameters created while a program is running is stored.</p>
+<p>Therefore, it has read and write permissions.</p>
+<p>A characteristic of STACK is that when its size is expanded, it grows from a high address to a low address. </p>
+<pre><code>void func1(){
+	int num1;  //stack
+	int num2 = 2; //stack
+}
+</code></pre>
+<p>See more</p>
+<h4><strong>STACK Frame</strong></h4>
+<p>This is the unit used by the STACK segment. A stack frame is created when a function is called and freed when it returns.</p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/002.png" alt=""></p>
+<p>In the picture above, you can see that the stack frame size is created as 0x20.<br>
+(The above example is code that calls func() from main().)</p>
+<p>Then, you may think that the total size of the stack frame is 0x20, but in reality, the values of sfp and ret must be included.</p>
+<p>In other words, on a 64-bit basis, it has a total size of 0x30, which is buf (0x20 byte) + sfp (0x8 byte) + ret (0x8 byte).</p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/003.png" alt=""></p>
+<p>sfp must contain the rbp value of the previous function, and ret must point to the address to return to when returning.</p>
+<p>Let’s check whether these values ​​are included.</p>
+<p>This is the part that calls func() in main().</p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/004.png" alt=""></p>
+<p>If you think about just the picture above, ret, that is, the address of the function to return to, is call func; The following address, 0x000055555555522c, will be included. Next, I will check sfp as well.</p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/005.png" alt=""></p>
+<p> Since the sfp in func() is the rbp of main(), you can check the rbp of main(). You can see that the rbp of main() is 0x7fffffffe290 when viewed with gdb.</p>
+<p>As seen up to this point, 0x20, the size of the buf variable, should be followed by 0x7fffffffe290, the sfp value, and 0x000055555555522c, the ret value.</p>
+<p>This is what rsp looks like in func().</p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/006.png" alt=""></p>
+<p>You can see that 0x7fffffffe260~0x7fffffffe280 is the area of the buf variable, 0x7fffffffe280 is sfp, and 0x7fffffffe288 is ret.</p>
+<h3><strong>HEAP Segment</strong></h3>
+<p>This is a space for dynamically allocating memory during program execution. </p>
+<p>This part will be discussed in detail later when writing about ptmalloc.</p>
+<pre><code>int *num = malloc(1)  //heap
+
+void func1(){
+	int *ptr = malloc(8). //heap
+}
+</code></pre>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/linux-memory-structure/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

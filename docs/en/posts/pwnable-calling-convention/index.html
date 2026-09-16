@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Calling Convention · whrds.log</title><meta name="description" content="Although it is not very important in the current situation where Stack Buffer OverFlow and Return Address OverFlow are in progress, it is one of the most basic parts to understand attack techniques such as rtl, rop, fsb, etc. in future postings. Linux function calling conventions are broadly divided into two types. (">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-calling-convention/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-calling-convention/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-calling-convention/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Calling Convention · whrds.log"><meta property="og:description" content="Although it is not very important in the current situation where Stack Buffer OverFlow and Return Address OverFlow are in progress, it is one of the most basic parts to understand attack techniques such as rtl, rop, fsb, etc. in future postings. Linux function calling conventions are broadly divided into two types. ("><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-calling-convention/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Calling Convention","description":"Although it is not very important in the current situation where Stack Buffer OverFlow and Return Address OverFlow are in progress, it is one of the most basic parts to understand attack techniques such as rtl, rop, fsb, etc. in future postings. Linux function calling conventions are broadly divided into two types. (","datePublished":"2023-09-18","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-calling-convention/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-calling-convention/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Calling Convention</h1><p class="article-description">Although it is not very important in the current situation where Stack Buffer OverFlow and Return Address OverFlow are in progress, it is one of the most basic parts to understand attack techniques such as rtl, rop, fsb, etc. in future postings. Linux function calling conventions are broadly divided into two types. (</p><div class="article-meta"><time datetime="2023-09-18">Sep 18, 2023</time><span>·</span><span>3 min read</span></div></header><div class="prose"><p>Although it is not very important in the current situation where Stack Buffer OverFlow and Return Address OverFlow are in progress, </p>
+<p>This is one of the most basic parts in understanding attack techniques such as rtl, rop, fsb, etc. as we proceed with future postings.</p>
+<p>Linux’s <strong>function calling conventions</strong> are broadly divided into two types. (It does not mean that there are only two, but that these two types are the basics.)</p>
+<p>In the x86 environment, there is a cdecl method that transfers arguments using only the Stack without using registers.</p>
+<p>In the x86-64 environment, there is a call protocol called System V that passes arguments using two registers and a stack.</p>
+<h3><strong>x86</strong></h3>
+<p>Since there are too few arguments to transmit arguments using registers, the function calling convention using Stack is mainly used.</p>
+<p>Depending on the method, there may be <strong>cdecl, fastcall</strong>, etc., but we will cover cdecl, which is the most basic.</p>
+<p>Let’s check the <strong>cdecl method</strong> by creating a simple example.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+void func(int a, int b, int c){
+    printf(&quot;%d \t %d \t %d&quot;, a,b,c);
+}
+
+int main(){
+    func(9,5,1);
+    return 0;
+}
+</code></pre>
+<p>The above code, when executed, outputs the numbers 9, 5, and 1 in order.</p>
+<p>When calling func() from main(), arguments are passed through registers or stack.</p>
+<p>Now we will check this process.</p>
+<p>Let’s debug main() and look at the calling process of func().</p>
+<p><img src="/assets/images/tistory/tistory-7be1b58a1192/001.png" alt=""></p>
+<p>Before func(), the values are stored in the order of Stack 1, 5, and 9 through an assembly language called push.</p>
+<p>When you check the stack, you can see that the arguments were entered correctly.</p>
+<p><img src="/assets/images/tistory/tistory-7be1b58a1192/002.png" alt=""></p>
+<p>Let’s also look at it from the perspective of func().</p>
+<p><img src="/assets/images/tistory/tistory-7be1b58a1192/003.png" alt=""></p>
+<p>When calling printf(), the value is taken from the Stack.</p>
+<p><img src="/assets/images/tistory/tistory-7be1b58a1192/004.png" alt=""></p>
+<p>The checked part is the Stack of func().</p>
+<p>If you look at 0xffffd3f0 in the picture above, you can see the Stack Frame of main().</p>
+<p>Passing arguments using Stack in this way is the <strong>cdecl function calling convention</strong>.</p>
+<p>###x86-64</p>
+<p>Unlike x86, the number of registers is sufficient, so registers are used together when passing arguments.</p>
+<p>At this time, registers rather than stacks are used first.</p>
+<p>I understand that the reason is that, looking at the computer structure, registers are located closer to the CPU than memory.</p>
+<p>The calling convention to be discussed here is <strong>SYS V</strong>.</p>
+<p>The characteristic is that arguments are passed in the following order:</p>
+<p><strong>rdi =&gt; rsi =&gt; rdx =&gt; rcx =&gt; r8 =&gt; r9 =&gt; stack</strong></p>
+<pre><code>#include &lt;stdio.h&gt;
+
+void func(int a, int b, int c, int d, int e, int f, int g){
+    printf(&quot;%d \t %d \t %d \t %d \t %d \t %d \t %d&quot;, a,b,c,d,e,f,g);
+}
+
+int main(){
+    func(1,2,3,4,5,6,7);
+    return 0;
+}
+</code></pre>
+<p>This code simply outputs 1 to 7.</p>
+<p>Let’s first look at it by debugging main().</p>
+<p><img src="/assets/images/tistory/tistory-7be1b58a1192/005.png" alt=""></p>
+<p>As mentioned earlier, arguments are passed in the following order: rdi, rsi, rdx, rcx, r8, r9, and stack.</p>
+<p><img src="/assets/images/tistory/tistory-7be1b58a1192/006.png" alt=""></p>
+<p>This is the register state just before func() is called.</p>
+<p><img src="/assets/images/tistory/tistory-7be1b58a1192/007.png" alt=""></p>
+<p>Since there are a total of 7 arguments, you can see that the last argument is in the stack.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-calling-convention/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] Linux Structure · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ In order to learn about exploits in the kernel area, you must be aware of what the kernel is. The basic structure of Linux is shown in the picture above. When we deal with Linux, we enter various commands. At this time, we Shell">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/kernel-linux-structure/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-linux-structure/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-linux-structure/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Linux Structure · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ In order to learn about exploits in the kernel area, you must be aware of what the kernel is. The basic structure of Linux is shown in the picture above. When we deal with Linux, we enter various commands. At this time, we Shell"><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-linux-structure/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Linux Structure","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ In order to learn about exploits in the kernel area, you must be aware of what the kernel is. The basic structure of Linux is shown in the picture above. When we deal with Linux, we enter various commands. At this time, we Shell","datePublished":"2024-06-05","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-linux-structure/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/kernel-linux-structure/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Linux Structure</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ In order to learn about exploits in the kernel area, you must be aware of what the kernel is. The basic structure of Linux is shown in the picture above. When we deal with Linux, we enter various commands. At this time, we Shell</p><div class="article-meta"><time datetime="2024-06-05">Jun 5, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+<p>In order to learn about exploits in the kernel area, you must be aware of what the kernel is.</p>
+<p><img src="/assets/images/tistory/tistory-dbb2dbc260c4/001.png" alt=""></p>
+<p>The basic structure of Linux is shown in the picture above.</p>
+<p>When we deal with Linux, we enter various commands. At this time, we will deal with the part called Shell. Afterwards, the Kernel is responsible for managing and interpreting the commands we enter so that they can operate on the hardware.</p>
+<hr>
+<p>####Shell</p>
+<p>The basic shell serves as an interface between the user and the kernel.</p>
+<p>• <strong>Command Interpretation</strong>: Interprets the command entered by the user and transmits it to the kernel.<br>
+   The command entered by the user is interpreted by the shell and passed to the kernel, and the kernel processes it and returns the result back to the shell.</p>
+<p>• <strong>Scripting</strong>: Shell scripting allows automation of complex tasks.</p>
+<p>• <strong>User Environment Management</strong>: Management of environment variables and settings.</p>
+<hr>
+<h4>Kernel</h4>
+<p>The kernel can be seen as the core of the operating system. It serves as a mediator between commands received from the hardware and the shell. In addition, it is responsible for managing and efficiently distributing system resources.</p>
+<p>• <strong>Memory Management</strong>: Virtual memory and physical memory management (functions such as allocation/release/replacement)</p>
+<p>• <strong>Process Management</strong>: Manages the life cycle of process creation, termination, and scheduling.</p>
+<p>• <strong>Security</strong>: Manages system aspects such as memory and processes to prevent interference with other process spaces and blocks access to kernel space.</p>
+<hr>
+<h4>Context switch</h4>
+<p>Context switching is an operation in which a thread or process saves its execution state and switches to another process or thread. This enables multitasking and ensures efficient use of the system’s resources.</p>
+<p><img src="/assets/images/tistory/tistory-dbb2dbc260c4/002.png" alt=""></p>
+<p><a href="https://m.blog.naver.com/rhkdals1206/221575121342">https://m.blog.naver.com/rhkdals1206/221575121342</a></p>
+<p>While executing each thread, if a command cannot be executed in that area, it is executed in another space, or when an interrupt occurs, execution is temporarily exchanged with another thread. At this time, there is a process of saving the existing state information and recovering it again after executing another process.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-linux-structure/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] Holstein Module · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps://whrdud727.tistory.com/entry/KERNEL-Environment-Setting [KERNEL] Environment Setting※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/kernel-holstein-module/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-holstein-module/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-holstein-module/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Holstein Module · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps://whrdud727.tistory.com/entry/KERNEL-Environment-Setting [KERNEL] Environment Setting※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※"><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-holstein-module/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Holstein Module","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps://whrdud727.tistory.com/entry/KERNEL-Environment-Setting [KERNEL] Environment Setting※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※","datePublished":"2024-06-20","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-holstein-module/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/kernel-holstein-module/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Holstein Module</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps://whrdud727.tistory.com/entry/KERNEL-Environment-Setting [KERNEL] Environment Setting※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※</p><div class="article-meta"><time datetime="2024-06-20">2024년 6월 20일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong></p>
+<h3>Holstein</h3>
+<hr>
+<p><a href="https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting">https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting</a></p>
+<p> [[KERNEL] Environment Setting</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ <a href="https://lrl.kr/JT5m">https://lrl.kr/JT5m</a> カーネルexploitへの導入 | PAWNYABLE!カーネルexploitへの導入 「ユーザーランドのpwnは一通り勉強したけ</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting">https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting</a>)</p>
+<p>앞서 설치한 예제에 포함된 간단한 취약점을 지닌 커널 모듈로 open, read, write를 포함하고 있다.</p>
+<p>앞서 설치를 진행했던 설정을 가지고 진행하겠다.</p>
+<p>취약점이 존재하는 커널 모듈은 S99pawnyable이다.</p>
+<pre><code>##
+## Install driver
+##
+insmod /root/vuln.ko
+mknod -m 666 /dev/holstein c `grep holstein /proc/devices | awk '{print $1;}'` 0
+</code></pre>
+<p>vuln.ko 라는 모듈을 로딩하고 holstein이라는 이름으로 mount한다.</p>
+<pre><code>##
+## User shell
+##
+echo -e &quot;\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n&quot;
+echo &quot;[ Holstein v1 (LK01) - Pawnyable ]&quot;
+setsid cttyhack setuidgid 0 sh
+</code></pre>
+<p>setuidgid로 권한을 설정해주는데, 이때 0으로 설정하면 root 권한으로 실행이 가능하다.</p>
+<h3>분석</h3>
+<hr>
+<p>전체코드</p>
+<p>더보기</p>
+<p>#include &lt;linux/module.h&gt;<br>
+#include &lt;linux/kernel.h&gt;<br>
+#include &lt;linux/cdev.h&gt;<br>
+#include &lt;linux/fs.h&gt;<br>
+#include &lt;linux/uaccess.h&gt;<br>
+#include &lt;linux/slab.h&gt;</p>
+<p>MODULE_LICENSE(“GPL”);<br>
+MODULE_AUTHOR(“ptr-yudai”);<br>
+MODULE_DESCRIPTION(“Holstein v1 - Vulnerable Kernel Driver for Pawnyable”);</p>
+<p>#define DEVICE_NAME “holstein”<br>
+#define BUFFER_SIZE 0x400</p>
+<p>char *g_buf = NULL;</p>
+<p>static int module_open(struct inode *inode, struct file *file)<br>
+{<br>
+  printk(KERN_INFO “module_open called\n”);</p>
+<p>  g_buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);<br>
+  if (!g_buf) {<br>
+    printk(KERN_INFO “kmalloc failed”);<br>
+    return -ENOMEM;<br>
+  }</p>
+<p>  return 0;<br>
+}</p>
+<p>static ssize_t module_read(struct file *file,<br>
+                        char __user *buf, size_t count,<br>
+                        loff_t *f_pos)<br>
+{<br>
+  char kbuf[BUFFER_SIZE] = { 0 };</p>
+<p>  printk(KERN_INFO “module_read called\n”);</p>
+<p>  memcpy(kbuf, g_buf, BUFFER_SIZE);<br>
+  if (_copy_to_user(buf, kbuf, count)) {<br>
+    printk(KERN_INFO “copy_to_user failed\n”);<br>
+    return -EINVAL;<br>
+  }</p>
+<p>  return count;<br>
+}</p>
+<p>static ssize_t module_write(struct file *file,<br>
+                            const char __user *buf, size_t count,<br>
+                            loff_t *f_pos)<br>
+{<br>
+  char kbuf[BUFFER_SIZE] = { 0 };</p>
+<p>  printk(KERN_INFO “module_write called\n”);</p>
+<p>  if (_copy_from_user(kbuf, buf, count)) {<br>
+    printk(KERN_INFO “copy_from_user failed\n”);<br>
+    return -EINVAL;<br>
+  }<br>
+  memcpy(g_buf, kbuf, BUFFER_SIZE);</p>
+<p>  return count;<br>
+}</p>
+<p>static int module_close(struct inode *inode, struct file *file)<br>
+{<br>
+  printk(KERN_INFO “module_close called\n”);<br>
+  kfree(g_buf);<br>
+  return 0;<br>
+}</p>
+<p>static struct file_operations module_fops =<br>
+  {<br>
+   .owner   = THIS_MODULE,<br>
+   .read    = module_read,<br>
+   .write   = module_write,<br>
+   .open    = module_open,<br>
+   .release = module_close,<br>
+  };</p>
+<p>static dev_t dev_id;<br>
+static struct cdev c_dev;</p>
+<p>static int __init module_initialize(void)<br>
+{<br>
+  if (alloc_chrdev_region(&amp;dev_id, 0, 1, DEVICE_NAME)) {<br>
+    printk(KERN_WARNING “Failed to register device\n”);<br>
+    return -EBUSY;<br>
+  }</p>
+<p>  cdev_init(&amp;c_dev, &amp;module_fops);<br>
+  c_dev.owner = THIS_MODULE;</p>
+<p>  if (cdev_add(&amp;c_dev, dev_id, 1)) {<br>
+    printk(KERN_WARNING “Failed to add cdev\n”);<br>
+    unregister_chrdev_region(dev_id, 1);<br>
+    return -EBUSY;<br>
+  }</p>
+<p>  return 0;<br>
+}</p>
+<p>static void __exit module_cleanup(void)<br>
+{<br>
+  cdev_del(&amp;c_dev);<br>
+  unregister_chrdev_region(dev_id, 1);<br>
+}</p>
+<p>module_init(module_initialize);<br>
+module_exit(module_cleanup);</p>
+<p>LK01/src/ 경로를 보면 vuln.c라는 파일이 있다.</p>
+<p>Holstein 모듈의 소스 코드이기 때문에 이 파일을 분석해보겠다.</p>
+<pre><code>module_init(module_initialize);
+module_exit(module_cleanup);
+</code></pre>
+<p>각각 실행 및 종료될 때 사용되는 함수이다.</p>
+<pre><code>static int __init module_initialize(void)
+{
+  if (alloc_chrdev_region(&amp;dev_id, 0, 1, DEVICE_NAME)) {
+    printk(KERN_WARNING &quot;Failed to register device\n&quot;);
+    return -EBUSY;
+  }
+
+  cdev_init(&amp;c_dev, &amp;module_fops);
+  c_dev.owner = THIS_MODULE;
+
+  if (cdev_add(&amp;c_dev, dev_id, 1)) {
+    printk(KERN_WARNING &quot;Failed to add cdev\n&quot;);
+    unregister_chrdev_region(dev_id, 1);
+    return -EBUSY;
+  }
+
+  return 0;
+}
+</code></pre>
+<p>cdev_add()를 통해서 /dev/ 모듈을 불려와 조작할 수 있게한다.</p>
+<p>cdev_init()에서 module_fops를 인자로 전달한다. 이 변수는 holstein에 대한 open, write 등의 조작이 있을 때.호출되도록 되어 있는 함수 테이블이다.</p>
+<pre><code>static struct file_operations module_fops =
+ {
+ .owner = THIS_MODULE,
+ .read = module_read,
+ .write = module_write,
+ .open = module_open,
+ .release = module_close,
+ };
+</code></pre>
+<p>open, read, write, close의 4가지 경우에 대해서만 정의되어 있다.</p>
+<pre><code>static void __exit module_cleanup(void)
+{
+ cdev_del(&amp;c_dev);
+ unregister_chrdev_region(dev_id, 1);
+}
+</code></pre>
+<p>마지막으로 모듈 종료 함수는 unmount, 삭제하는 기능을 가지고 있다.</p>
+<pre><code>static int module_open(struct inode *inode, struct file *file)
+{
+ printk(KERN_INFO &quot;module_open called\n&quot;);
+
+ g_buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);
+ if (!g_buf) {
+ printk(KERN_INFO &quot;kmalloc failed&quot;);
+ return -ENOMEM;
+ }
+
+ return 0;
+}
+</code></pre>
+<p>module이 open됐다는 커널 로그와 함께 kmalloc을 통하여  buffer에 0x400 크기의 공간을 할당해준다.</p>
+<pre><code>static int module_close(struct inode *inode, struct file *file)
+{
+ printk(KERN_INFO &quot;module_close called\n&quot;);
+ kfree(g_buf);
+ return 0;
+}
+</code></pre>
+<p>할당 받은 buffer를 해제하는 처리를 수행한다.</p>
+<pre><code>static ssize_t module_read(struct file *file,
+ char __user *buf, size_t count,
+ loff_t *f_pos)
+{
+ char kbuf[BUFFER_SIZE] = { 0 };
+
+ printk(KERN_INFO &quot;module_read called\n&quot;);
+
+ memcpy(kbuf, g_buf, BUFFER_SIZE);
+ if (_copy_to_user(buf, kbuf, count)) {
+ printk(KERN_INFO &quot;copy_to_user failed\n&quot;);
+ return -EINVAL;
+ }
+
+ return count;
+}
+</code></pre>
+<p>유저 영역에서 read syscall이 호출 되었을 경우 실행되는 함수에 해당된다.</p>
+<p>_copy_to_user()를 통해서 유저 영역의 buffer를 커널 영역의 buffer에 복사한다.</p>
+<p>이때 복사할 데이터의 크기를 검사하지 않기 때문에 오버플로우에 취약한 함수이다.</p>
+<pre><code>static ssize_t module_write(struct file *file,
+                            const char __user *buf, size_t count,
+                            loff_t *f_pos)
+{
+  char kbuf[BUFFER_SIZE] = { 0 };
+
+  printk(KERN_INFO &quot;module_write called\n&quot;);
+
+  if (_copy_from_user(kbuf, buf, count)) {
+    printk(KERN_INFO &quot;copy_from_user failed\n&quot;);
+    return -EINVAL;
+  }
+  memcpy(g_buf, kbuf, BUFFER_SIZE);
+
+  return count;
+}
+</code></pre>
+<p>유저 영역에서 write syscall이 호출 되었을 경우 실행되는 함수에 해당된다.</p>
+<p>유저 영역의 buffer에 값을 입력하고 kernel 영역의 buffer에 값을 복사한다.</p>
+<h3>취약점</h3>
+<hr>
+<pre><code>static ssize_t module_write(struct file *file,
+ const char __user *buf, size_t count,
+ loff_t *f_pos)
+{
+ char kbuf[BUFFER_SIZE] = { 0 };
+
+ printk(KERN_INFO &quot;module_write called\n&quot;);
+
+ if (_copy_from_user(kbuf, buf, count)) {
+ printk(KERN_INFO &quot;copy_from_user failed\n&quot;);
+ return -EINVAL;
+ }
+ memcpy(g_buf, kbuf, BUFFER_SIZE);
+
+ return count;
+}
+</code></pre>
+<p>_copy_from_user()에서 count는 유저 영역에서 가져온다. kbuf는 0x400의 크기를 가지고 있는데 count가 이를 넘어서는 값일 경우 stack buffer overflow 취약점이 발생하게 된다.</p>
+<h3>Crash</h3>
+<hr>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+int main() {
+    int fd = open(&quot;/dev/holstein&quot;, 2);
+
+    char buf[0x500];
+    read(fd, buf, 0x500);
+    printf(&quot;buf: %s\n&quot;, buf);
+
+    memset(buf, 'A', 0x500);
+    write(fd, buf, 0x500);
+
+    close(fd);
+    return 0;
+}
+</code></pre>
+<pre><code>gcc bof_seg.c -o bof_seg -static
+mv bof_seg root
+cd root; find . -print0 | cpio -o --null --format=newc --owner=root &gt; ../debugfs.cpio
+cd ../
+</code></pre>
+<p>cpio파일을 위와 같이 다시 생성하고 스크립트를 수정해야한다.</p>
+<pre><code>qemu-system-x86_64 \
+    -m 64M \
+    -nographic \
+    -kernel bzImage \
+    -append &quot;console=ttyS0 loglevel=3 oops=panic panic=-1 nopti nokaslr&quot; \
+    -no-reboot \
+    -cpu qemu64 \
+    -gdb tcp::12345 \
+    -smp 1 \
+    -monitor /dev/null \
+    -initrd debugfs.cpio \
+    -net nic,model=virtio \
+    -net user
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-2904b5c93deb/001.png" alt=""></p>
+<p>실행하면 위와 같이 Crash가 발생하는 것을 볼 수 있다.</p>
+<p>RIP 레지스터의 값이 조작되어 Segment fualt가 발생한 것을 볼 수 있다.</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-holstein-module/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

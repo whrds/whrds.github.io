@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] Send Script to CTF · whrds.log</title><meta name="description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. As you study Kernel exploit, a question will arise. Obviously, you need to create a binary for privilege escalation and go through the process of checking it in the local environment.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/kernel-send-script-to-ctf/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-send-script-to-ctf/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-send-script-to-ctf/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Send Script to CTF · whrds.log"><meta property="og:description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. As you study Kernel exploit, a question will arise. Obviously, you need to create a binary for privilege escalation and go through the process of checking it in the local environment."><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-send-script-to-ctf/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Send Script to CTF","description":"※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. As you study Kernel exploit, a question will arise. Obviously, you need to create a binary for privilege escalation and go through the process of checking it in the local environment.","datePublished":"2024-10-29","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-send-script-to-ctf/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/kernel-send-script-to-ctf/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Send Script to CTF</h1><p class="article-description">※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. As you study Kernel exploit, a question will arise. Obviously, you need to create a binary for privilege escalation and go through the process of checking it in the local environment.</p><div class="article-meta"><time datetime="2024-10-29">Oct 29, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ Since the analysis was conducted with reference to the data, there may be errors.</strong> </p>
+<p><strong>※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action.</strong></p>
+<p>As you study Kernel exploit, a question will arise.</p>
+<p>Obviously, there is a process of creating a binary to elevate privileges and checking it in the local environment, but how can it be released remotely to a place like Wargame or CTF?? </p>
+<p>Since I have always solved the problem by sending input values ​​through Python’s pwntools, it is natural to have questions.</p>
+<p>How do I upload the binary, access it, and unpack it?</p>
+<p>The answer is much simpler than you think.</p>
+<p>1. Encode binary to base64</p>
+<p>2. Split the encoded data and send it to the server</p>
+<p>3. Decode to base64 via command to server</p>
+<p>4. run</p>
+<p>There are many scripts uploaded to git to help with this process.</p>
+<p><a href="https://github.com/pr0cf5/kernel-exploit-sendscript">https://github.com/pr0cf5/kernel-exploit-sendscript</a></p>
+<p> [GitHub - pr0cf5/kernel-exploit-sendscript: A script that sends ELF files via terminal, for CTF kernel exploit probs</p>
+<p>A script that sends ELF files via terminal, for CTF kernel exploit probs - pr0cf5/kernel-exploit-sendscript</p>
+<p><a href="http://github.com">github.com</a>](<a href="https://github.com/pr0cf5/kernel-exploit-sendscript">https://github.com/pr0cf5/kernel-exploit-sendscript</a>)</p>
+<p>Some colleagues, including myself, use <a href="http://send.py">send.py</a> from the link above.</p>
+<pre><code>#!/usr/bin/python3
+from pwn import *
+
+def send_command(cmd, print_cmd = True, print_resp = False):
+	if print_cmd:
+		log.info(cmd)
+
+	p.sendlineafter(&quot;$&quot;, cmd)
+	resp = p.recvuntil(&quot;$&quot;)
+
+	if print_resp:
+		log.info(resp)
+
+	p.unrecv(&quot;$&quot;)
+	return resp
+
+def send_file(src, dst):
+	file = read(src)
+	f = b64e(file)
+
+	send_command(&quot;rm -f {}.b64&quot;.format(dst))
+	send_command(&quot;rm -f {}&quot;.format(dst))
+
+	size = 800
+	for i in range(len(f)//size + 1):
+		log.info(&quot;Sending chunk {}/{}&quot;.format(i, len(f)//size))
+		send_command(&quot;echo -n '{}' &gt;&gt; {}.b64&quot;.format(f[i*size:(i+1)*size], dst), False)
+
+	send_command(&quot;cat {}.b64 | base64 -d &gt; {}&quot;.format(dst, dst))
+
+if __name__ == &quot;__main__&quot;:
+    if len(sys.argv) != 5:
+        print(&quot;usage: ./send.py &lt;IP&gt; &lt;PORT&gt; &lt;FILE TO SEND&gt; &lt;PATH ON REMOTE&gt;&quot;)
+        exit(-1)
+    p = remote(sys.argv[1], int(sys.argv[2]))
+    send_file(sys.argv[3], sys.argv[4])
+    p.interactive()
+</code></pre>
+<p>Let’s break down the code’s operation and analyze it.</p>
+<pre><code>def send_command(cmd, print_cmd = True, print_resp = False):
+	if print_cmd:
+		log.info(cmd)
+
+	p.sendlineafter(&quot;$&quot;, cmd)
+	resp = p.recvuntil(&quot;$&quot;)
+
+	if print_resp:
+		log.info(resp)
+
+	p.unrecv(&quot;$&quot;)
+	return resp
+</code></pre>
+<p>This is a function that submits the user’s command to the server.</p>
+<pre><code>def send_file(src, dst):
+	file = read(src)
+	f = b64e(file)
+
+	send_command(&quot;rm -f {}.b64&quot;.format(dst))
+	send_command(&quot;rm -f {}&quot;.format(dst))
+
+	size = 800
+	for i in range(len(f)//size + 1):
+		log.info(&quot;Sending chunk {}/{}&quot;.format(i, len(f)//size))
+		send_command(&quot;echo -n '{}' &gt;&gt; {}.b64&quot;.format(f[i*size:(i+1)*size], dst), False)
+
+	send_command(&quot;cat {}.b64 | base64 -d &gt; {}&quot;.format(dst, dst))
+</code></pre>
+<p>This is a function to send a file, so let’s look at it functionally.</p>
+<pre><code>	file = read(src)
+	f = b64e(file)
+</code></pre>
+<p>First, encode the file into base64.</p>
+<pre><code>	send_command(&quot;rm -f {}.b64&quot;.format(dst))
+	send_command(&quot;rm -f {}&quot;.format(dst))
+</code></pre>
+<p>Check and delete any previously sent data.</p>
+<pre><code>	size = 800
+	for i in range(len(f)//size + 1):
+		log.info(&quot;Sending chunk {}/{}&quot;.format(i, len(f)//size))
+		send_command(&quot;echo -n '{}' &gt;&gt; {}.b64&quot;.format(f[i*size:(i+1)*size], dst), False)
+</code></pre>
+<p>Transmit encoded data through the echo command. (input)</p>
+<pre><code>	send_command(&quot;cat {}.b64 | base64 -d &gt; {}&quot;.format(dst, dst))
+</code></pre>
+<p>If you decode it to base64, the file will be uploaded normally.</p>
+<p><img src="/assets/images/tistory/tistory-ecef5f3635fa/001.png" alt=""></p>
+<p>When you run <a href="http://send.py">send.py</a>, the binary is uploaded through the above process.</p>
+<p>In some cases, the output value for the input is not visible, but you can view it by using the debug mode of pwntools.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-send-script-to-ctf/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

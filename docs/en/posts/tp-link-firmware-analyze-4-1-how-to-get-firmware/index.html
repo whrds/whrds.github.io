@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE · whrds.log</title><meta name="description" content="Usually, when a company is working on a project, one project ends and another project begins immediately afterward. In my first project, I was able to learn a lot of new technologies and improve my technical skills, including my existing analytical skills. Therefore, I was looking forward to what more I could learn and grow in the next project... but time has come.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE · whrds.log"><meta property="og:description" content="Usually, when a company is working on a project, one project ends and another project begins immediately afterward. In my first project, I was able to learn a lot of new technologies and improve my technical skills, including my existing analytical skills. Therefore, I was looking forward to what more I could learn and grow in the next project... but time has come."><meta property="og:url" content="https://whrds.github.io/en/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE","description":"Usually, when a company is working on a project, one project ends and another project begins immediately afterward. In my first project, I was able to learn a lot of new technologies and improve my technical skills, including my existing analytical skills. Therefore, I was looking forward to what more I could learn and grow in the next project... but time has come.","datePublished":"2025-08-28","inLanguage":"en","url":"https://whrds.github.io/en/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE</h1><p class="article-description">Usually, when a company is working on a project, one project ends and another project begins immediately afterward. In my first project, I was able to learn a lot of new technologies and improve my technical skills, including my existing analytical skills. Therefore, I was looking forward to what more I could learn and grow in the next project... but time has come.</p><div class="article-meta"><time datetime="2025-08-28">Aug 28, 2025</time><span>·</span><span>12 min read</span></div></header><div class="prose"><p>Usually, when a company is working on a project, one project ends and another project begins immediately afterward.<br>
+ <br>
+In my first project, I was able to learn a lot of new technologies and improve my technical skills, including my existing analytical skills. Therefore, I was looking forward to what more I could learn and grow in the next project…<br>
+A time has arisen. <br>
+ <br>
+Thanks to this, I had some free time, but I decided to use this time as an opportunity to make the newly learned skills my own and further analyze and research them myself.<br>
+ <br>
+Now, we plan to conduct analysis targeting one or more IoT devices every quarter. <br>
+ </p>
+<hr>
+<h2>TARGET</h2>
+<p>As always, I thought a lot about what kind of target I should target. <br>
+ <br>
+Should I try to set a new target, or should I try again with a model I have experience with before?<br>
+ <br>
+The final choice was once again a wireless router.<br>
+The reason is simple. When studying a field I am interested in, I like to slowly build up from the basics and create it with my own skills.<br>
+I have previously tried disassembling wireless routers about three times through team and individual projects, but none of them produced successful results, and since I have only had the experience of using the equipment myself once, I chose this time with the goal of unconditionally searching for vulnerabilities and developing hardware hacking technologies and vulnerability detection/analysis technologies further than now.<br>
+After this project, I plan to reinstall the TAPO IPCAM that I previously disassembled.<br>
+ <br>
+Wireless routers also have different firmware configuration methods depending on the manufacturer.<br>
+There are various such as iptime, tplink, asus, etc., but first of all, we used non-domestic manufacturers as the standard.<br>
+ <br>
+After analyzing backdoors and 1-day cases, we selected tplink wireless router as the target. <br>
+Here again, it depends on what model you use, but if possible, I wanted to use equipment that was in high demand and whose price was relatively low.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/001.jpg" alt=""></p>
+<p>[TPLINK ARI R5]</p>
+<p> <br>
+We chose the TPLINK AIR R5 model because it has a different design from other previously released models and has the advantage of taking up less space and being able to be installed anywhere.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/002.png" alt=""></p>
+<p> <br>
+The price range…<br>
+I paid a lot thinking it was an investment for the future…<br>
+ <br>
+Since the equipment has been opened with as little damage as possible and the internal firmware has been extracted and will only be used to verify vulnerabilities, I will try to dispose of it cheaply after the project is completed. If you are interested, please contact me…<br>
+ </p>
+<hr>
+<h2>FIRMWARE-ONLINE</h2>
+<p><a href="https://www.tp-link.com/kr/support/download/archer-air-r5/">https://www.tp-link.com/kr/support/download/archer-air-r5/</a> </p>
+<p> [Download Archer Air R5 | TP-Link South Korea</p>
+<p>TP Link - Download Center Detail</p>
+<p><a href="http://www.tp-link.com">www.tp-link.com</a>](<a href="https://www.tp-link.com/kr/support/download/archer-air-r5/">https://www.tp-link.com/kr/support/download/archer-air-r5/</a>)</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/003.png" alt=""></p>
+<p> <br>
+First of all, like iptime, TP-LINK also uploads its firmware file to the Internet.<br>
+Encrypt it…<br>
+ <br>
+<a href="https://github.com/watchfulip/tp-link-decrypt">https://github.com/watchfulip/tp-link-decrypt</a></p>
+<p> [GitHub - watchfulip/tp-link-decrypt: Decrypt TP-Link Firmware</p>
+<p>Decrypt TP-Link Firmware. Contribute to watchfulip/tp-link-decrypt development by creating an account on GitHub.</p>
+<p><a href="http://github.com">github.com</a>](<a href="https://github.com/watchfulip/tp-link-decrypt">https://github.com/watchfulip/tp-link-decrypt</a>)</p>
+<p>Fortunately, a decryption script is available on github.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/004.png" alt=""></p>
+<p>The decryption process is skipped here. Later, I will explain how to extract firmware and RFS from hardware.<br>
+ <br>
+First, primary analysis was performed on the firmware file extracted in this way.<br>
+Unfortunately, html and lua files do not exist here, so web-based analysis was performed using uhttpd.<br>
+For some files, it appears that web files are composed using uhttpd’s internal logic.<br>
+ <br>
+In the previous post, I said to look at the /etc/rc.d path to analyze firmware. </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/005.png" alt=""></p>
+<p>There’s a bit more this time…<br>
+ <br>
+In this case, first find a script that executes these friends sequentially.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/006.png" alt=""></p>
+<p> <br>
+You can start the analysis focusing on the /etc/inittab and /etc/init.d/rcS scripts.<br>
+ <br>
+When analyzing, there is code like the following. This part is the friends that execute the scripts located in /etc/rc.d/.</p>
+<pre><code>if [ &quot;$1&quot; = &quot;S&quot; -a &quot;$foreground&quot; != &quot;1&quot; ]; then
+        run_scripts &quot;$1&quot; &quot;$2&quot; &amp;
+else
+        run_scripts &quot;$1&quot; &quot;$2&quot;
+fi
+</code></pre>
+<p> <br>
+ <br>
+ <br>
+ <br>
+ </p>
+<hr>
+<h2>FIRMWARE-HARDWARE</h2>
+<p>Now, this time, we will extract it from hardware equipment and try to analyze it.<br>
+I eventually acquired the equipment to learn hardware hacking techniques and master the skills properly.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/007.png" alt=""></p>
+<p>As soon as the equipment arrived, I disassembled it immediately. It is a product that is not fixed with screws, but is fitted with flaws on the outside and inside.<br>
+Thanks to this, it took some time just to open the lid.<br>
+ <br>
+If you look at the state of the board, you can see silver plates, all of which can be removed.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/008.png" alt=""></p>
+<p> <br>
+ <br>
+Now I just need to find the UART, but the multi-tester I had at home couldn’t measure properly, so I took it to the company and had it done.<br>
+ </p>
+<h4>UART</h4>
+<p>UART is one of the hardware-based communication protocols and is a representative serial communication protocol.<br>
+Unlike parallel, it has a structure that receives data sequentially, one bit at a time, so it can easily and stably transmit and receive data.<br>
+ From embedded devices, you can obtain various information such as kernel messages, debug logs, and boot logs, and for some devices, you can even obtain a shell right away.<br>
+ <br>
+With this friend called UART, you can acquire firmware or access the command shell.<br>
+Of course, you not only need the target equipment, but you also need connectors such as USB to Serial… and jumper cables.<br>
+ <br>
+UART uses a total of 4 pins.</p>
+<ul>
+<li>TX: Data transmission</li>
+<li>RX: Data reception</li>
+<li>GND: Ground</li>
+<li>VCC: Voltage</li>
+</ul>
+<p>Finding it is simple. </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/009.png" alt=""></p>
+<p>First, set the multitester to continuity test mode (buzzer). It is usually marked in the shape of a speaker.<br>
+In this state, if you bring the red and black lead wires to the board, the part that rings is GND.<br>
+Usually, one lead wire is connected to a metal shield case or the outside of a port, but I tend to use the pins of flash memory more.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/010.png" alt=""></p>
+<p>The location may vary depending on which flash memory is attached. <br>
+The picture above is a data sheet for one of the ESMT flash memories. (This is not the flash memory of the current target device. I just took that image as an example.)<br>
+If you look at the data sheet, you can see that VSS, one of the 8 pins, is a GND pin, so you can know one definitive GND. <br>
+After that, if you bring another lead wire here and there and make it ring, that is also GND.<br>
+ <br>
+When finding the remaining RX, TX, and VCC, you must turn on the power to the board.<br>
+With the power connected, connect the black lead to GND and move the red lead to find it.<br>
+ <br>
+In this case, the multi-tester must be changed to voltage measurement rather than continuity test mode (buzzer).</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/011.png" alt=""></p>
+<ul>
+<li>RX: approx. 0.0
+-TX: approx. 1.8</li>
+<li>VCC: about 3.3 or 5.5</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/012.png" alt=""></p>
+<p>In the case of the PCB in question, the UART part is visible immediately, but there are many friends who do not.<br>
+These kids really have to work hard to connect all the pins one by one…<br>
+ <br>
+Once you’ve found everything, it’s time to make a full-fledged connection.<br>
+GND &lt;-&gt; GND<br>
+RX &lt;-&gt; TX<br>
+TX &lt;-&gt; RX<br>
+VCC-X<br>
+There is no need to connect VCC because you will boot by connecting the power after connection.<br>
+Since RX is responsible for data reception, it must be connected to the transmitting TX. Likewise, TX can be connected to RX.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/013.png" alt=""></p>
+<p> <br>
+ <br>
+Afterwards, prepare the terminal.<br>
+If it’s Windows, you can prepare a terminal like Putty, but I’m a MacBook user… so I open a terminal.<br>
+ <br>
+If you look at the /dev/ path, you can see information about connected devices.<br>
+At this time, if you connect the USB to Serial, you can see [tty.usbserial-0001] as shown below.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/014.png" alt=""></p>
+<p> <br>
+You can just copy the name and write it as shown below, but at this time, you need to find out the baud rate.</p>
+<pre><code>screen /dev/tty.usbserial-0001 [baudrate]
+</code></pre>
+<p>Although there is special equipment, there is no need to have it.<br>
+<a href="https://lucidar.me/en/serialib/most-used-baud-rates-table/">https://lucidar.me/en/serialib/most-used-baud-rates-table/</a></p>
+<p> [Most common baud rates table | Lulu’s blog</p>
+<p>&lt;!-- Accordez-moi une faveur, prenez quelques instants pour découvrir mon dernier projet. Merci, Lulu --&gt; Most common baud rates table The following table shows the most used baud rates. The left side part of the table shows speed and bit duration. The</p>
+<p><a href="http://lucidar.me">lucidar.me</a>](<a href="https://lucidar.me/en/serialib/most-used-baud-rates-table/">https://lucidar.me/en/serialib/most-used-baud-rates-table/</a>)</p>
+<p>If you look at these sites, frequently used friends are organized.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/015.png" alt=""></p>
+<p> <br>
+I know that the value of 115200 is usually used, but there are cases where this is not the case.<br>
+ <br>
+Once you enter the wrong baudrate, unreadable characters appear as shown below.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/016.png" alt=""></p>
+<p> <br>
+You can find the normal baud rate by looking at the output results and entering them one by one.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/017.png" alt=""></p>
+<p> <br>
+ <br>
+Now that the UART is connected properly, what can I do now?<br>
+When you connect and connect like this, a login message may appear immediately and a command shell may open.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/018.png" alt=""></p>
+<p>Unfortunately, this was not the case with this TP-LINK router. The input was blocked.<br>
+Standby state… For this router, the web runs in Lua. Therefore, it remains in a standby state until the relevant signal arrives.<br>
+ <br>
+In this case, you will have to use another method to obtain the firmware.<br>
+There are three main methods.<br>
+ </p>
+<h4>Serial Data Output Fault Injection</h4>
+<p>There is a stage in the booting process where firmware is executed. <br>
+At this time, when an interrupt is generated, a bootloader shell is executed, and there is a way to obtain firmware through this method.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/019.png" alt="">The interrupt trigger key may be different for each device, but in this device’s case, it was the Enter key.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/020.png" alt=""></p>
+<p>This is the result of entering the help command, and it appears to be a structure that executes with a memory address rather than a general boot method.<br>
+In addition, since boot-related environment variables are not set, the commonly used method of adding a shell or telnet to the environment variables and having them run at booting is not possible.<br>
+ <br>
+Although the most known method does not work, there are still two methods remaining.<br>
+One way is to use USB, but if you look at the PCB board, it is not possible because there are no ports.<br>
+ <br>
+Then, you can use the last remaining method, the network.<br>
+If you look at the bootloader shell, tftpput is supported.<br>
+tftpput is a command that allows you to upload a file from a local device to a remote TFTP server using TFTP (Trivial File Transfer Protocol).<br>
+ <br>
+You can use this command to DUMP the firmware image and then send it.<br>
+First, set the environment variables with the setenv command.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/021.png" alt=""></p>
+<pre><code>setenv ipaddr = 172.16.10.2 #라우터
+setenv serverip = 172.16.10.67 #개인 PC
+setenv gatewayip = 172.16.10.2 #라우터와 동일
+setenv netmask = 255.255.255.0
+</code></pre>
+<p>At first, I thought it must be the <a href="http://192.168.0.XXX">192.168.0.XXX</a> band, but when I connected it, it was a different band.<br>
+ <br>
+Now that preparations are complete on the router side, open the TFTP server on the terminal side. At this time, you must open it to receive files.<br>
+ <br>
+After setting as above, open DUMP and send using the command below.<br>
+Memory offset can be checked through the smeminfo command.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/022.png" alt=""></p>
+<pre><code>nand read 0x44000000 0x0 0x4000000
+tftpput 0x44000000 0x4000000 nand_full.bin
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/023.png" alt=""></p>
+<p>If “died” appears like this, the settings on the TFTP server are incorrect.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/024.png" alt=""></p>
+<p>If you have set it up properly, you will see a pop-up like this showing that the firmware file has been sent and received.<br>
+ <br>
+The flash memory in this device is a NAND chip. <br>
+Therefore, I assumed that there would be a lot of bad blocks including OOB, but since the friend that was loaded into memory was moved with a DUMP, a normal firmware file was extracted.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/025.png" alt=""></p>
+<pre><code>dd if=nand_full.bin of=ubi_A.ubi bs=1 skip=$((0x640000)) count=$((0x2A00000))
+dd if=nand_full.bin of=ubi_B.ubi bs=1 skip=$((0x30A0000)) count=$((0x2A00000))
+
+ubireader_extract_images ubi_A.ubi 
+
+cd ubi_A.ubi/
+unsquashfs  img-794303425_vol-ubi_rootfs.ubifs
+</code></pre>
+<p>You can see that it was extracted well.<br>
+ <br>
+If this method does not work, you must perform a Glitching Attack.<br>
+There is a data sheet picture among the pictures above, and you can see that there is an SO pin.<br>
+ <br>
+Glitching Attack: This attack connects the SO pin and GND during booting to force the bootloader shell to run.<br>
+In this regard, it was conducted on the TAPO C200 model, not the target equipment.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/026.png" alt=""></p>
+<p>Because it is camera equipment, the board is small. <br>
+There is a section on the right that looks like a UART, but there are only GND and VCC there… so you have to find those small pins one by one.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/027.png" alt=""></p>
+<p> <br>
+Since the pins are really small, I connected them with a PCBite.</p>
+<p>There is a terminal that appears to be UART, but the connection is disconnected in the middle. </p>
+<p>Therefore, I needed to connect it by soldering, but I had a good friend at the company called PCBite, so I used it right away.</p>
+<p>When connected to the UART, a login command shell appears immediately, but since I do not know the password, I used the bootloader shell.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/028.png" alt=""></p>
+<p>You need to look up the data sheet for your flash memory and find the SO/DO.<br>
+ <br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/029.png" alt=""></p>
+<p>You can see that there is DO in the second position from the left.<br>
+Now, when you connect the power and contact the corresponding pin and GND, the bootloader shell is executed as shown below. (This is what it looks like when you entered the Help command.)</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/030.png" alt=""></p>
+<p> <br>
+The method of using the network that was done previously seems impossible because there are no related commands.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/031.png" alt=""></p>
+<p>In this case, it is said that the process is done by manipulating the environment variables… The PCB board suddenly died, so no further progress could be made.<br>
+Let’s start repurchasing equipment… <br>
+ <br>
+Another way is to use flashrom now. This requires expensive equipment called PCBite, so it is difficult to do it personally at home.<br>
+You also need a Raspberry Pi.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/032.png" alt=""></p>
+<p>Each pin of the Raspberry Pi has a role, and the pins must be connected by referring to the role configuration and data sheet.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/033.png" alt=""></p>
+<p>There may be differences for each flash memory, but you can connect it like this.<br>
+ <br>
+The last method is to simply remove the flash memory and read it directly.<br>
+ <br>
+Since we are in an environment where we can obtain firmware without having to go through these two methods, we will write more about this as we proceed with the work.</p>
+<hr>
+<h2>Analyze #1</h2>
+<p>The friend that needs to be analyzed first is /etc/inittab -&gt; /etc/init.d/rcS -&gt; /etc/rc.d/*.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/034.png" alt="">When booting, /etc/init.d/rcS is run with the S argument.</p>
+<pre><code>#!/bin/sh
+# Copyright (C) 2006 OpenWrt.org
+
+. /lib/functions.sh
+
+run_scripts_K() {
+	timeout_reboot_f &amp;
+	for i in /etc/rc.d/$1*; do
+		config_load sysmode
+		config_get initlist sysmode initial
+		find=0
+		fname=`echo $i | sed 's/\/etc\/rc\.d\/K[0-9]*//g'`
+		for j in $initlist; do
+			[ &quot;$j&quot; = &quot;$fname&quot; ] &amp;&amp; {
+				let find=1
+				break
+			}
+		done
+		[ $find = 0 -a -x $i ] &amp;&amp; $i $2 2&gt;&amp;1
+	done | $LOGGER
+}
+
+run_scripts() {
+	for i in /etc/rc.d/$1*; do
+		config_load sysmode
+		config_get initlist sysmode initial
+		find=0
+		fname=`echo $i | sed 's/\/etc\/rc\.d\/S[0-9]*//g'`
+		for j in $initlist; do
+			[ &quot;$j&quot; = &quot;$fname&quot; ] &amp;&amp; {
+				let find=1
+				break
+			}
+		done
+		[ $find = 0 -a -x $i ] &amp;&amp; $i $2 2&gt;&amp;1
+	done | $LOGGER
+}
+
+system_config() {
+	config_get_bool foreground $1 foreground 0
+}
+
+LOGGER=&quot;cat&quot;
+[ -x /usr/bin/logger ] &amp;&amp; LOGGER=&quot;logger -s -p 6 -t sysinit&quot;
+
+config_load system
+config_foreach system_config system
+
+if [ &quot;$1&quot; = &quot;S&quot; -a &quot;$foreground&quot; != &quot;1&quot; ]; then
+	run_scripts &quot;$1&quot; &quot;$2&quot; &amp;
+elif [ &quot;$1&quot; = &quot;K&quot; ]; then
+	run_scripts_K &quot;$1&quot; &quot;$2&quot;
+else
+	run_scripts &quot;$1&quot; &quot;$2&quot;
+fi
+</code></pre>
+<p>This script is responsible for executing scripts starting with S located in /etc/rc.d/ during the booting process.</p>
+<p>And when the system is shut down, it executes and terminates scripts that start with K.</p>
+<p><img src="/assets/images/tistory/tistory-27d29bcca2fa/035.png" alt=""></p>
+<p>These are scripts for initial settings between booting and shutdown.</p>
+<p>(Most scripts are linked to the /etc/init.d/ path.)</p>
+<p>Here, if it is the original equipment, there is something called failsafe mode.</p>
+<p>To enter, connect the power and press the reset button for a few seconds.</p>
+<p>Usually, when entering this mode, telnetd-related services are executed, so I looked for related operations.</p>
+<pre><code>	ln -sf /tmp/resolv.conf.auto /tmp/resolv.conf
+	grep -q debugfs /proc/filesystems &amp;&amp; mount -t debugfs debugfs /sys/kernel/debug
+	[ &quot;$FAILSAFE&quot; = &quot;true&quot; ] &amp;&amp; touch /tmp/.failsafe
+	[ -d  /storage ] &amp;&amp; mount -t jffs2 mtd:storage /storage
+	[ -d  /data ] &amp;&amp; mount -t jffs2 mtd:data /data
+	# mount_tpdata move to /lib/preinit
+</code></pre>
+<p>You can check whether this part is running by estimating /etc/init.d/boot.</p>
+<pre><code>#!/bin/sh
+# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2010 Vertical Communications
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+pi_ifname=
+pi_ip=192.168.1.1
+pi_broadcast=192.168.1.255
+pi_netmask=255.255.255.0
+
+fs_failsafe_ifname=
+fs_failsafe_ip=192.168.1.1
+fs_failsafe_broadcast=192.168.1.255
+fs_failsafe_netmask=255.255.255.0
+
+fs_failsafe_wait_timeout=2
+
+pi_suppress_stderr=&quot;y&quot;
+pi_init_suppress_stderr=&quot;y&quot;
+pi_init_path=&quot;/bin:/sbin:/usr/bin:/usr/sbin&quot;
+pi_init_cmd=&quot;/sbin/init&quot;
+
+. /lib/functions.sh
+. /lib/functions/boot.sh
+
+boot_hook_init preinit_essential
+boot_hook_init preinit_main
+boot_hook_init failsafe
+boot_hook_init initramfs
+boot_hook_init preinit_mount_root
+
+for pi_source_file in /lib/preinit/*; do
+    . $pi_source_file
+done
+
+boot_run_hook preinit_essential
+
+pi_mount_skip_next=false
+pi_jffs2_mount_success=false
+pi_failsafe_net_message=false
+
+boot_run_hook preinit_main
+</code></pre>
+<p>If you look at /etc/preinit, you can see the default network settings when entering failsafe mode. ㅣㅆda.</p>
+<pre><code>#!/bin/sh
+# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2010 Vertical Communications
+
+failsafe_netlogin () {
+    telnetd -l /bin/login.sh &lt;&gt; /dev/null 2&gt;&amp;1
+}
+
+failsafe_shell() {
+    lock /tmp/.failsafe
+    ash --login
+    echo &quot;Please reboot system when done with failsafe network logins&quot;
+}
+
+boot_hook_add failsafe failsafe_netlogin
+boot_hook_add failsafe failsafe_shell
+</code></pre>
+<p>If you look at lib/preinit/99_10_failsafe_login, you can see that Telnetd is running in failsafe mode.</p>
+<pre><code>...
+	return $keypressed
+}
+
+failsafe_wait() {
+    FAILSAFE=
+    pi_failsafe_net_message=true
+    preinit_net_echo &quot;Please press button now to enter failsafe&quot;
+    pi_failsafe_net_message=false
+    fs_wait_for_key f 'to enter failsafe mode' $fs_failsafe_wait_timeout &amp;&amp; FAILSAFE=true &amp;&amp; export FAILSAFE
+}
+
+#boot_hook_add preinit_main failsafe_wait
+</code></pre>
+<p>If you trace 99_10_failsafe_login, you can now check whether the actual telnetd execution function is called.</p>
+<p>You can see that it is not used in the target device as it is commented out.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

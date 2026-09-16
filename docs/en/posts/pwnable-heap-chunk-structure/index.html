@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Heap Chunk Structure · whrds.log</title><meta name="description" content="Memory Allocator: Efficiently allocates limited memory resources to each process. - Dynamically allocates and frees memory during execution. - The type of algorithm used varies depending on the implementation. - ptmalloc2 is used in Ubuntu. A feature of ptmalloc2 is that it does not erase data on freed memory.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-heap-chunk-structure/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-heap-chunk-structure/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-heap-chunk-structure/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Heap Chunk Structure · whrds.log"><meta property="og:description" content="Memory Allocator: Efficiently allocates limited memory resources to each process. - Dynamically allocates and frees memory during execution. - The type of algorithm used varies depending on the implementation. - ptmalloc2 is used in Ubuntu. A feature of ptmalloc2 is that it does not erase data on freed memory."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-heap-chunk-structure/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Heap Chunk Structure","description":"Memory Allocator: Efficiently allocates limited memory resources to each process. - Dynamically allocates and frees memory during execution. - The type of algorithm used varies depending on the implementation. - ptmalloc2 is used in Ubuntu. A feature of ptmalloc2 is that it does not erase data on freed memory.","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-heap-chunk-structure/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-heap-chunk-structure/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Heap Chunk Structure</h1><p class="article-description">Memory Allocator: Efficiently allocates limited memory resources to each process. - Dynamically allocates and frees memory during execution. - The type of algorithm used varies depending on the implementation. - ptmalloc2 is used in Ubuntu. A feature of ptmalloc2 is that it does not erase data on freed memory.</p><div class="article-meta"><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>3 min read</span></div></header><div class="prose"><p>Memory Allocator </p>
+<p>: Efficiently distributes limited memory resources to each process.</p>
+<p>- Dynamically allocates and frees memory during execution.</p>
+<p>- The type of algorithm used varies depending on the implementation - ptmalloc2 is used in Ubuntu.</p>
+<p>A characteristic of ptmalloc2 is that it retains data in freed memory without erasing it.</p>
+<p>It has the feature of being returned when a similar request is made.</p>
+<p>- Prevent memory waste</p>
+<p>- Fast memory reuse<br>
+  Use a list called tcache or bin.</p>
+<p>- Memory fragmentation method<br>
+  Use sorting, merging, and splitting to reduce fragmentation.</p>
+<h4>chunk</h4>
+<p>To the space allocated by ptmalloc </p>
+<p>It consists of header + data area.</p>
+<p>Because the header indicates the status and size of the chunk, the structures of the chunk in use and the freed chunk are different.</p>
+<p><img src="/assets/images/tistory/tistory-c084fac95b4c/001.png" alt=""></p>
+<p>If you look at the header of the freed chunk, fd and bk are present.</p>
+<p>fd: Points to the next chunk in the linked list.</p>
+<p>bk: Points to the previous chunk in the linked list.</p>
+<p><img src="/assets/images/tistory/tistory-c084fac95b4c/002.png" alt=""></p>
+<p>allocated chunk</p>
+<p><img src="/assets/images/tistory/tistory-c084fac95b4c/003.png" alt=""></p>
+<p>free chunk</p>
+<h4>bin</h4>
+<p>This is an object where used chunks are stored.</p>
+<p>Because it is temporarily stored in the bin and used when an allocation request is made, it helps ‘prevent memory waste and quickly reuse freed chunks.’</p>
+<p>Bins are divided according to size.</p>
+<ul>
+<li>smallbin<br>
+Chunks with sizes ranging from 32 to 1024 bytes are stored.<br>
+The doubly linked list method and FIFO method are used.<br>
+Due to the nature of a doubly linked list, a disconnection process is required to add or release chunks.<br>
+This process is called unlink.<br>
+Since it is the merge target of ptmalloc, two adjacent chunks containing smallbin are merged.-&gt;consolidation
+-fastbin<br>
+Chunks with sizes ranging from 32 to 176 bytes are stored.<br>
+There are 10 units of 16 bytes.<br>
+Because it is a single linked list method, the unlink process is unnecessary. =&gt; Increased speed
+-largebin<br>
+Chunks with a size of 1024 bytes or more are stored.<br>
+All chunks with sizes within a certain range are stored.<br>
+When a reallocation request occurs, chunks of the most similar size are sorted in descending order to reallocate them.<br>
+It is a double connection method.
+-unsortedbin<br>
+Stores unsorted chunks.<br>
+All chunks that exist only once and are not in fastbin are stored in unsortedbin when freed.<br>
+It is a doubly linked list method.</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-c084fac95b4c/004.png" alt=""></p>
+<p>Efficiently manage the system using bin in arena.</p>
+<p>It also supports optimization of the thread environment using tcache.</p>
+<p>There are 64 tcache per thread, and each tcache has 7 chunks.</p>
+<p>Therefore, there is no need to consider race conditions, and since it is used before the bin, it alleviates bottlenecks.<br>
+And only chunks of the same size are stored in one tcache.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-heap-chunk-structure/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

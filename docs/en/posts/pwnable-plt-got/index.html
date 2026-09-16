@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] plt &amp; got · whrds.log</title><meta name="description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ In the context of studying the system, you would have heard a lot about plt and got. plt holds data about got, and got holds data about the actual address of functions. You would have some understanding of this level. First, let&#039;s look at the concept. PLT (Procedure Linkage Table)">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-plt-got/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-plt-got/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-plt-got/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] plt &amp; got · whrds.log"><meta property="og:description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ In the context of studying the system, you would have heard a lot about plt and got. plt holds data about got, and got holds data about the actual address of functions. You would have some understanding of this level. First, let&#039;s look at the concept. PLT (Procedure Linkage Table)"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-plt-got/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] plt & got","description":"※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ In the context of studying the system, you would have heard a lot about plt and got. plt holds data about got, and got holds data about the actual address of functions. You would have some understanding of this level. First, let's look at the concept. PLT (Procedure Linkage Table)","datePublished":"2023-10-04","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-plt-got/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-plt-got/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] plt &amp; got</h1><p class="article-description">※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ In the context of studying the system, you would have heard a lot about plt and got. plt holds data about got, and got holds data about the actual address of functions. You would have some understanding of this level. First, let&#039;s look at the concept. PLT (Procedure Linkage Table)</p><div class="article-meta"><time datetime="2023-10-04">Oct 4, 2023</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections.</strong> <strong>※</strong></p>
+<p>In the context of studying the system, you may have heard a lot about plt and got.</p>
+<p>plt holds the data of got, and got holds data about the actual address of functions.</p>
+<p>You probably know this much.</p>
+<p>First, let’s look at the concepts.</p>
+<p><strong>PLT (Procedure Linkage Table)</strong>: A table that connects external procedures, allowing the use of procedures in libraries.</p>
+<p><strong>GOT (Global Offset Table)</strong>: A table referenced by PLT, where the addresses of procedures are stored.</p>
+<p>To understand these concepts, you need to know about static and dynamic linking.</p>
+<p><strong>Linking</strong>: The process of connecting a library containing the implementation code of various functions to a binary file.</p>
+<hr>
+<p>In the <strong>static</strong> approach, plt and got are not needed.</p>
+<p>Because the contents of the library are included in the file during creation, there is no need for additional linking methods when calling functions.</p>
+<p>The disadvantages of this method are that if the contents of the shared library file are modified, the binary file cannot be linked, so it must be recompiled, and the file size itself becomes larger.</p>
+<p><img src="/assets/images/tistory/tistory-218fb7259047/001.png" alt=""></p>
+<p>The <strong>now binding</strong> method is used in the static approach.</p>
+<p>: A method where all symbol addresses are linked when the binary file starts.</p>
+<hr>
+<p>The <strong>dynamic</strong> approach, unlike static, uses linking with shared libraries.</p>
+<p>When the binary file is executed, the library is mapped into memory.</p>
+<p>Linking occurs during the process of calling functions.</p>
+<p>Because of this process, there is no need to recompile the library file even if it is modified.</p>
+<p><img src="/assets/images/tistory/tistory-218fb7259047/002.png" alt=""></p>
+<p>The method used in the dynamic approach is <strong>lazy binding</strong>.</p>
+<p>: A method where the address of the symbol is found and linked at the time the function is called.</p>
+<p>Let’s look at the lazy binding method.</p>
+<p><img src="/assets/images/tistory/tistory-218fb7259047/003.png" alt=""></p>
+<p>By calling the function and tracing the flow using step into, you can access the above function.</p>
+<p>We will examine the state of got before and after the execution of the _dl_runtime_resolve_xsavec function.</p>
+<p><img src="/assets/images/tistory/tistory-218fb7259047/004.png" alt=""></p>
+<p>Before the call, a value other than the actual address of the function is present.</p>
+<p>This is the state after the resolve function has been processed.</p>
+<p><img src="/assets/images/tistory/tistory-218fb7259047/005.png" alt=""></p>
+<p>You can see that a different address is present.</p>
+<p>This address is obtained by referencing the library file to get the actual address of the setvbuf function.</p>
+<p><img src="/assets/images/tistory/tistory-218fb7259047/006.png" alt=""></p>
+<p>You can confirm that the obtained address is in the libc area.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-plt-got/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

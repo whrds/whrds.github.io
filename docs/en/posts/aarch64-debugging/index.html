@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[AArch64] Debugging · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ The debugging method was mentioned earlier, but dynamic debugging cannot be performed using that method. In this post, we will cover how to perform dynamic debugging. (Because I am writing this based on my own experience through trial and error, there may be a more efficient method.)">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/aarch64-debugging/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/aarch64-debugging/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/aarch64-debugging/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[AArch64] Debugging · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ The debugging method was mentioned earlier, but dynamic debugging cannot be performed using that method. In this post, we will cover how to perform dynamic debugging. (Because I am writing this based on my own experience through trial and error, there may be a more efficient method.)"><meta property="og:url" content="https://whrds.github.io/en/posts/aarch64-debugging/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[AArch64] Debugging","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ The debugging method was mentioned earlier, but dynamic debugging cannot be performed using that method. In this post, we will cover how to perform dynamic debugging. (Because I am writing this based on my own experience through trial and error, there may be a more efficient method.)","datePublished":"2024-03-23","inLanguage":"en","url":"https://whrds.github.io/en/posts/aarch64-debugging/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/aarch64-debugging/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[AArch64] Debugging</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ The debugging method was mentioned earlier, but dynamic debugging cannot be performed using that method. In this post, we will cover how to perform dynamic debugging. (Because I am writing this based on my own experience through trial and error, there may be a more efficient method.)</p><div class="article-meta"><time datetime="2024-03-23">Mar 23, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+<p>The debugging method was mentioned earlier, but dynamic debugging cannot be performed using that method.</p>
+<p>In this post, we will cover how to perform dynamic debugging.</p>
+<p>(Because I am writing this based on my own experience through trial and error, there may be a more efficient method.)</p>
+<hr>
+<p><a href="https://whrdud727.tistory.com/34">https://whrdud727.tistory.com/34</a></p>
+<p> [[AArch64] x86_64 Simple comparison</p>
+<p>※ If there are any mistakes, please let us know. We will check and correct it. ※ This architecture is designed for efficient power use and high performance. Mainly used in environments such as smartphones and embedded systems</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/34">https://whrdud727.tistory.com/34</a>)</p>
+<p>First, this is the method covered in the above post.</p>
+<pre><code>gdb-multiarch -q ./a.out
+</code></pre>
+<p>Execute the created file using gdb-multiarch.</p>
+<p>Since all SYMBOLs are alive here, it is easy to check and analyze the function through info func.</p>
+<p><img src="/assets/images/tistory/tistory-14d4a184d653/001.png" alt=""></p>
+<hr>
+<p>To dynamically debug, you must use qemu-user-static.</p>
+<pre><code>sudo apt-get install qemu-user-static
+</code></pre>
+<p>Install it using the above command.</p>
+<p><img src="/assets/images/tistory/tistory-14d4a184d653/002.png" alt=""></p>
+<p>After installation, you can see that it is installed by architecture.</p>
+<pre><code> qemu-aarch64-static -g 1234 [binary_file_name]
+</code></pre>
+<p>Use the -g option to specify the port to use. In this way, the GDB server will be run with a port number of 1234.</p>
+<p>Afterwards, you can connect from another terminal.</p>
+<pre><code>gdb-multiarch
+gef-remote --qemu-user --qemu-binary [binary_file_name] localhost 1234
+</code></pre>
+<p>After connecting to gdb-multiarch, use gef-remote to connect.</p>
+<p>In this case, 1234 is the port of the GDB server opened earlier.</p>
+<p><img src="/assets/images/tistory/tistory-14d4a184d653/003.png" alt=""></p>
+<p>After connecting like this, the Debugging window will appear.</p>
+<p>From here, open another terminal and open another GDB in the same way as before.</p>
+<pre><code>gdb-multiarch -q ./a.out
+</code></pre>
+<p>In that window, check the addresses of other necessary functions, including main(), and set and analyze bp in the terminal connected to the server for dynamic debugging.</p>
+<p><img src="/assets/images/tistory/tistory-14d4a184d653/004.png" alt=""></p>
+<p>In this way, a total of three terminals for debugging are opened and analysis is performed.</p>
+<p>(Generally, in the remaining empty terminal window, a terminal is launched for the purpose of instantly creating and executing the payload file.)</p>
+<p>To summarize, the method currently being used is opened and used as follows.</p>
+<p>1. Terminal for writing payload</p>
+<p>2. Static analysis terminal for addresses and information about functions/symbols</p>
+<p>3. terminal to open gdb-server</p>
+<p>4. Terminal for dynamic analysis</p>
+<p>[If there is a better way, please let me know;;]</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/aarch64-debugging/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

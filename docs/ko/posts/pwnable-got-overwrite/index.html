@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] GOT Overwrite · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전에 작성한 plt&amp;got를 이용한 공격 기법이다. https://whrdud727.tistory.com/15 [PWNABLE] plt &amp; got ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 시스템을 공부하는 상황에서 ">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-got-overwrite/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-got-overwrite/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-got-overwrite/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] GOT Overwrite · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전에 작성한 plt&amp;got를 이용한 공격 기법이다. https://whrdud727.tistory.com/15 [PWNABLE] plt &amp; got ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 시스템을 공부하는 상황에서 "><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-got-overwrite/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] GOT Overwrite","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전에 작성한 plt&got를 이용한 공격 기법이다. https://whrdud727.tistory.com/15 [PWNABLE] plt & got ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 시스템을 공부하는 상황에서 ","datePublished":"2023-10-04","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-got-overwrite/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-got-overwrite/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] GOT Overwrite</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전에 작성한 plt&amp;got를 이용한 공격 기법이다. https://whrdud727.tistory.com/15 [PWNABLE] plt &amp; got ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 시스템을 공부하는 상황에서 </p><div class="article-meta"><time datetime="2023-10-04">2023년 10월 4일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
+<p>이전에 작성한 plt&amp;got를 이용한 공격 기법이다.</p>
+<p><a href="https://whrdud727.tistory.com/15">https://whrdud727.tistory.com/15</a></p>
+<p> [[PWNABLE] plt &amp; got</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 시스템을 공부하는 상황에서 plt와 got에 대해 많이 들어보았을 것이다. plt에는 got의 데이터를 가지고 있고, got에는 함</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/15">https://whrdud727.tistory.com/15</a>)</p>
+<p>Dynamic 방식의 경우 lazy binding 방식으로 인해 함수를 호출할 때 실제주소를 link하는 것을 살펴보았다.</p>
+<p>정상적으로 linking이 되면 plt =&gt; got =&gt; 실제주소 의 순으로 가리키게 되는데,</p>
+<p>이때 got가 가리키는 데이터를 다른 함수의 주소로 덮어버리는 것이 GOT Overwrite이다.</p>
+<p>간단한 예제를 가지고 확인해보겠다.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+        char buf[20];
+
+        gets(buf);
+        puts(buf);
+
+        return 0;
+}
+</code></pre>
+<p>gets함수로 입력한 값을 puts함수로 그대로 출력하는 코드이다.</p>
+<p>위 코드를 이용하여 /bin/sh를 실행시켜보겠다.</p>
+<p>우선 입력한 값을 그대로 출력한다는 점에서 /bin/sh를 입력하면 된다는 것은 생각할 수 있을 것이다.</p>
+<p>인자로 전달될 값은 입력했는데 셸을 실행시킬 system이나 execve함수는 어떻게 해야할까??</p>
+<p>정답은 puts함수의 got를 system함수의 주소로 덮어씌우는 것이다.</p>
+<p>위 코드의 함수들을 보면 아래와 같이 gets@plt, puts@plt가 있는 것을 볼 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-e0899e23fb45/001.png" alt=""></p>
+<p>우리가 알아야 하는 것은 got인데 왜 plt를 먼저 확인하는지 궁금할 수도 있다.</p>
+<p>몇번 언급했지만 plt에는 got의 데이터를 가지고 있다.</p>
+<p>즉, 해당 plt를 뜯어보면 got를 얻을 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-e0899e23fb45/002.png" alt=""></p>
+<p>puts@plt = 0x08049060을 이용하여 puts@got인 0x804c008을 구했다.</p>
+<p>이제 system 함수를 구해야 하는데 해당 코드를 보면 system함수에 대한 선언이 되어있지 않았다.</p>
+<p>그렇다면 파일이 실행되고 공유 라이브러리가 linking이 된 이후를 노려야 한다.</p>
+<p>linking이 되면 gdb에서 검색을 하면 공유 라이브러리도 참조를 하기 때문에 system의 실제주소를 구할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-e0899e23fb45/003.png" alt=""></p>
+<p>이제 puts@got를 system@add로 설정해 보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-e0899e23fb45/004.png" alt=""></p>
+<p>set명령어를 사용하면 값을 덮어쓸 수 있다.</p>
+<p>이렇게 한 다음 gets의 입력에 '/bin/sh’만 입력하면 셸이 실행되는 것을 볼 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-e0899e23fb45/005.png" alt=""></p>
+<p>실제 ctf나 그런 환경에서는 이런 방법을 사용할 수 없다.</p>
+<p>그런 상황에서는 rtl, rop 등의 기법을 이용해 체인을 구성하여 got overwrite를 해야한다.</p>
+<p>즉, got overwrite는 앞으로 다룰 기법에서 자주 사용되기 때문에 이해하고 넘어가야 한다.</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-got-overwrite/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

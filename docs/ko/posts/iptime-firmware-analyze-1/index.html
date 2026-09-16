@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[IPTIME] FIRMWARE ANALYZE #1 · whrds.log</title><meta name="description" content="계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.아직 계속해서 분석해보고, 여러가지 시도를 해보는 등 삽질을 하고 있지만 중간중간 이렇게 정리하도록 하겠다. 삽질만 하고 있기에.. 설명이나 그런 것이라기 보다는 이런이런 시도를 해보았다는 내용이 더 많을 것 같다.N">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/iptime-firmware-analyze-1/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/iptime-firmware-analyze-1/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/iptime-firmware-analyze-1/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[IPTIME] FIRMWARE ANALYZE #1 · whrds.log"><meta property="og:description" content="계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.아직 계속해서 분석해보고, 여러가지 시도를 해보는 등 삽질을 하고 있지만 중간중간 이렇게 정리하도록 하겠다. 삽질만 하고 있기에.. 설명이나 그런 것이라기 보다는 이런이런 시도를 해보았다는 내용이 더 많을 것 같다.N"><meta property="og:url" content="https://whrds.github.io/ko/posts/iptime-firmware-analyze-1/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[IPTIME] FIRMWARE ANALYZE #1","description":"계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.아직 계속해서 분석해보고, 여러가지 시도를 해보는 등 삽질을 하고 있지만 중간중간 이렇게 정리하도록 하겠다. 삽질만 하고 있기에.. 설명이나 그런 것이라기 보다는 이런이런 시도를 해보았다는 내용이 더 많을 것 같다.N","datePublished":"2025-02-13","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/iptime-firmware-analyze-1/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/iptime-firmware-analyze-1/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[IPTIME] FIRMWARE ANALYZE #1</h1><p class="article-description">계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.아직 계속해서 분석해보고, 여러가지 시도를 해보는 등 삽질을 하고 있지만 중간중간 이렇게 정리하도록 하겠다. 삽질만 하고 있기에.. 설명이나 그런 것이라기 보다는 이런이런 시도를 해보았다는 내용이 더 많을 것 같다.N</p><div class="article-meta"><time datetime="2025-02-13">2025년 2월 13일</time><span>·</span><span>9 분 읽기</span></div></header><div class="prose"><p>계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.</p>
+<p>아직 계속해서 분석해보고, 여러가지 시도를 해보는 등 삽질을 하고 있지만 중간중간 이렇게 정리하도록 하겠다.</p>
+<p>삽질만 하고 있기에… 설명이나 그런 것이라기 보다는 이런이런 시도를 해보았다는 내용이 더 많을 것 같다.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/001.png" alt=""></p>
+<p>NOTION에 정리하면서 하긴 했는데 여기 내용을 다 브롤그로 옮기기에는 너무 길어질 것 같기 떄문에 삽질한 부분을 최대한 제외 해보겠다.</p>
+<hr>
+<h3>TARGET</h3>
+<p>먼저 target 선정을 해야한다.</p>
+<p>보통 비용, FIRMWARE 추출 가능한지 여부 등등을 고려하며 선정하는게 일반적이다.</p>
+<p>어떤 장비로 해볼까 고민하다가 우리가 가장 흔히 접하는 무선 라우터를 선정하였고, 그 중 FIRMWARE가 공개되어 있는 IPTIME 하기로 했다. </p>
+<p>[ IPTIME FIRMWARE DOWNLOAD :  <a href="https://iptime.com/iptime/?page_id=126">https://iptime.com/iptime/?page_id=126</a> ]</p>
+<p>이제 IPTIME 모델 중 하나를 선정해야 하는데 내 자취방에서 사용중인 AX2004M 모델을 사용하기로 했다. </p>
+<p>FIRMWARE가 공개되어 있다고는 해도 에뮬레이팅에 실패하게 된다면 결국은 장비가 필요하다. 이런 상황이 발생했을 때 그냥 내 공유기를 바로 뜯어볼려고 한다.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/002.png" alt=""></p>
+<p>IPTIME AX2004M</p>
+<p>장비의 가격대는 80,000 ~ 100,000원이다. </p>
+<p>뜯어보다가 FIRMWARE 망가뜨리면 다시 정상정인 FIRMWARE로 덮어씌우면 되기 떄문에 일단 이렇게 진행했다.</p>
+<hr>
+<h3>TOOLS</h3>
+<p>FIRMWARE 분석을 위해 많은 툴이 존재한다.</p>
+<p>대표적으로 firmware-analysis-toolkit,FirmAE, firmadyne 등 존재하는데 다른 에뮬레이팅까지 해주는 툴들은 아쉽게도 다 실패하게 되었다.</p>
+<p>이번 분석을 위해 저 좋고 많은 툴들을 두고 binwalk를 사용하고, 에뮬레이팅을 위해 QEMU를 사용했다.</p>
+<hr>
+<h3>EXTRACTION</h3>
+<p>FIRMWARE에는 KERNEL IMG, BOOT LOADER, ROOT FILE SYSTEM, Device Tree가 존재한다.</p>
+<p>binwalk의 옵션 중 -e를 사용하게 되면 바로 다 추출할 수 있지만 이번 프로젝트의 주된 목적은 개인적인 학습이기에 저 옵션을 사용해서가 아닌 직접 뜯어서 분리해보았다.</p>
+<p>만약 저 옵션을 그대로 사용하고자 한다면 아래와 같이 사용하면 된다.</p>
+<pre><code>binwalk -e [ FIRMWARE ]
+</code></pre>
+<p>EXPORT하는 옵션은 사용하지 않겠지만 그래도 그 구분은 어떻게 되는지는 확인해야되기에 이건 binwalk를 사용했다.</p>
+<hr>
+<h4>#1 INSTALL FIRMWARE</h4>
+<p>먼저 분석할 FIRMWARE을 설치해야 한다.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/003.png" alt=""></p>
+<p>IPTIME의 게시글에 들어가보면 FIRMWARE 파일들을 다운 받을 수 있다.</p>
+<p>여기서 링크를 얻어 아래 명령을 수행하면 파일을 다운 받을 수 있다.</p>
+<pre><code>wget https://download.iptime.co.kr/release/15_056/firmware/ax2004m_ml_15_056.bin
+</code></pre>
+<h4>#2 BINWALK </h4>
+<p>이제 firmware 파일의 구성을 확인해보겠다.</p>
+<pre><code>binwalk ax2004m_ml_15_056.bin
+</code></pre>
+<p>위 명령을 수행하면 아래와 같이 결과가 뜨는 것을 볼 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/004.png" alt=""></p>
+<p>DTB -&gt; LZMA로 압축된 파일 -&gt; DTB -&gt; FILESYSTEM으로 구성되고 있다.</p>
+<p>더 깊게 들어가기 전에 Device Tree가 무엇인지 간단하게 설명하겠다.</p>
+<p>주로 임데디드 시스템과 ARM 기반의 플랫품에서 사용되는 것으로 하드웨어 정보와 드라이버가 독립적으로 관리되도록 설계되어 있다. 이 Device Tree를 작성할때에는 DTS 라고 불리는 텍스트 형식으로 작성한다. 각 요소는 노드, 속성, 레지스터, 호환성, 인터럽트로 구성된다. 그리고 이 DTS를 바이너리로 컴파일한 형식이 저 이미지에 사용되고 있는 DTB라는 형식이다. 이는 커널이 직접 읽을 수 있도록 설계된 구조로 아래 방법으로 컴파일 할 수 있다.</p>
+<pre><code>dtc -I dts -O dtb -o project.dtb project.dts
+</code></pre>
+<p>다시 저 이미지를 보고 확인을 해보자면 LZMA로 압축된 부분은  커널 이미지와 부트로더가 들어있을 것이고, Squashfs는 rootfs, DTB는 각 구조에 대한 정의 및 하드웨어 정보를 포함하고 있을 것이다.</p>
+<p>이제 이 부분들을 추출해보겠다.</p>
+<h4>#3 SEPARATION</h4>
+<p>저 이미지에서 binwalk로 분리된 부분 4개를 각 part1, part2, part3, part4,part5로 구분하겠다.</p>
+<p><strong>PART 1</strong></p>
+<p>DTB에 해당하는 영역은 56(0x38) ~ 284(0x11c)에 해당이 된다. </p>
+<p>그럼 0(0x0) ~ 55(0x37)에는 무엇이 있는지 모르기 때문에 여기를 먼저 추출해보겠다.</p>
+<pre><code>dd if=./ax2004m_ml_15_056.bin of=./bin1 count=56 bs=1
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/005.png" alt=""></p>
+<p> 추출하고 보니 그냥 분석할 필요도 없는… 사실상 FIRMWARE 이름 같은 부분인 것 같다.</p>
+<p><strong>PART 2</strong></p>
+<pre><code> dd if=./ax2004m_ml_15_056.bin of=./bin1 count=228 skip=55 bs=1
+</code></pre>
+<p> 이 부분이 첫 DTB에 해당하는 부분이다.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/006.png" alt=""></p>
+<p> Kernel 및 리눅스 버젼에 대한 정보를 포함하고 있는 DTB로 추정이 된다. 여기서는 데이터가 없어보이는데 범위를 다르게 해서 추출하면 정상적인 DTB 파일을 볼 수 있다. 이에 대해서는 PART3에서 이 부분을 같이 추출해서 다루겠다.</p>
+<p><strong>PART 3</strong></p>
+<p> 이제 Kernel img에 대한 정보를 가지고 있을 것으로 추정되는 LZMA로 압축된 구간이다.</p>
+<pre><code>dd if=ax2004m_ml_15_056.bin of=bin2 bs=1 skip=56 count=3681724
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/007.png" alt=""></p>
+<p>PART 2이 부분을 포함하여 추출하였기에 앞 부분은 동일한 것을 볼 수 있다.</p>
+<p>이제 추출한 다음에 무엇을 할 수 있는가?? </p>
+<p>IDA나 HEX 값으로 분석…? 일반적인 바이너리였다면 이런 방법을 사용하겠다만… (끔찍…)</p>
+<p>다행히 DTB 파일은 DTS로 전환할 수 있다고 한다. </p>
+<pre><code>dtc -I dtb -O dts bin2.dtb -o bin2.dts
+</code></pre>
+<p>위와 같은 방법으로 변환할 수 있다. </p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/008.png" alt=""></p>
+<p>이제 파일을 읽을 수 있게 되었다.</p>
+<p>근데 내부에 HEX 값으로 바이너리를 포함하기에 매우 용량이 크다…</p>
+<p>떄문에 분할해서 살표보겠다.</p>
+<pre><code>/dts-v1/;
+
+/ {
+	timestamp = &lt;0x67878781&gt;;
+	description = &quot;MIPS OpenWrt FIT (Flattened Image Tree)&quot;;
+	#address-cells = &lt;0x01&gt;;
+
+	images {
+</code></pre>
+<p>MIPS 기반 OpenWrt 시스템에서 사용될 FIT 이미지를 정의하는 초반 부분이다.</p>
+<p>FIT img는 U-Boot에서 사용되는 멀티 이미지 컨테이너 형식으로 Kernel과 Device Tree 등을 포함할 수 있다.</p>
+<p>위 정보를 통해 DTS v1을 사용하고, address-cells을 통해 32 bit 라는 것을 알 수 있다.</p>
+<pre><code>		kernel@1 {
+			description = &quot;MIPS OpenWrt Linux-4.4.198&quot;;
+			data = [6d 00 00 80 00 60 21 d4 00 00 00 00 00 00 00 6f fd ff ff a3 b7 7f ca 77 9a 1d cd 71 7d c6 32 0d 6c 11 9f 5d 7a 60 33 d1 10 30 85 45 05 51 af 18 fb 4a 36 d8 92 f3 8e 83 57 2b 2e 8e 46 9f cb bb c7 92 e5 41 a6 cd 85 b8 05 e6 3e eb fe 61 13 d3 6f d5 08 ae c3 95 68 e0 68 7f d8 a6 7d c2 75 af 74 81 d5 ae ca d6 64 6a b0 c8 78 7e 4a 9f d9 15 db 3f 9f 57 83 53 4f 75 b6 16 52 7a 3c fd 53 b7 da 42 36 9c a5 4b 59 c1 56 a3 f7 71 48 ce 07 4c 4c 80 7f a3 74 73 de a9 aa fb 56 22 8c 14 ed f1 66 c4 cc 25 26 51 22 1e 5c 7b 96 f7 e2 1e 6c 35 c6 0e 3c c8 7e 57 2c 6d 89 9d 99 1a fb 8e ba 21 5a c1 0c 0b da 38 b4 39 14 af 47 18 09 45 4e f5 37 12 8e b5 63 b3 6e aa ca 8b 88 ca 60 c0 22 75 ab 43 0c 4a 56 d5 96 77 ce 49 cb 8
+			.....d1 bf 1e 2b 35 76 23 b6 47 69 74 33 c3 8b 92 37 9a a2 4a 89 43 20 37 a8 e7];
+			type = &quot;kernel&quot;;
+			arch = &quot;mips&quot;;
+			os = &quot;linux&quot;;
+			compression = &quot;lzma&quot;;
+			load = &lt;0x81001000&gt;;
+			entry = &lt;0x81001000&gt;;
+
+			hash@1 {
+				value = &lt;0xaba1133f&gt;;
+				algo = &quot;crc32&quot;;
+			};
+
+			hash@2 {
+				value = &lt;0x51d184a5 0x57da018 0x41d4fd33 0x9ff9fb9f 0xef30b7be&gt;;
+				algo = &quot;sha1&quot;;
+			};
+		};
+</code></pre>
+<p> MIPS Arch 기반 OpenWrt Kernel IMG에 대한 정의인 것을 볼 수 있다.</p>
+<p>Kernel Version은 linux-4.4.198로 오래된 버젼을 사용하고 있고, Kernel IMG는 LZMA 방식으로 압축된 것을 볼 수 있다.</p>
+<p>typs, os 등 메타데이터를 통해 엔트리 포인트 같은 추가적인 정보를 파악할 수 있으며 커널 무결성 검사를 위한 hash 값들을 볼 수 있다.</p>
+<pre><code>		fdt@1 {
+			description = &quot;MIPS OpenWrt mt7621-rfb-ax-nor-ax2004 device tree blob&quot;;
+			data = [d0 0d fe ed 00 00 29 d9 00 00 00 38 00 00 26 d4 00 00 00 28 00 00 00 11 00 00 00 10 00 00 00 00 00 00 03 
+			......73 00];
+			type = &quot;flat_dt&quot;;
+			arch = &quot;mips&quot;;
+			compression = &quot;none&quot;;
+
+			hash@1 {
+				value = &lt;0x21bcc955&gt;;
+				algo = &quot;crc32&quot;;
+			};
+
+			hash@2 {
+				value = &lt;0x3cce5e0a 0x4888ce27 0xc8ae2d72 0xc48a8523 0xf43b7316&gt;;
+				algo = &quot;sha1&quot;;
+			};
+		};
+	};
+</code></pre>
+<p>fdt@1 노드는 MIPS 기반 기기의 DTB를 정의하고 있다.</p>
+<p>이 노드는 압축되지 않은 형태로 HEX 값을 그대로 포함하고 있기에 이를 추출하여 뜯어보면 하드웨어의 각종 정보를 살펴볼 수 있다.</p>
+<p>이 부분은 진짜 하드웨어 정보이기에 따로 정의를 해두진 않겠다. </p>
+<p>살펴보실 분은 아래 토글을… (매우 길기 떄문에 안 열어보는 것을 추천)</p>
+<p>더보기</p>
+<p>/dts-v1/;</p>
+<p>/ {</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x01&gt;;</p>
+<p>compatible = “mediatek,mt7621-rfb-nor-ax2004\0mediatek,mt7621-soc”;</p>
+<p>model = “MediaTek MT7621 RFB (802.11ax,SNOR)”;</p>
+<p>cpus {</p>
+<p>cpu@0 {</p>
+<p>compatible = “mips,mips1004Kc”;</p>
+<p>};</p>
+<p>cpu@1 {</p>
+<p>compatible = “mips,mips1004Kc”;</p>
+<p>};</p>
+<p>};</p>
+<p>cpuintc@0 {</p>
+<p>#address-cells = &lt;0x00&gt;;</p>
+<p>#interrupt-cells = &lt;0x01&gt;;</p>
+<p>interrupt-controller;</p>
+<p>compatible = “mti,cpu-interrupt-controller”;</p>
+<p>};</p>
+<p>aliases {</p>
+<p>serial0 = “/palmbus@1e000000/uartlite@c00”;</p>
+<p>};</p>
+<p>cpuclock@0 {</p>
+<p>#clock-cells = &lt;0x00&gt;;</p>
+<p>compatible = “mtk,mt7621-cpu-clock”;</p>
+<p>linux,phandle = &lt;0x15&gt;;</p>
+<p>phandle = &lt;0x15&gt;;</p>
+<p>};</p>
+<p>sysbusclock@0 {</p>
+<p>#clock-cells = &lt;0x00&gt;;</p>
+<p>compatible = “mtk,mt7621-sys-bus-clock”;</p>
+<p>linux,phandle = &lt;0x07&gt;;</p>
+<p>phandle = &lt;0x07&gt;;</p>
+<p>};</p>
+<p>apll@0 {</p>
+<p>#clock-cells = &lt;0x00&gt;;</p>
+<p>compatible = “fixed-clock”;</p>
+<p>clock-frequency = &lt;0x1017df80&gt;;</p>
+<p>linux,phandle = &lt;0x04&gt;;</p>
+<p>phandle = &lt;0x04&gt;;</p>
+<p>};</p>
+<p>sysclock50M@0 {</p>
+<p>#clock-cells = &lt;0x00&gt;;</p>
+<p>compatible = “fixed-clock”;</p>
+<p>clock-frequency = &lt;0x2faf080&gt;;</p>
+<p>linux,phandle = &lt;0x09&gt;;</p>
+<p>phandle = &lt;0x09&gt;;</p>
+<p>};</p>
+<p>sysclock125M@0 {</p>
+<p>#clock-cells = &lt;0x00&gt;;</p>
+<p>compatible = “fixed-clock”;</p>
+<p>clock-frequency = &lt;0x7735940&gt;;</p>
+<p>linux,phandle = &lt;0x11&gt;;</p>
+<p>phandle = &lt;0x11&gt;;</p>
+<p>};</p>
+<p>palmbus@1e000000 {</p>
+<p>compatible = “palmbus”;</p>
+<p>reg = &lt;0x1e000000 0x100000&gt;;</p>
+<p>ranges = &lt;0x00 0x1e000000 0xfffff&gt;;</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x01&gt;;</p>
+<p>sysc@0 {</p>
+<p>compatible = “mtk,mt7621-sysc”;</p>
+<p>reg = &lt;0x00 0x100&gt;;</p>
+<p>};</p>
+<p>wdt@100 {</p>
+<p>compatible = “mtk,mt7621-wdt”;</p>
+<p>reg = &lt;0x100 0x100&gt;;</p>
+<p>};</p>
+<p>gpio@600 {</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x00&gt;;</p>
+<p>compatible = “mtk,mt7621-gpio”;</p>
+<p>reg = &lt;0x600 0x100&gt;;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x0c 0x04&gt;;</p>
+<p>bank@0 {</p>
+<p>reg = &lt;0x00&gt;;</p>
+<p>compatible = “mtk,mt7621-gpio-bank”;</p>
+<p>gpio-controller;</p>
+<p>#gpio-cells = &lt;0x02&gt;;</p>
+<p>linux,phandle = &lt;0x02&gt;;</p>
+<p>phandle = &lt;0x02&gt;;</p>
+<p>};</p>
+<p>bank@1 {</p>
+<p>reg = &lt;0x01&gt;;</p>
+<p>compatible = “mtk,mt7621-gpio-bank”;</p>
+<p>gpio-controller;</p>
+<p>#gpio-cells = &lt;0x02&gt;;</p>
+<p>};</p>
+<p>bank@2 {</p>
+<p>reg = &lt;0x02&gt;;</p>
+<p>compatible = “mtk,mt7621-gpio-bank”;</p>
+<p>gpio-controller;</p>
+<p>#gpio-cells = &lt;0x02&gt;;</p>
+<p>};</p>
+<p>};</p>
+<p>i2c@0 {</p>
+<p>compatible = “i2c-gpio”;</p>
+<p>gpios = &lt;0x02 0x03 0x01 0x02 0x04 0x01&gt;;</p>
+<p>i2c-gpio,delay-us = &lt;0x03&gt;;</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x00&gt;;</p>
+<p>status = “okay”;</p>
+<p>pinctrl-names = “default”;</p>
+<p>pinctrl-0 = &lt;0x03&gt;;</p>
+<p>};</p>
+<p>i2s@a00 {</p>
+<p>compatible = “mediatek,mt7621-i2s”;</p>
+<p>reg = &lt;0xa00 0x100&gt;;</p>
+<p>clocks = &lt;0x04&gt;;</p>
+<p>resets = &lt;0x05 0x11&gt;;</p>
+<p>reset-names = “i2s”;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x10 0x04&gt;;</p>
+<p>txdma-req = &lt;0x02&gt;;</p>
+<p>rxdma-req = &lt;0x03&gt;;</p>
+<p>dmas = &lt;0x06 0x04 0x06 0x06&gt;;</p>
+<p>dma-names = “tx\0rx”;</p>
+<p>status = “disabled”;</p>
+<p>};</p>
+<p>spi@b00 {</p>
+<p>status = “okay”;</p>
+<p>compatible = “mediatek,mt7621-spi”;</p>
+<p>reg = &lt;0xb00 0x100&gt;;</p>
+<p>clocks = &lt;0x07&gt;;</p>
+<p>resets = &lt;0x05 0x12&gt;;</p>
+<p>reset-names = “spi”;</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x00&gt;;</p>
+<p>pinctrl-names = “default”;</p>
+<p>pinctrl-0 = &lt;0x08&gt;;</p>
+<p>m25p80@0 {</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x01&gt;;</p>
+<p>compatible = “jedec,spi-nor”;</p>
+<p>reg = &lt;0x00&gt;;</p>
+<p>spi-max-frequency = &lt;0x989680&gt;;</p>
+<p>m25p,chunked-io = &lt;0x20&gt;;</p>
+<p>partition@0 {</p>
+<p>label = “Bootloader”;</p>
+<p>reg = &lt;0x00 0x40000&gt;;</p>
+<p>};</p>
+<p>partition@40000 {</p>
+<p>label = “Config”;</p>
+<p>reg = &lt;0x40000 0x10000&gt;;</p>
+<p>};</p>
+<p>partition@50000 {</p>
+<p>label = “Factory”;</p>
+<p>reg = &lt;0x50000 0x40000&gt;;</p>
+<p>};</p>
+<p>partition@90000 {</p>
+<p>label = “firmware”;</p>
+<p>reg = &lt;0x90000 0xf00000&gt;;</p>
+<p>};</p>
+<p>partition@f90000 {</p>
+<p>label = “rootfs_data”;</p>
+<p>reg = &lt;0xf90000 0x70000&gt;;</p>
+<p>};</p>
+<p>};</p>
+<p>};</p>
+<p>uartlite@c00 {</p>
+<p>compatible = “mediatek,mt6577-uart\0ns16550a”;</p>
+<p>reg = &lt;0xc00 0x100&gt;;</p>
+<p>clocks = &lt;0x09&gt;;</p>
+<p>clock-frequency = &lt;0x2faf080&gt;;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x1a 0x04&gt;;</p>
+<p>reg-shift = &lt;0x02&gt;;</p>
+<p>reg-io-width = &lt;0x04&gt;;</p>
+<p>no-loopback-test;</p>
+<p>};</p>
+<p>uartfull@d00 {</p>
+<p>compatible = “mediatek,mt6577-uart\0ns16550a”;</p>
+<p>reg = &lt;0xd00 0x100&gt;;</p>
+<p>clocks = &lt;0x09&gt;;</p>
+<p>clock-frequency = &lt;0x2faf080&gt;;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x1b 0x04&gt;;</p>
+<p>reg-shift = &lt;0x02&gt;;</p>
+<p>reg-io-width = &lt;0x04&gt;;</p>
+<p>no-loopback-test;</p>
+<p>status = “okay”;</p>
+<p>};</p>
+<p>uartfull@e00 {</p>
+<p>compatible = “mediatek,mt6577-uart\0ns16550a”;</p>
+<p>reg = &lt;0xe00 0x100&gt;;</p>
+<p>clocks = &lt;0x09&gt;;</p>
+<p>clock-frequency = &lt;0x2faf080&gt;;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x1c 0x04&gt;;</p>
+<p>reg-shift = &lt;0x02&gt;;</p>
+<p>reg-io-width = &lt;0x04&gt;;</p>
+<p>no-loopback-test;</p>
+<p>status = “okay”;</p>
+<p>};</p>
+<p>gdma@2800 {</p>
+<p>compatible = “mtk,rt3883-gdma”;</p>
+<p>reg = &lt;0x2800 0x800&gt;;</p>
+<p>resets = &lt;0x05 0x0e&gt;;</p>
+<p>reset-names = “dma”;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x0d 0x04&gt;;</p>
+<p>#dma-cells = &lt;0x01&gt;;</p>
+<p>#dma-channels = &lt;0x10&gt;;</p>
+<p>#dma-requests = &lt;0x10&gt;;</p>
+<p>status = “disabled”;</p>
+<p>linux,phandle = &lt;0x06&gt;;</p>
+<p>phandle = &lt;0x06&gt;;</p>
+<p>};</p>
+<p>ecc@3800 {</p>
+<p>compatible = “mediatek,mt7621-ecc”;</p>
+<p>reg = &lt;0x3800 0x800&gt;;</p>
+<p>status = “disabled”;</p>
+<p>linux,phandle = &lt;0x0a&gt;;</p>
+<p>phandle = &lt;0x0a&gt;;</p>
+<p>};</p>
+<p>nand@3000 {</p>
+<p>compatible = “mediatek,mt7621-nfc”;</p>
+<p>reg = &lt;0x3000 0x800&gt;;</p>
+<p>ecc-engine = &lt;0x0a&gt;;</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x01&gt;;</p>
+<p>pinctrl-names = “default”;</p>
+<p>pinctrl-0 = &lt;0x0b&gt;;</p>
+<p>status = “disabled”;</p>
+<p>};</p>
+<p>memc@5000 {</p>
+<p>compatible = “mtk,mt7621-memc”;</p>
+<p>reg = &lt;0x5000 0x1000&gt;;</p>
+<p>};</p>
+<p>hsdma@7000 {</p>
+<p>compatible = “mediatek,mt7621-hsdma”;</p>
+<p>reg = &lt;0x7000 0x1000&gt;;</p>
+<p>resets = &lt;0x05 0x05&gt;;</p>
+<p>reset-names = “hsdma”;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x0b 0x04&gt;;</p>
+<p>#dma-cells = &lt;0x01&gt;;</p>
+<p>#dma-channels = &lt;0x01&gt;;</p>
+<p>#dma-requests = &lt;0x01&gt;;</p>
+<p>status = “disabled”;</p>
+<p>};</p>
+<p>};</p>
+<p>rstctrl {</p>
+<p>compatible = “ralink,rt2880-reset”;</p>
+<p>#reset-cells = &lt;0x01&gt;;</p>
+<p>linux,phandle = &lt;0x05&gt;;</p>
+<p>phandle = &lt;0x05&gt;;</p>
+<p>};</p>
+<p>clkctrl {</p>
+<p>compatible = “ralink,rt2880-clock”;</p>
+<p>#clock-cells = &lt;0x01&gt;;</p>
+<p>linux,phandle = &lt;0x10&gt;;</p>
+<p>phandle = &lt;0x10&gt;;</p>
+<p>};</p>
+<p>ethsys@1e000000 {</p>
+<p>compatible = “mediatek,mt7621-ethsys\0syscon”;</p>
+<p>reg = &lt;0x1e000000 0x8000&gt;;</p>
+<p>linux,phandle = &lt;0x0c&gt;;</p>
+<p>phandle = &lt;0x0c&gt;;</p>
+<p>};</p>
+<p>raeth@1e100000 {</p>
+<p>compatible = “mediatek,mt7621-eth”;</p>
+<p>reg = &lt;0x1e100000 0xe000&gt;;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x03 0x04&gt;;</p>
+<p>mediatek,ethsys = &lt;0x0c&gt;;</p>
+<p>status = “disabled”;</p>
+<p>};</p>
+<p>ethernet@1e100000 {</p>
+<p>compatible = “mediatek,mt7621-eth\0syscon”;</p>
+<p>reg = &lt;0x1e100000 0xe000&gt;;</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x00&gt;;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x03 0x04&gt;;</p>
+<p>mediatek,ethsys = &lt;0x0c&gt;;</p>
+<p>status = “okay”;</p>
+<p>mac@0 {</p>
+<p>compatible = “mediatek,eth-mac”;</p>
+<p>reg = &lt;0x00&gt;;</p>
+<p>phy-mode = “trgmii”;</p>
+<p>fixed-link {</p>
+<p>speed = &lt;0x3e8&gt;;</p>
+<p>full-duplex;</p>
+<p>pause;</p>
+<p>};</p>
+<p>};</p>
+<p>mac@1 {</p>
+<p>compatible = “mediatek,eth-mac”;</p>
+<p>reg = &lt;0x01&gt;;</p>
+<p>phy-mode = “rgmii”;</p>
+<p>fixed-link {</p>
+<p>speed = &lt;0x3e8&gt;;</p>
+<p>full-duplex;</p>
+<p>pause;</p>
+<p>};</p>
+<p>};</p>
+<p>mdio-bus {</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x00&gt;;</p>
+<p>linux,phandle = &lt;0x0d&gt;;</p>
+<p>phandle = &lt;0x0d&gt;;</p>
+<p>ethernet-phy@1f {</p>
+<p>reg = &lt;0x1f&gt;;</p>
+<p>phy-mode = “rgmii”;</p>
+<p>};</p>
+<p>};</p>
+<p>};</p>
+<p>gsw {</p>
+<p>compatible = “mediatek,mt753x”;</p>
+<p>mt7530,direct-phy-access;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x17 0x04&gt;;</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x00&gt;;</p>
+<p>mediatek,mdio = &lt;0x0d&gt;;</p>
+<p>mediatek,portmap = “wllll”;</p>
+<p>mediatek,mcm;</p>
+<p>resets = &lt;0x05 0x02&gt;;</p>
+<p>reset-names = “mcm”;</p>
+<p>port@5 {</p>
+<p>compatible = “mediatek,mt753x-port”;</p>
+<p>reg = &lt;0x05&gt;;</p>
+<p>phy-mode = “rgmii”;</p>
+<p>fixed-link {</p>
+<p>speed = &lt;0x3e8&gt;;</p>
+<p>full-duplex;</p>
+<p>};</p>
+<p>};</p>
+<p>port@6 {</p>
+<p>compatible = “mediatek,mt753x-port”;</p>
+<p>reg = &lt;0x06&gt;;</p>
+<p>phy-mode = “trgmii”;</p>
+<p>fixed-link {</p>
+<p>speed = &lt;0x3e8&gt;;</p>
+<p>full-duplex;</p>
+<p>};</p>
+<p>};</p>
+<p>mdio-bus {</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x00&gt;;</p>
+<p>};</p>
+<p>};</p>
+<p>hnat@1e100000 {</p>
+<p>compatible = “mediatek,mtk-hnat_v1”;</p>
+<p>reg = &lt;0x1e100000 0x3000&gt;;</p>
+<p>resets = &lt;0x0c 0x00&gt;;</p>
+<p>reset-names = “mtketh”;</p>
+<p>status = “okay”;</p>
+<p>mtketh-wan = “eth1”;</p>
+<p>mtketh-ppd = “eth0”;</p>
+<p>ext-devices = “rax0\0ra0\0rax1\0ra1\0rax2\0ra2\0rax3\0ra3\0apclix0\0apcli0”;</p>
+<p>mtketh-max-gmac = &lt;0x02&gt;;</p>
+<p>};</p>
+<p>sdhci@1e130000 {</p>
+<p>status = “okay”;</p>
+<p>compatible = “mediatek,mt7621-sdhci”;</p>
+<p>reg = &lt;0x1e130000 0x4000&gt;;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x14 0x04&gt;;</p>
+<p>pinctrl-names = “default”;</p>
+<p>pinctrl-0 = &lt;0x0e&gt;;</p>
+<p>};</p>
+<p>pcie@1e140000 {</p>
+<p>compatible = “mediatek,mt7621-pci”;</p>
+<p>reg = &lt;0x1e140000 0x40000&gt;;</p>
+<p>#address-cells = &lt;0x03&gt;;</p>
+<p>#size-cells = &lt;0x02&gt;;</p>
+<p>pinctrl-names = “default”;</p>
+<p>pinctrl-0 = &lt;0x0f&gt;;</p>
+<p>device_type = “pci”;</p>
+<p>bus-range = &lt;0x00 0xff&gt;;</p>
+<p>ranges = &lt;0x2000000 0x00 0x00 0x60000000 0x00 0x10000000 0x1000000 0x00 0x00 0x1e160000 0x00 0x10000&gt;;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x04 0x04 0x00 0x18 0x04 0x00 0x19 0x04&gt;;</p>
+<p>status = “okay”;</p>
+<p>resets = &lt;0x05 0x18 0x05 0x19 0x05 0x1a&gt;;</p>
+<p>reset-names = “pcie0\0pcie1\0pcie2”;</p>
+<p>clocks = &lt;0x10 0x18 0x10 0x19 0x10 0x1a&gt;;</p>
+<p>clock-names = “pcie0\0pcie1\0pcie2”;</p>
+<p>reset-gpios = &lt;0x02 0x13 0x01&gt;;</p>
+<p>reset-gpio-names = “pcie”;</p>
+<p>pcie0 {</p>
+<p>reg = &lt;0x00 0x00 0x00 0x00 0x00&gt;;</p>
+<p>#address-cells = &lt;0x03&gt;;</p>
+<p>#size-cells = &lt;0x02&gt;;</p>
+<p>device_type = “pci”;</p>
+<p>};</p>
+<p>pcie1 {</p>
+<p>reg = &lt;0x800 0x00 0x00 0x00 0x00&gt;;</p>
+<p>#address-cells = &lt;0x03&gt;;</p>
+<p>#size-cells = &lt;0x02&gt;;</p>
+<p>device_type = “pci”;</p>
+<p>};</p>
+<p>pcie2 {</p>
+<p>reg = &lt;0x1000 0x00 0x00 0x00 0x00&gt;;</p>
+<p>#address-cells = &lt;0x03&gt;;</p>
+<p>#size-cells = &lt;0x02&gt;;</p>
+<p>device_type = “pci”;</p>
+<p>};</p>
+<p>};</p>
+<p>usb@1e1c0000 {</p>
+<p>compatible = “mediatek,mt7621-xhci\0mediatek,mt2701-xhci”;</p>
+<p>reg = &lt;0x1e1c0000 0x1000 0x1e1d0700 0x100&gt;;</p>
+<p>reg-names = “mac\0ippc”;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x16 0x04&gt;;</p>
+<p>clocks = &lt;0x11 0x11 0x11 0x11&gt;;</p>
+<p>clock-names = “sys_ck\0free_ck\0ahb_ck\0dma_ck”;</p>
+<p>phys = &lt;0x12 0x03 0x13 0x04 0x14 0x03&gt;;</p>
+<p>status = “okay”;</p>
+<p>};</p>
+<p>usb-phy@1e1d0000 {</p>
+<p>compatible = “mediatek,mt7621-u3phy\0mediatek,mt2701-u3phy”;</p>
+<p>#address-cells = &lt;0x01&gt;;</p>
+<p>#size-cells = &lt;0x01&gt;;</p>
+<p>ranges;</p>
+<p>reg = &lt;0x1e1d0000 0x300&gt;;</p>
+<p>status = “okay”;</p>
+<p>usb-phy@0x1e1d0800 {</p>
+<p>reg = &lt;0x1e1d0800 0x100&gt;;</p>
+<p>#phy-cells = &lt;0x01&gt;;</p>
+<p>clocks = &lt;0x11&gt;;</p>
+<p>clock-names = “ref”;</p>
+<p>linux,phandle = &lt;0x12&gt;;</p>
+<p>phandle = &lt;0x12&gt;;</p>
+<p>};</p>
+<p>usb-phy@0x1e1d0900 {</p>
+<p>reg = &lt;0x1e1d0900 0x700&gt;;</p>
+<p>#phy-cells = &lt;0x01&gt;;</p>
+<p>clocks = &lt;0x11&gt;;</p>
+<p>clock-names = “ref”;</p>
+<p>linux,phandle = &lt;0x13&gt;;</p>
+<p>phandle = &lt;0x13&gt;;</p>
+<p>};</p>
+<p>usb-phy@0x1e1d1000 {</p>
+<p>reg = &lt;0x1e1d1000 0x100&gt;;</p>
+<p>#phy-cells = &lt;0x01&gt;;</p>
+<p>clocks = &lt;0x11&gt;;</p>
+<p>clock-names = “ref”;</p>
+<p>linux,phandle = &lt;0x14&gt;;</p>
+<p>phandle = &lt;0x14&gt;;</p>
+<p>};</p>
+<p>};</p>
+<p>interrupt-controller@1fbc0000 {</p>
+<p>compatible = “mti,gic”;</p>
+<p>reg = &lt;0x1fbc0000 0x2000&gt;;</p>
+<p>interrupt-controller;</p>
+<p>#interrupt-cells = &lt;0x03&gt;;</p>
+<p>mti,reserved-cpu-vectors = &lt;0x07&gt;;</p>
+<p>linux,phandle = &lt;0x01&gt;;</p>
+<p>phandle = &lt;0x01&gt;;</p>
+<p>timer {</p>
+<p>compatible = “mti,gic-timer”;</p>
+<p>interrupts = &lt;0x01 0x01 0x00&gt;;</p>
+<p>clocks = &lt;0x15&gt;;</p>
+<p>};</p>
+<p>};</p>
+<p>pinctrl {</p>
+<p>compatible = “mtk,mtkmips-pinmux”;</p>
+<p>pinctrl-names = “default”;</p>
+<p>pinctrl-0 = &lt;0x16&gt;;</p>
+<p>pinctrl0 {</p>
+<p>linux,phandle = &lt;0x16&gt;;</p>
+<p>phandle = &lt;0x16&gt;;</p>
+<p>gpio {</p>
+<p>mtk,group = “i2c”;</p>
+<p>mtk,function = “gpio”;</p>
+<p>};</p>
+<p>uart2 {</p>
+<p>mtk,group = “uart2”;</p>
+<p>mtk,function = “uart2”;</p>
+<p>};</p>
+<p>uart3 {</p>
+<p>mtk,group = “uart3”;</p>
+<p>mtk,function = “uart3”;</p>
+<p>};</p>
+<p>jtag {</p>
+<p>mtk,group = “jtag”;</p>
+<p>mtk,function = “gpio”;</p>
+<p>};</p>
+<p>wdt {</p>
+<p>mtk,group = “wdt”;</p>
+<p>mtk,function = “gpio”;</p>
+<p>};</p>
+<p>sdhci {</p>
+<p>mtk,group = “sdhci”;</p>
+<p>mtk,function = “gpio”;</p>
+<p>};</p>
+<p>};</p>
+<p>i2c {</p>
+<p>linux,phandle = &lt;0x03&gt;;</p>
+<p>phandle = &lt;0x03&gt;;</p>
+<p>i2c {</p>
+<p>mtk,group = “i2c”;</p>
+<p>mtk,function = “gpio”;</p>
+<p>};</p>
+<p>};</p>
+<p>mdio {</p>
+<p>mdio {</p>
+<p>mtk,group = “mdio”;</p>
+<p>mtk,function = “mdio”;</p>
+<p>};</p>
+<p>};</p>
+<p>nand {</p>
+<p>linux,phandle = &lt;0x0b&gt;;</p>
+<p>phandle = &lt;0x0b&gt;;</p>
+<p>spi-nand {</p>
+<p>mtk,group = “spi”;</p>
+<p>mtk,function = “nand1”;</p>
+<p>};</p>
+<p>sdhci-nand {</p>
+<p>mtk,group = “sdhci”;</p>
+<p>mtk,function = “nand2”;</p>
+<p>};</p>
+<p>};</p>
+<p>pcie {</p>
+<p>linux,phandle = &lt;0x0f&gt;;</p>
+<p>phandle = &lt;0x0f&gt;;</p>
+<p>pcie {</p>
+<p>mtk,group = “pcie”;</p>
+<p>mtk,function = “gpio”;</p>
+<p>};</p>
+<p>};</p>
+<p>rgmii1 {</p>
+<p>rgmii1 {</p>
+<p>mtk,group = “rgmii1”;</p>
+<p>mtk,function = “rgmii1”;</p>
+<p>};</p>
+<p>};</p>
+<p>rgmii2 {</p>
+<p>rgmii2 {</p>
+<p>mtk,group = “rgmii2”;</p>
+<p>mtk,function = “rgmii2”;</p>
+<p>};</p>
+<p>};</p>
+<p>sdhci {</p>
+<p>linux,phandle = &lt;0x0e&gt;;</p>
+<p>phandle = &lt;0x0e&gt;;</p>
+<p>sdhci {</p>
+<p>mtk,group = “sdhci”;</p>
+<p>mtk,function = “sdhci”;</p>
+<p>};</p>
+<p>};</p>
+<p>spi {</p>
+<p>linux,phandle = &lt;0x08&gt;;</p>
+<p>phandle = &lt;0x08&gt;;</p>
+<p>spi {</p>
+<p>mtk,group = “spi”;</p>
+<p>mtk,function = “spi”;</p>
+<p>};</p>
+<p>};</p>
+<p>uart1 {</p>
+<p>uart1 {</p>
+<p>mtk,group = “uart1”;</p>
+<p>mtk,function = “uart1”;</p>
+<p>};</p>
+<p>};</p>
+<p>uart2 {</p>
+<p>uart2 {</p>
+<p>mtk,group = “uart2”;</p>
+<p>mtk,function = “uart2”;</p>
+<p>};</p>
+<p>};</p>
+<p>uart3 {</p>
+<p>uart3 {</p>
+<p>mtk,group = “uart3”;</p>
+<p>mtk,function = “uart3”;</p>
+<p>};</p>
+<p>};</p>
+<p>};</p>
+<p>crypto@1e004000 {</p>
+<p>status = “okay”;</p>
+<p>compatible = “mediatek,mtk-eip93”;</p>
+<p>reg = &lt;0x1e004000 0x1000&gt;;</p>
+<p>interrupt-parent = &lt;0x01&gt;;</p>
+<p>interrupts = &lt;0x00 0x13 0x04&gt;;</p>
+<p>};</p>
+<p>chosen {</p>
+<p>bootargs = “console=ttyS0,115200”;</p>
+<p>};</p>
+<p>};</p>
+<pre><code>	configurations {
+		default = &quot;config@1&quot;;
+
+		config@1 {
+			description = &quot;OpenWrt&quot;;
+			kernel = &quot;kernel@1&quot;;
+			fdt = &quot;fdt@1&quot;;
+		};
+	};
+};
+</code></pre>
+<p>부팅을 위한 설정 부분이다.</p>
+<p>Kernel IMG는 kernel@1을 사용하고, 디바이스 볼륨은 fdt@1을 사용하도록 정의한다.</p>
+<hr>
+<p>자 이제 Kernel IMG의 데이터를 확인했으니 이 부분을 추출해서 분석할 수 있게 되었다.</p>
+<p>여기서 문제가 하나 있다고 하면 Kernel IMG를 LZMA로 압축 풀고 바이너리화 하는 식으로 시도를 하게 될 경우 Kernel IMG가 깨져있다. libc 파일들이랑 링킹이 되어 있지 않은 것도 있지만 뜯어보면 함수가 비정상적으로 적은 것을 볼 수 있다. 제대로 해석되지 않은 HEX 값들은 많고…</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/009.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/010.png" alt=""></p>
+<p>이 부분들이 제대로 해석되지 않은 부분의 일부인데…</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/011.png" alt=""></p>
+<p>바이너리를 python의 ghidra 모듈을 사용하여 추출 및 분석 가능하게 디컴파일 해주는 코드를 작성해보았지만 해석이 되질 않는다… 아래는 유일하게 추출된 부분이다…</p>
+<pre><code>whrd@whrdser:~/Desktop/study/capstone/iptime_firm$ cat output.txt
+Decompiled Functions:
+
+/* Function: entry */
+
+/* WARNING: Control flow encountered bad instruction data */
+
+void processEntry entry(void)
+
+{
+  syscall(0);
+  syscall(0);
+                    /* WARNING: Bad instruction - Truncating control flow here */
+  halt_baddata();
+}
+</code></pre>
+<p>DTB 파일을 DTS로 변환하고 분석한 것은 처음 접해보는 형식의 파일들이기 때문에 제대로 뜯어보고자 한 것이다. 다시 말해 파일 내부를 추출하는 것이 목적이라면 DTS가 컴파일된 형태인 DTB 에서 바로 추출하면 된다.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/012.png" alt=""></p>
+<p>여기서 사용된 lzma_data.dtb 파일은 PART 1에 해당하는 0~55를 제외한 나머지 부분을 추출한 파일이다. (삽질 하던 중…)</p>
+<p>여기서 보면 XZ로 압축된 친구를 볼 수 있는데 이 친구를 추출하면 된다.</p>
+<pre><code>dd if=./lzma_data.dtb of=dtb/pls bs=1 skip=3801198 count=1120328
+</code></pre>
+<p>이 명령을 통해 추출하면 링킹도 제대로 된 상태의 파일이 하나 추출된다.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/013.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/014.png" alt=""></p>
+<p>함수들도 다 정상적으로 있는 것을 볼 수 있다.</p>
+<p>해당 Kernel IMG를 그대로 사용하여 Kernel 환경을 사용하고자 시도했지만 <strong>KERNEL PANNIC!!!</strong></p>
+<h4>PART 4</h4>
+<p>중간에 껴있던 DTB는 어쩌다보니 PART 3에서 본 하드웨어 DTB 친구이다.</p>
+<p>( 정확히는 분석하던 중 binwalk를 다른 버젼으로 재설치 했는데 그 친구 따라하다가 이리 되었다.)</p>
+<p>그럼 그 DTB와 마지막 squash 부분 중간에 위치한 부분을 추출해보겠다.</p>
+<pre><code>dd if=ax2004m_ml_15_056.bin of=bin3 bs=1 skip=3681780 count=119364
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/015.png" alt=""></p>
+<p>그냥 처음부터 끝까지 0x00으로 채워진 빈 파일이다.</p>
+<h4>PART 5</h4>
+<p>드디어 마지막 filesystem 추출이다.</p>
+<pre><code> dd if=ax2004m_ml_15_056.bin of=bin4 bs=1 skip=3801144
+ unsquashfs bin4
+</code></pre>
+<p>동일한 방식으로 dd를 통해 추출을 시도하고 unsquashfs을 통해 압축을 해제한다.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/016.png" alt=""></p>
+<hr>
+<p>우선 해당 게시글에서는 여기까지 다뤄보고, 이후는 2편에서 이어서 작성을…</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/iptime-firmware-analyze-1/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Check .bss · whrds.log</title><meta name="description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ When discussing memory structure, I explained that the bss segment is the area where uninitialized variables are stored. Since we will be covering various techniques in the future, this segment is important. To find the location of the bss segment, you can use the readelf command. reade">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-check-bss/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-check-bss/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-check-bss/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Check .bss · whrds.log"><meta property="og:description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ When discussing memory structure, I explained that the bss segment is the area where uninitialized variables are stored. Since we will be covering various techniques in the future, this segment is important. To find the location of the bss segment, you can use the readelf command. reade"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-check-bss/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Check .bss","description":"※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ When discussing memory structure, I explained that the bss segment is the area where uninitialized variables are stored. Since we will be covering various techniques in the future, this segment is important. To find the location of the bss segment, you can use the readelf command. reade","datePublished":"2023-11-07","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-check-bss/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-check-bss/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Check .bss</h1><p class="article-description">※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ When discussing memory structure, I explained that the bss segment is the area where uninitialized variables are stored. Since we will be covering various techniques in the future, this segment is important. To find the location of the bss segment, you can use the readelf command. reade</p><div class="article-meta"><time datetime="2023-11-07">Nov 7, 2023</time><span>·</span><span>1 min read</span></div></header><div class="prose"><p><strong>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections.</strong> <strong>※</strong> </p>
+<p>When discussing memory structure, I explained that the bss segment is the area where uninitialized variables are stored.</p>
+<p>This segment is important as we will be discussing various techniques in the future.</p>
+<p>To find the location of the bss segment, you can use the readelf command.</p>
+<pre><code>readelf -S [파일명]
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-3e7f3a390222/001.png" alt=""></p>
+<p>By checking the mapped areas, you can confirm that the bss area exists.</p>
+<p><img src="/assets/images/tistory/tistory-3e7f3a390222/002.png" alt=""></p>
+<p>You can see that the address of the bss segment is 0x404040.</p>
+<p>The reason why the bss segment is important is that it is a writable area.</p>
+<p>Looking at the permissions, it is WA, and you can check the table below.</p>
+<p><img src="/assets/images/tistory/tistory-3e7f3a390222/003.png" alt=""></p>
+<p>The reason why readability is important is that if you place a string such as “/bin/sh” in this area and use it, it can be used for attacks.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-check-bss/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

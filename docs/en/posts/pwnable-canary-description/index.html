@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Canary_Description · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ SSP (Stack Smashing Protector) is a technique to protect sfp and ret from stack buffer overflow. Verification is performed using the value called canary of the stack. If you look at the stack picture, it is between buf and sfp.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-canary-description/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-canary-description/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-canary-description/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Canary_Description · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ SSP (Stack Smashing Protector) is a technique to protect sfp and ret from stack buffer overflow. Verification is performed using the value called canary of the stack. If you look at the stack picture, it is between buf and sfp."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-canary-description/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Canary_Description","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ SSP (Stack Smashing Protector) is a technique to protect sfp and ret from stack buffer overflow. Verification is performed using the value called canary of the stack. If you look at the stack picture, it is between buf and sfp.","datePublished":"2023-09-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-canary-description/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-canary-description/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Canary_Description</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ SSP (Stack Smashing Protector) is a technique to protect sfp and ret from stack buffer overflow. Verification is performed using the value called canary of the stack. If you look at the stack picture, it is between buf and sfp.</p><div class="article-meta"><time datetime="2023-09-24">Sep 24, 2023</time><span>·</span><span>4 min read</span></div></header><div class="prose"><h4><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> </h4>
+<h4>Stack Smashing Protector (SSP)</h4>
+<p>A technique to protect sfp and ret from stack buffer overflow.</p>
+<p>Verification is performed using the value called canary of the stack.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/001.png" alt=""></p>
+<p>If you look at the stack picture, it is located between buf and sfp.</p>
+<p>If an attacker performs a general overflow attack on the value to overwrite the ret part,</p>
+<p>The canary value will be tampered with, and this will be detected in the epilog and the program will be terminated.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/002.png" alt=""></p>
+<p>You can check the memory protection technique applied to the binary file using the checksec command.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/003.png" alt=""></p>
+<p>In the case of the picture above, canary is applied.</p>
+<p>If compilation is done in static method rather than dynamic method,</p>
+<p>It is difficult to determine whether canary is applied using the above checksec.</p>
+<p>I will explain the reason using the checksec implementation code.</p>
+<pre><code># check for stack canary support
+  ${debug} &amp;&amp; echo -e &quot;\n***function proccheck-&gt;canary&quot;
+  if ${readelf} -s &quot;${1}/exe&quot; 2&gt;/dev/null | grep -q 'Symbol table'; then
+    if ${readelf} -s &quot;${1}/exe&quot; 2&gt;/dev/null | grep -Eq '__stack_chk_fail|__intel_security_cookie'; then
+      echo_message '\033[32mCanary found         \033[m   ' 'Canary found,' ' canary=&quot;yes&quot;' '&quot;canary&quot;:&quot;yes&quot;,'
+    else
+      echo_message '\033[31mNo canary found      \033[m   ' 'No Canary found,' ' canary=&quot;no&quot;' '&quot;canary&quot;:&quot;no&quot;,'
+    fi
+  else
+    if [[ &quot;${1}&quot; == &quot;1&quot; ]] ; then
+      echo_message '\033[33mPermission denied    \033[m   ' 'Permission denied,' ' canary=&quot;Permission denied&quot;' '&quot;canary&quot;:&quot;Permission denied&quot;,'
+    else
+      echo_message '\033[33mNo symbol table found \033[m  ' 'No symbol table found,' ' canary=&quot;No symbol table found&quot;' '&quot;canary&quot;:&quot;No symbol table found&quot;,'
+    fi
+  fi
+</code></pre>
+<p>Briefly looking at the contents of this code:</p>
+<p>Check whether the symbol ‘__stack_chk_fail’ or ‘__intel_security_cookie’ exists in the binary file.</p>
+<p>Afterwards, if it exists, it is determined that the canary is applied.</p>
+<p>In the case of files compiled using the static method, all functions are stored in the binary.</p>
+<p>Even if the above symbol is not used, it exists in the file.</p>
+<p>In other words, the mere presence of a symbol in the file determines that the canary is applied.</p>
+<p>dynamic method - file with canary applied</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/004.png" alt=""></p>
+<p>static method – files to which canary is not applied</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/005.png" alt=""></p>
+<hr>
+<p>Now let’s take a look at how it works inside a file.</p>
+<p>First, look at the prologue of the function:</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/006.png" alt=""></p>
+<p>You can see that the value is taken from fs:0x28 and stored in [rbp-0x8].</p>
+<p>Here, fs is a segment register, and the value it points to varies depending on user mode and kernel mode.</p>
+<p>The area we can access is the user mode area, which points to the TEB of the current thread.</p>
+<p>Let’s check what value is in fd:0x28.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/007.png" alt=""></p>
+<p>fs:0x28 contains a value ending with \x00.</p>
+<p>Now let’s check the canary in the stack.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/008.png" alt=""></p>
+<p>If you look at the stack, you can see that there is a canary value of 0xf78ad2d1986dc400, which is the same as the value checked above.</p>
+<p>You can see that a canary is included in fs:0x28.</p>
+<p>This time we will look at the epilogue.</p>
+<p>Before leaving-ret, call the function __stack_chk_fail.</p>
+<p>At this time, an xor operation is performed on the values ​​of [rbp-0x8] and fs:0x28 as a calling condition for the function.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/009.png" alt=""></p>
+<p>Compares the stack canary and the master canary. If true, it terminates normally. If false, the corresponding function is called.</p>
+<p>If the function is called, it terminates abnormally as shown in the image you saw at first.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/010.png" alt=""></p>
+<hr>
+<p>Now let’s look at the process of creating a canary.</p>
+<p>If you look at init_tls(), you can find a part that calls dlallocate_tls_storage().</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/011.png" alt=""></p>
+<p>If you look at dlallocate_tls_storage(), you can see that the tls area is allocated using malloc.</p>
+<p><img src="/assets/images/tistory/tistory-7e1b9689acc3/012.png" alt=""></p>
+<p>See more</p>
+<p>full code</p>
+<pre><code>void *
+_dl_allocate_tls_storage (void)
+{
+  void *result;
+  size_t size = GLRO (dl_tls_static_size);
+
+#if TLS_DTV_AT_TP
+  /* Memory layout is:
+    [ TLS_PRE_TCB_SIZE ] [ TLS_TCB_SIZE ] [ TLS blocks ]
+  ^ This should be returned.  */
+  size += TLS_PRE_TCB_SIZE;
+#endif
+
+  /* Perform the allocation.  Reserve space for the required alignment
+     and the pointer to the original allocation.  */
+  size_t alignment = GLRO (dl_tls_static_align);
+  void *allocated = malloc (size + alignment + sizeof (void *));
+  if (__glibc_unlikely (allocated == NULL))
+    return NULL;
+
+  /* Perform alignment and allocate the DTV.  */
+#if TLS_TCB_AT_TP
+  /* The TCB follows the TLS blocks, which determine the alignment.
+     (TCB alignment requirements have been taken into account when
+     calculating GLRO (dl_tls_static_align).)  */
+  void *aligned = (void *) roundup ((uintptr_t) allocated, alignment);
+  result = aligned + size - TLS_TCB_SIZE;
+
+  /* Clear the TCB data structure.  We can't ask the caller (i.e.
+     libpthread) to do it, because we will initialize the DTV et al.  */
+  memset (result, '\0', TLS_TCB_SIZE);
+#elif TLS_DTV_AT_TP
+  /* Pre-TCB and TCB come before the TLS blocks.  The layout computed
+     in _dl_determine_tlsoffset assumes that the TCB is aligned to the
+     TLS block alignment, and not just the TLS blocks after it.  This
+     can leave an unused alignment gap between the TCB and the TLS
+     blocks.  */
+  result = (void *) roundup
+    (sizeof (void *) + TLS_PRE_TCB_SIZE + (uintptr_t) allocated,
+     alignment);
+
+  /* Clear the TCB data structure and TLS_PRE_TCB_SIZE bytes before
+     it.  We can't ask the caller (i.e. libpthread) to do it, because
+     we will initialize the DTV et al.  */
+  memset (result - TLS_PRE_TCB_SIZE, '\0', TLS_PRE_TCB_SIZE + TLS_TCB_SIZE);
+#endif
+
+  /* Record the value of the original pointer for later
+     deallocation.  */
+  *tcb_to_pointer_to_free_location (result) = allocated;
+
+  result = allocate_dtv (result);
+  if (result == NULL)
+    free (allocated);
+  return result;
+}
+</code></pre>
+<p>This is a TLS_INTI_TP macro that initializes the tls area allocated in dl_allocate_tls_storage() to fs.</p>
+<p>Setting is carried out by arch_prctl().</p>
+<pre><code># define TLS_INIT_TP(thrdescr) \
+  ({ void *_thrdescr = (thrdescr);                                              \
+     tcbhead_t *_head = _thrdescr;                                              \
+     int _result;                                                              \
+                                                                              \
+     _head-&gt;tcb = _thrdescr;                                                      \
+     /* For now the thread descriptor is at the same address.  */              \
+     _head-&gt;self = _thrdescr;                                                      \
+                                                                              \
+     /* It is a simple syscall to set the %fs value for the thread.  */              \
+     asm volatile (&quot;syscall&quot;                                                      \
+                   : &quot;=a&quot; (_result)                                              \
+                   : &quot;0&quot; ((unsigned long int) __NR_arch_prctl),                      \
+                     &quot;D&quot; ((unsigned long int) ARCH_SET_FS),                      \
+                     &quot;S&quot; (_thrdescr)                                              \
+                   : &quot;memory&quot;, &quot;cc&quot;, &quot;r11&quot;, &quot;cx&quot;);                              \
+                                                                              \
+    _result ? &quot;cannot set %fs base address for thread-local storage&quot; : 0;     \
+  })
+</code></pre>
+<p>Now let’s look at the canary creation process.</p>
+<pre><code>security_init (void)
+{
+	  /* Set up the stack checker's canary.  */
+	  uintptr_t stack_chk_guard = _dl_setup_stack_chk_guard (_dl_random);
+ 	#ifdef THREAD_SET_STACK_GUARD
+  THREAD_SET_STACK_GUARD (stack_chk_guard);
+	#else
+	  __stack_chk_guard = stack_chk_guard;
+	#endif
+	
+	  /* Set up the pointer guard as well, if necessary.  */
+	  uintptr_t pointer_chk_guard
+	    = _dl_setup_pointer_guard (_dl_random, stack_chk_guard);
+	#ifdef THREAD_SET_POINTER_GUARD
+	  THREAD_SET_POINTER_GUARD (pointer_chk_guard);
+	#endif
+	  __pointer_chk_guard_local = pointer_chk_guard;
+	
+	  /* We do not need the _dl_random value anymore.  The less
+	     information we leave behind, the better, so clear the
+	     variable.  */
+	  _dl_random = NULL;
+	}
+</code></pre>
+<p>A function called securti_init() stores random values in the tls area.</p>
+<pre><code>  uintptr_t pointer_chk_guard
+	    = _dl_setup_pointer_guard (_dl_random, stack_chk_guard);
+</code></pre>
+<p>A value is created using _dl_random as an argument, and the value created at this time is canary.</p>
+<p>Looking at _dl_random, it is defined as follows.</p>
+<pre><code> case AT_RANDOM:
+	_dl_random = (void *)av-&gt;a_un.a_val;
+	break;
+</code></pre>
+<p>AT_RANDOM is one of the vectors in the ELF binary.</p>
+<p>The AT_RANDOM function provides data for random number generation with information provided by the dynamic loader when the process is started.</p>
+<p>In other words, _dl_random has the property of being initialized to a random value every time the program is executed.</p>
+<pre><code>/* Set the stack guard field in TCB head.  */
+#define THREAD_SET_STACK_GUARD(value) \
+  THREAD_SETMEM (THREAD_SELF, header.stack_guard, value)
+</code></pre>
+<p>This is a macro that puts the canary value into header.stack.guard.</p>
+<p>=&gt; You can think of it as adding a canary to TLS+0x28.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-canary-description/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

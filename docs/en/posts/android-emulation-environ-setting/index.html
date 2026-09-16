@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[Android] Emulation - Environ Setting · whrds.log</title><meta name="description" content="In order to continue studying and broaden my knowledge, I plan to study this as well. (There are so many things I want to study...) I plan to deal with rooting my phone after slowly studying and practicing. In this post, I will cover how to attach the shell and burp suite by emulating through Android Studio.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/android-emulation-environ-setting/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/android-emulation-environ-setting/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/android-emulation-environ-setting/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[Android] Emulation - Environ Setting · whrds.log"><meta property="og:description" content="In order to continue studying and broaden my knowledge, I plan to study this as well. (There are so many things I want to study...) I plan to deal with rooting my phone after slowly studying and practicing. In this post, I will cover how to attach the shell and burp suite by emulating through Android Studio."><meta property="og:url" content="https://whrds.github.io/en/posts/android-emulation-environ-setting/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[Android] Emulation - Environ Setting","description":"In order to continue studying and broaden my knowledge, I plan to study this as well. (There are so many things I want to study...) I plan to deal with rooting my phone after slowly studying and practicing. In this post, I will cover how to attach the shell and burp suite by emulating through Android Studio.","datePublished":"2026-01-07","inLanguage":"en","url":"https://whrds.github.io/en/posts/android-emulation-environ-setting/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/android-emulation-environ-setting/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[Android] Emulation - Environ Setting</h1><p class="article-description">In order to continue studying and broaden my knowledge, I plan to study this as well. (There are so many things I want to study...) I plan to deal with rooting my phone after slowly studying and practicing. In this post, I will cover how to attach the shell and burp suite by emulating through Android Studio.</p><div class="article-meta"><time datetime="2026-01-07">Jan 7, 2026</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p>I would like to study this area as well in order to continue studying and expand my knowledge.</p>
+<p>(There are so many things I want to study…)</p>
+<p>I plan to discuss rooting my phone after slowly studying and practicing.</p>
+<p>In this post, we will cover how to emulate and attach a shell and burp suite through Android Studio.</p>
+<p>There are some things to install first…</p>
+<pre><code>brew install jadx
+
+# Android Studio 설치
+https://developer.android.com/studio?hl=ko 
+
+# 향후 분석을 위한 후킹용 frida 준비
+pip3 install frida
+pip3 install frida-tools
+
+# apk 관련 툴 설치
+brew install apktool
+</code></pre>
+<p>Simply install the above and install any additional tools you need in the future.</p>
+<p>For reference, since the work environment is MAC, it was performed using brew.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/001.png" alt=""></p>
+<p>In the case of jadx, future analysis of Android can be conducted through jadx-gui.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/002.png" alt=""></p>
+<p>Emulation can be done through Android Stuido and can be set up through [Tools -&gt; Device Manager].</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/003.png" alt=""></p>
+<p>When emulating, simply select the desired model and proceed.</p>
+<p>(In this image, the environment built for the previous CTF problem was taken as is)</p>
+<pre><code>sudo ln -s /Users/&lt;User ID&gt;/Library/Android/sdk/platform-tools/adb /usr/local/bin/adb
+</code></pre>
+<p>In Android Studio, you now access the internal shell through the adb command. </p>
+<p>Therefore, set a symbolic link for convenience.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/004.png" alt=""></p>
+<pre><code>adb devices
+</code></pre>
+<p>If emulation is enabled, you can query the device list through the corresponding command.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/005.png" alt=""></p>
+<pre><code>adb shell
+</code></pre>
+<p>The inner shell is also accessible! </p>
+<p>It is said that Android, like IoT, sometimes analyzes network traffic.</p>
+<p>Accordingly, we would like to build an environment that can be analyzed through burp suite.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/006.png" alt=""></p>
+<p>First, go to [proxy -&gt; settings] in the burp suite and set a port so that all interfaces can access it.</p>
+<p>Afterwards, proceed with proxy settings in the emulated mobile phone settings.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/007.png" alt=""></p>
+<p>You can set it like this, but if you do this, when you connect to the Internet, you will not be able to access the page normally as shown below.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/008.png" alt=""></p>
+<p>This is because it occurs because of the certificate, but since the proxy is currently set to Burp Suite, all you have to do is import the certificate and install it.</p>
+<pre><code>http://burp
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/009.png" alt=""></p>
+<p>Click [CA Certificate] in the upper right corner to proceed with installing the certificate.</p>
+<p>Because it is a der extension, change it to a cer extension inside the shell attached to adb.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/010.png" alt=""></p>
+<p>Afterwards, proceed with installing the certificate in your phone settings.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/011.png" alt=""></p>
+<p>If you proceed to this point, you will be able to analyze internal traffic normally in Burp Suite.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/012.png" alt=""></p>
+<p>Now, we plan to study routing and study based on 1-Day and CTF problems!</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/android-emulation-environ-setting/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

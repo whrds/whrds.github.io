@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[Android] Rooting in MAC OS · whrds.log</title><meta name="description" content="There are many references published and organized regarding rooting methods for Android. Most people use a friend called ODIN. This friend is known as Samsung&#039;s internal flashing tool, and it supports GUI so it is easy to use. But unfortunately, it only supports Windows environment... (Maybe I couldn&#039;t find one for MAC) When using MAC">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/android-rooting-in-mac-os/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/android-rooting-in-mac-os/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/android-rooting-in-mac-os/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[Android] Rooting in MAC OS · whrds.log"><meta property="og:description" content="There are many references published and organized regarding rooting methods for Android. Most people use a friend called ODIN. This friend is known as Samsung&#039;s internal flashing tool, and it supports GUI so it is easy to use. But unfortunately, it only supports Windows environment... (Maybe I couldn&#039;t find one for MAC) When using MAC"><meta property="og:url" content="https://whrds.github.io/en/posts/android-rooting-in-mac-os/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[Android] Rooting in MAC OS","description":"There are many references published and organized regarding rooting methods for Android. Most people use a friend called ODIN. This friend is known as Samsung's internal flashing tool, and it supports GUI so it is easy to use. But unfortunately, it only supports Windows environment... (Maybe I couldn't find one for MAC) When using MAC","datePublished":"2026-01-10","inLanguage":"en","url":"https://whrds.github.io/en/posts/android-rooting-in-mac-os/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/android-rooting-in-mac-os/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[Android] Rooting in MAC OS</h1><p class="article-description">There are many references published and organized regarding rooting methods for Android. Most people use a friend called ODIN. This friend is known as Samsung&#039;s internal flashing tool, and it supports GUI so it is easy to use. But unfortunately, it only supports Windows environment... (Maybe I couldn&#039;t find one for MAC) When using MAC</p><div class="article-meta"><time datetime="2026-01-10">Jan 10, 2026</time><span>·</span><span>3 min read</span></div></header><div class="prose"><p>There are many references published and organized regarding rooting methods for Android.</p>
+<p>Most people use a friend called ODIN.</p>
+<p>This friend is known as Samsung’s internal flashing tool, and it supports GUI so it is easy to use.</p>
+<p>But unfortunately, it only supports Windows environment… (Maybe I couldn’t find one for MAC?)</p>
+<p>Since I use MAC, I came across heimdall while looking for a tool that could replace ODIN.</p>
+<p>heimdall is an open source alternative to odin and provides a CLI environment.</p>
+<hr>
+<p>In order to proceed with rooting, three major preparation steps are required.</p>
+<p>1. Prepare adb, magisck, heimdall tools</p>
+<p>2. Prepare your real Android phone - formatted / unused</p>
+<p>3. Secure genuine firmware suitable for the prepared model</p>
+<p>&lt;&lt; For reference, I used the Note S5 model &gt;&gt;</p>
+<hr>
+<pre><code>brew install --cask heimdall-suite
+</code></pre>
+<p>First, install heimdall.</p>
+<pre><code>system_profiler SPUSBDataType | grep -i -A 10 samsung
+</code></pre>
+<p>Now, connect your mobile phone and check if it is connected (not required! Just for confirmation!)</p>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/001.png" alt=""></p>
+<p>If you look here, you can see that detection has been performed, but if this is your first time rooting, [ Device detected ] will not appear here.</p>
+<p>The reason is that heimdall detects models with odin mode activated and attempts to connect, so you need to perform several steps on your phone after installing the tool.</p>
+<hr>
+<p>First, enable developer mode on your phone.</p>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/002.png" alt=""></p>
+<p>After proceeding with this setting, [Developer Options] will be added to the bottom of the settings.</p>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/003.png" alt=""></p>
+<p>If you proceed with OEM and USB debugging settings, it will end.</p>
+<p>Afterwards, when rebooting, press three buttons simultaneously: [Volume down button] + [Home button] + [Power button] to proceed with booting with ODIN MODE activated.</p>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/004.png" alt=""></p>
+<p>If you have progressed to this point, it will be caught when detecting with heimdall.</p>
+<hr>
+<pre><code>sudo heimdall download-pit --output phone.pit
+sudo heimdall print-pit --file phone.pit | egrep -i &quot;Partition Name|BOOT|KERNEL|RECOVERY|VBMETA|INIT_BOOT|APNHLOS&quot;
+</code></pre>
+<p>When detected, first back up your phone’s data.</p>
+<p>If you make a mistake during the rooting process, your phone will be bricked, so be prepared for that situation…</p>
+<p>Afterwards, check the internal partition names.</p>
+<p>This is to check which files will be overwritten.</p>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/005.png" alt=""></p>
+<p>Based on the released data, the device has a separate BOOT partition.</p>
+<p>Also, since there is no INIT_BOOT, you need to patch boot.img to root with magisck.</p>
+<p><a href="https://samfw.com/firmware/SM-N920S/SKC/N920SKSU2DVG1">https://samfw.com/firmware/SM-N920S/SKC/N920SKSU2DVG1</a></p>
+<p>Now secure the original firmware for the device through this site.</p>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/006.png" alt=""></p>
+<pre><code>unzip &lt;firmware&gt;
+</code></pre>
+<p>Now you can unzip it, but for convenience, I changed the name before proceeding.</p>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/007.png" alt=""></p>
+<pre><code>cp AP_N920SKSU2DVG1_CL14077807_QB54442049_REV00_user_low_ship_meta.tar.md5 AP.tar
+tar -tf AP.tar | egrep -i '(^|/)(boot\.img(\.lz4)?|recovery\.img(\.lz4)?)
+
+If you check the AP file here, you can see that boot.img exists inside.
+
+![](/assets/images/tistory/tistory-c0a04e263161/008.png)
+
+</code></pre>
+<p>tar -xf AP.tar boot.img</p>
+<pre><code>
+![](/assets/images/tistory/tistory-c0a04e263161/009.png)
+
+Extract boot.img.
+
+</code></pre>
+<p>adb push boot.img /sdcard/Download/boot.img</p>
+<pre><code>
+The boot.img extracted in this way is now transferred to the mobile phone as we will prepare for rooting through magisck.
+
+![](/assets/images/tistory/tistory-c0a04e263161/010.png)
+
+Install magisck on your phone and install the boot.img and you're ready!
+
+![](/assets/images/tistory/tistory-c0a04e263161/011.png)
+
+</code></pre>
+<p>adb pull “/sdcard/Download/magisk_patched-30600_nxDQT.img” .</p>
+<pre><code>
+Just extract the patched file and apply it!
+
+Once extracted, you must reboot again. To ODIN MODE!
+
+</code></pre>
+<p>sudo heimdall detect
+sudo heimdall flash --pit phone.pit --BOOT magisk_patched-30600_nxDQT.img</p>
+<pre><code>
+![](/assets/images/tistory/tistory-c0a04e263161/012.png)
+
+</code></pre>
+<p>adb devices
+adb shell su -c id
+adb shell su -</p>
+<pre><code>
+Confirm that it has been applied with a simple command.
+
+I was going to start studying right away, but my friend borrowed a rooted phone, so I had to study with emulator for now...ㅠㅠ
+</code></pre>
+<p>If you check the AP file here, you can see that boot.img exists inside.</p>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/008.png" alt=""></p>
+<pre><code>tar -xf AP.tar boot.img
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/009.png" alt=""></p>
+<p>Extract boot.img.</p>
+<pre><code>adb push boot.img /sdcard/Download/boot.img
+</code></pre>
+<p>The boot.img extracted in this way is now transferred to the mobile phone as we will prepare for rooting through magisck.</p>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/010.png" alt=""></p>
+<p>Install magisck on your phone and install the boot.img and you’re ready!</p>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/011.png" alt=""></p>
+<pre><code>adb pull &quot;/sdcard/Download/magisk_patched-30600_nxDQT.img&quot; .
+</code></pre>
+<p>Just extract the patched file and apply it!</p>
+<p>Once extracted, you must reboot again. To ODIN MODE!</p>
+<pre><code>sudo heimdall detect
+sudo heimdall flash --pit phone.pit --BOOT magisk_patched-30600_nxDQT.img
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-c0a04e263161/012.png" alt=""></p>
+<pre><code>adb devices
+adb shell su -c id
+adb shell su -
+</code></pre>
+<p>Confirm that it has been applied with a simple command.</p>
+<p>I was going to start studying right away, but my friend borrowed a rooted phone, so I had to study with emulator for now…ㅠㅠ</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/android-rooting-in-mac-os/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

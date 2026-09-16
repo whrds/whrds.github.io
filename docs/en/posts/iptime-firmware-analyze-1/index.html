@@ -1,0 +1,1453 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[IPTIME] FIRMWARE ANALYZE #1 · whrds.log</title><meta name="description" content="While continuing to analyze 1-DAY vulnerabilities, I became interested in FIRMWARE and decided to proceed with it as a personal project. I am still analyzing it and trying various things, but I will summarize it like this in the meantime. Since I&#039;m just digging in, I think it&#039;ll be more about attempts like this rather than explanations or anything like that.N">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/iptime-firmware-analyze-1/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/iptime-firmware-analyze-1/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/iptime-firmware-analyze-1/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[IPTIME] FIRMWARE ANALYZE #1 · whrds.log"><meta property="og:description" content="While continuing to analyze 1-DAY vulnerabilities, I became interested in FIRMWARE and decided to proceed with it as a personal project. I am still analyzing it and trying various things, but I will summarize it like this in the meantime. Since I&#039;m just digging in, I think it&#039;ll be more about attempts like this rather than explanations or anything like that.N"><meta property="og:url" content="https://whrds.github.io/en/posts/iptime-firmware-analyze-1/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[IPTIME] FIRMWARE ANALYZE #1","description":"While continuing to analyze 1-DAY vulnerabilities, I became interested in FIRMWARE and decided to proceed with it as a personal project. I am still analyzing it and trying various things, but I will summarize it like this in the meantime. Since I'm just digging in, I think it'll be more about attempts like this rather than explanations or anything like that.N","datePublished":"2025-02-13","inLanguage":"en","url":"https://whrds.github.io/en/posts/iptime-firmware-analyze-1/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/iptime-firmware-analyze-1/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[IPTIME] FIRMWARE ANALYZE #1</h1><p class="article-description">While continuing to analyze 1-DAY vulnerabilities, I became interested in FIRMWARE and decided to proceed with it as a personal project. I am still analyzing it and trying various things, but I will summarize it like this in the meantime. Since I&#039;m just digging in, I think it&#039;ll be more about attempts like this rather than explanations or anything like that.N</p><div class="article-meta"><time datetime="2025-02-13">Feb 13, 2025</time><span>·</span><span>15 min read</span></div></header><div class="prose"><p>While continuing to analyze 1-DAY vulnerabilities, I became interested in FIRMWARE and decided to proceed with it as a personal project.</p>
+<p>I’m still analyzing it, trying various things, etc., but I’ll organize it like this in the meantime.</p>
+<p>Since I’m just digging in, I think it’ll be more about attempts like this rather than explanations or anything like that.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/001.png" alt=""></p>
+<p>I tried to organize it in NOTION, but I think it would be too long to transfer all the contents here to BrawlG, so I will try to exclude the parts that I skipped as much as possible.</p>
+<hr>
+<h3>TARGET</h3>
+<p>First, you must select a target.</p>
+<p>It is common to select by considering cost, whether FIRMWARE can be extracted, etc.</p>
+<p>While wondering what kind of equipment to use, we chose the most commonly used wireless routers, and among them, we decided to use IPTIME, which has FIRMWARE available to the public. </p>
+<p>[ IPTIME FIRMWARE DOWNLOAD: <a href="https://iptime.com/iptime/?page_id=126">https://iptime.com/iptime/?page_id=126</a> ]</p>
+<p>Now I have to choose one of the IPTIME models, and I decided to use the AX2004M model that I am using in my room. </p>
+<p>Even though FIRMWARE is open, if emulation fails, you will eventually need equipment. When this situation occurs, I just try to disassemble my router right away.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/002.png" alt=""></p>
+<p>IPTIME AX2004M</p>
+<p>The price range of the equipment is 80,000 to 100,000 won. </p>
+<p>If I break the FIRMWARE while taking it apart, I can just overwrite it with a normal FIRMWARE, so I proceeded like this.</p>
+<hr>
+<h3>TOOLS</h3>
+<p>Many tools exist for FIRMWARE analysis.</p>
+<p>Representative examples include firmware-analysis-toolkit, FirmAE, and firmadyne, but unfortunately, all other emulating tools have failed.</p>
+<p>For this analysis, I used binwalk, which has many good tools, and QEMU for emulation.</p>
+<hr>
+<p>###EXTRACTION</p>
+<p>FIRMWARE includes KERNEL IMG, BOOT LOADER, ROOT FILE SYSTEM, and Device Tree.</p>
+<p>If you use -e among binwalk’s options, you can extract everything right away, but since the main purpose of this project is personal learning, I tried to extract and separate it directly rather than using that option.</p>
+<p>If you want to use that option as is, you can use it as follows.</p>
+<pre><code>binwalk -e [ FIRMWARE ]
+</code></pre>
+<p>I won’t use the EXPORT option, but I still need to check how the distinction is made, so I used binwalk.</p>
+<hr>
+<h4>#1 INSTALL FIRMWARE</h4>
+<p>First, you need to install FIRMWARE for analysis.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/003.png" alt=""></p>
+<p>If you go to IPTIME’s post, you can download FIRMWARE files.</p>
+<p>You can download the file by obtaining the link here and executing the command below.</p>
+<pre><code>wget https://download.iptime.co.kr/release/15_056/firmware/ax2004m_ml_15_056.bin
+</code></pre>
+<h4>#2 BINWALK </h4>
+<p>Now let’s check the configuration of the firmware file.</p>
+<pre><code>binwalk ax2004m_ml_15_056.bin
+</code></pre>
+<p>If you execute the above command, you can see the result as shown below.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/004.png" alt=""></p>
+<p>It consists of DTB -&gt; LZMA compressed file -&gt; DTB -&gt; FILESYSTEM.</p>
+<p>Before going deeper, I will briefly explain what Device Tree is.</p>
+<p>It is mainly used in embedded systems and ARM-based platforms, and is designed so that hardware information and drivers are managed independently. When creating this Device Tree, it is written in a text format called DTS. Each element consists of nodes, properties, registers, compatibility, and interrupts. And the format that compiles this DTS into binary is the format called DTB that is used in that image. This is a structure designed to be read directly by the kernel and can be compiled using the method below.</p>
+<pre><code>dtc -I dts -O dtb -o project.dtb project.dts
+</code></pre>
+<p>If you look at that image again and check, the part compressed with LZMA will contain the kernel image and boot loader, Squashfs will contain rootfs, and DTB will contain definitions and hardware information for each structure.</p>
+<p>Now let’s extract these parts.</p>
+<h4>#3 SEPARATION</h4>
+<p>In that image, the four parts separated by binwalk will be divided into part1, part2, part3, part4, and part5.</p>
+<p><strong>PART 1</strong></p>
+<p>The area corresponding to DTB is 56 (0x38) to 284 (0x11c). </p>
+<p>Well, since I don’t know what’s in 0 (0x0) to 55 (0x37), I’ll extract them here first.</p>
+<pre><code>dd if=./ax2004m_ml_15_056.bin of=./bin1 count=56 bs=1
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/005.png" alt=""></p>
+<p> After extracting it, there is no need to analyze it… In fact, it seems to be part of the FIRMWARE name.</p>
+<p><strong>PART 2</strong></p>
+<pre><code> dd if=./ax2004m_ml_15_056.bin of=./bin1 count=228 skip=55 bs=1
+</code></pre>
+<p> This part corresponds to the first DTB.</p>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/006.png" alt=""></p>
+<p> It is presumed to be a DTB containing information about the kernel and Linux version. There appears to be no data here, but if you extract it to a different range, you can see a normal DTB file. We will extract and discuss this part together in PART 3.</p>
+<p><strong>PART 3</strong></p>
+<p> Now, this is a section compressed with LZMA that is presumed to contain information about Kernel img.</p>
+<pre><code>dd if=ax2004m_ml_15_056.bin of=bin2 bs=1 skip=56 count=3681724
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-46318ff0b3f2/007.png" alt=""></p>
+<p>Because it was extracted including PART 2, you can see that the first part is the same.</p>
+<p>Now what can you do after extracting?? </p>
+<p>Analyzing with IDA or HEX values…? If it were a regular binary, I would use this method… (horrible…)</p>
+<p>Fortunately, DTB files can be converted to DTS. ```
+dtc -I dtb -O dts bin2.dtb -o bin2.dts</p>
+<pre><code>
+It can be converted in the same way as above. 
+
+![](/assets/images/tistory/tistory-46318ff0b3f2/008.png)
+
+The file is now readable.
+
+However, the capacity is very large because it contains binary as a HEX value inside...
+
+That's why I'm going to split it up and look at it.
+
+</code></pre>
+<p>/dts-v1/;</p>
+<p>/ {
+timestamp = &lt;0x67878781&gt;;
+description = “MIPS OpenWrt FIT (Flattened Image Tree)”;
+#address-cells = &lt;0x01&gt;;</p>
+<pre><code>images {
+</code></pre>
+<pre><code>
+This is the initial part that defines the FIT image to be used in the MIPS-based OpenWrt system.
+
+FIT img is a multi-image container format used in U-Boot and can include Kernel and Device Tree.
+
+From the above information, you can see that DTS v1 is used and that it is 32 bit through address-cells.
+
+</code></pre>
+<pre><code>	kernel@1 {
+		description = &quot;MIPS OpenWrt Linux-4.4.198&quot;;
+		data = [6d 00 00 80 00 60 21 d4 00 00 00 00 00 00 00 6f fd ff ff a3 b7 7f ca 77 9a 1d cd 71 7d c6 32 0d 6c 11 9f 5d 7a 60 33 d1 10 30 85 45 05 51 af 18 fb 4a 36 d8 92 f3 8e 83 57 2b 2e 8e 46 9f cb bb c7 92 e5 41 a6 cd 85 b8 05 e6 3e eb fe 61 13 d3 6f d5 08 ae c3 95 68 e0 68 7f d8 a6 7d c2 75 af 74 81 d5 ae ca d6 64 6a b0 c8 78 7e 4a 9f d9 15 db 3f 9f 57 83 53 4f 75 b6 16 52 7a 3c fd 53 b7 da 42 36 9c a5 4b 59 c1 56 a3 f7 71 48 ce 07 4c 4c 80 7f a3 74 73 de a9 aa fb 56 22 8c 14 ed f1 66 c4 cc 25 26 51 22 1e 5c 7b 96 f7 e2 1e 6c 35 c6 0e 3c c8 7e 57 2c 6d 89 9d 99 1a fb 8e ba 21 5a c1 0c 0b da 38 b4 39 14 af 47 18 09 45 4e f5 37 12 8e b5 63 b3 6e aa ca 8b 88 ca 60 c0 22 75 ab 43 0c 4a 56 d5 96 77 ce 49 cb 8
+		.....d1 bf 1e 2b 35 76 23 b6 47 69 74 33 c3 8b 92 37 9a a2 4a 89 43 20 37 a8 e7];
+		type = &quot;kernel&quot;;
+		arch = &quot;mips&quot;;
+		os = &quot;linux&quot;;
+		compression = &quot;lzma&quot;;
+		load = &lt;0x81001000&gt;;
+		entry = &lt;0x81001000&gt;;
+
+		hash@1 {
+			value = &lt;0xaba1133f&gt;;
+			algo = &quot;crc32&quot;;
+		};
+
+		hash@2 {
+			value = &lt;0x51d184a5 0x57da018 0x41d4fd33 0x9ff9fb9f 0xef30b7be&gt;;
+			algo = &quot;sha1&quot;;
+		};
+	};
+</code></pre>
+<pre><code>
+ You can see that it is a definition for MIPS Arch-based OpenWrt Kernel IMG.
+
+The Kernel Version is using an older version, linux-4.4.198, and the Kernel IMG can be seen compressed using the LZMA method.
+
+Additional information such as entry points can be identified through metadata such as typs and OS, and hash values ​​for kernel integrity check can be viewed.
+
+</code></pre>
+<pre><code>	fdt@1 {
+		description = &quot;MIPS OpenWrt mt7621-rfb-ax-nor-ax2004 device tree blob&quot;;
+		data = [d0 0d fe ed 00 00 29 d9 00 00 00 38 00 00 26 d4 00 00 00 28 00 00 00 11 00 00 00 10 00 00 00 00 00 00 03 
+		......73 00];
+		type = &quot;flat_dt&quot;;
+		arch = &quot;mips&quot;;
+		compression = &quot;none&quot;;
+
+		hash@1 {
+			value = &lt;0x21bcc955&gt;;
+			algo = &quot;crc32&quot;;
+		};
+
+		hash@2 {
+			value = &lt;0x3cce5e0a 0x4888ce27 0xc8ae2d72 0xc48a8523 0xf43b7316&gt;;
+			algo = &quot;sha1&quot;;
+		};
+	};
+};
+</code></pre>
+<pre><code>
+The fdt@1 node defines the DTB of MIPS-based devices.
+
+Since this node contains the HEX value in uncompressed form, you can view various information about the hardware by extracting and opening it.
+
+Since this part is actual hardware information, I will not define it separately. 
+
+If you want to take a look, click the toggle below... (It is very long, so I recommend not opening it)
+
+See more
+
+/dts-v1/;
+
+/ {
+
+#address-cells = ;
+
+#size-cells = ;
+
+compatible = &quot;mediatek,mt7621-rfb-nor-ax2004\\0mediatek,mt7621-soc&quot;;
+
+model = &quot;MediaTek MT7621 RFB (802.11ax,SNOR)&quot;;
+
+cpus {
+
+cpu@0 {
+
+compatible = &quot;mips,mips1004Kc&quot;;
+
+};
+
+cpu@1 {
+
+compatible = &quot;mips,mips1004Kc&quot;;
+
+};
+
+};
+
+cpuintc@0 {
+
+#address-cells = �;
+
+#interrupt-cells = ;
+
+interrupt-controller;
+
+compatible = &quot;mti,cpu-interrupt-controller&quot;;
+
+};
+
+aliases {
+
+serial0 = &quot;/palmbus@1e000000/uartlite@c00&quot;;
+
+};
+
+cpuclock@0 {
+
+#clock-cells = �;
+
+compatible = &quot;mtk,mt7621-cpu-clock&quot;;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+sysbusclock@0 {
+
+#clock-cells = �;
+
+compatible = &quot;mtk,mt7621-sys-bus-clock&quot;;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+apll@0 {
+
+#clock-cells = �;
+
+compatible = &quot;fixed-clock&quot;;
+
+clock-frequency = &lt;0x1017df80&gt;;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+sysclock50M@0 {
+
+#clock-cells = �;
+
+compatible = &quot;fixed-clock&quot;;
+
+clock-frequency = &lt;0x2faf080&gt;;
+
+linux,phandle = 	;
+
+phandle = 	;
+
+};
+
+sysclock125M@0 {
+
+#clock-cells = �;
+
+compatible = &quot;fixed-clock&quot;;
+
+clock-frequency = &lt;0x7735940&gt;;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+palmbus@1e000000 {
+
+compatible = &quot;palmbus&quot;;
+
+reg = &lt;0x1e000000 0x100000&gt;;
+
+ranges = &lt;0x00 0x1e000000 0xfffff&gt;;
+
+#address-cells = ;
+
+#size-cells = ;
+
+sysc@0 {
+
+compatible = &quot;mtk,mt7621-sysc&quot;;
+
+reg = &lt;0x00 0x100&gt;;
+
+};
+
+wdt@100 {
+
+compatible = &quot;mtk,mt7621-wdt&quot;;
+
+reg = &lt;0x100 0x100&gt;;
+
+};
+
+gpio@600 {
+
+#address-cells = ;
+
+#size-cells = �;
+
+compatible = &quot;mtk,mt7621-gpio&quot;;
+
+reg = &lt;0x600 0x100&gt;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x0c 0x04&gt;;
+
+bank@0 {
+
+reg = �;
+
+compatible = &quot;mtk,mt7621-gpio-bank&quot;;
+
+gpio-controller;
+
+#gpio-cells = ;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+bank@1 {
+
+reg = ;
+
+compatible = &quot;mtk,mt7621-gpio-bank&quot;;
+
+gpio-controller;
+
+#gpio-cells = ;
+
+};
+
+bank@2 {
+
+reg = ;
+
+compatible = &quot;mtk,mt7621-gpio-bank&quot;;
+
+gpio-controller;
+
+#gpio-cells = ;
+
+};
+
+};
+
+i2c@0 {
+
+compatible = &quot;i2c-gpio&quot;;
+
+gpios = &lt;0x02 0x03 0x01 0x02 0x04 0x01&gt;;
+
+i2c-gpio,delay-us = ;
+
+#address-cells = ;
+
+#size-cells = �;
+
+status = &quot;okay&quot;;
+
+pinctrl-names = &quot;default&quot;;
+
+pinctrl-0 = ;
+
+};
+
+i2s@a00 {
+
+compatible = &quot;mediatek,mt7621-i2s&quot;;
+
+reg = &lt;0xa00 0x100&gt;;
+
+clocks = ;resets = &lt;0x05 0x11&gt;;
+
+reset-names = &quot;i2s&quot;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x10 0x04&gt;;
+
+txdma-req = ;
+
+rxdma-req = ;
+
+dmas = &lt;0x06 0x04 0x06 0x06&gt;;
+
+dma-names = &quot;tx\\0rx&quot;;
+
+status = &quot;disabled&quot;;
+
+};
+
+spi@b00 {
+
+status = &quot;okay&quot;;
+
+compatible = &quot;mediatek,mt7621-spi&quot;;
+
+reg = &lt;0xb00 0x100&gt;;
+
+clocks = ;
+
+resets = &lt;0x05 0x12&gt;;
+
+reset-names = &quot;spi&quot;;
+
+#address-cells = ;
+
+#size-cells = �;
+
+pinctrl-names = &quot;default&quot;;
+
+pinctrl-0 = ;
+
+m25p80@0 {
+
+#address-cells = ;
+
+#size-cells = ;
+
+compatible = &quot;jedec,spi-nor&quot;;
+
+reg = �;
+
+spi-max-frequency = &lt;0x989680&gt;;
+
+m25p,chunked-io =  ;
+
+partition@0 {
+
+label = &quot;Bootloader&quot;;
+
+reg = &lt;0x00 0x40000&gt;;
+
+};
+
+partition@40000 {
+
+label = &quot;Config&quot;;
+
+reg = &lt;0x40000 0x10000&gt;;
+
+};
+
+partition@50000 {
+
+label = &quot;Factory&quot;;
+
+reg = &lt;0x50000 0x40000&gt;;
+
+};
+
+partition@90000 {
+
+label = &quot;firmware&quot;;
+
+reg = &lt;0x90000 0xf00000&gt;;
+
+};
+
+partition@f90000 {
+
+label = &quot;rootfs\_data&quot;;
+
+reg = &lt;0xf90000 0x70000&gt;;
+
+};
+
+};
+
+};
+
+uartlite@c00 {
+
+compatible = &quot;mediatek,mt6577-uart\\0ns16550a&quot;;
+
+reg = &lt;0xc00 0x100&gt;;
+
+clocks = 	;
+
+clock-frequency = &lt;0x2faf080&gt;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x1a 0x04&gt;;
+
+reg-shift = ;
+
+reg-io-width = ;
+
+no-loopback-test;
+
+};
+
+uartfull@d00 {
+
+compatible = &quot;mediatek,mt6577-uart\\0ns16550a&quot;;
+
+reg = &lt;0xd00 0x100&gt;;
+
+clocks = 	;
+
+clock-frequency = &lt;0x2faf080&gt;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x1b 0x04&gt;;
+
+reg-shift = ;
+
+reg-io-width = ;
+
+no-loopback-test;
+
+status = &quot;okay&quot;;
+
+};
+
+uartfull@e00 {
+
+compatible = &quot;mediatek,mt6577-uart\\0ns16550a&quot;;
+
+reg = &lt;0xe00 0x100&gt;;
+
+clocks = 	;
+
+clock-frequency = &lt;0x2faf080&gt;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x1c 0x04&gt;;
+
+reg-shift = ;
+
+reg-io-width = ;
+
+no-loopback-test;
+
+status = &quot;okay&quot;;
+
+};
+
+gdma@2800 {
+
+compatible = &quot;mtk,rt3883-gdma&quot;;
+
+reg = &lt;0x2800 0x800&gt;;
+
+resets = &lt;0x05 0x0e&gt;;
+
+reset-names = &quot;dma&quot;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x0d 0x04&gt;;
+
+#dma-cells = ;
+
+#dma-channels = ;
+
+#dma-requests = ;
+
+status = &quot;disabled&quot;;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+ecc@3800 {
+
+compatible = &quot;mediatek,mt7621-ecc&quot;;
+
+reg = &lt;0x3800 0x800&gt;;
+
+status = &quot;disabled&quot;;
+
+linux,phandle = �;
+
+phandle = �;
+
+};
+
+nand@3000 {
+
+compatible = &quot;mediatek,mt7621-nfc&quot;;
+
+reg = &lt;0x3000 0x800&gt;;
+
+ecc-engine = �;
+
+#address-cells = ;
+
+#size-cells = ;
+
+pinctrl-names = &quot;default&quot;;
+
+pinctrl-0 = �;
+
+status = &quot;disabled&quot;;
+
+};
+
+memc@5000 {
+
+compatible = &quot;mtk,mt7621-memc&quot;;
+
+reg = &lt;0x5000 0x1000&gt;;
+
+};
+
+hsdma@7000 {
+
+compatible = &quot;mediatek,mt7621-hsdma&quot;;
+
+reg = &lt;0x7000 0x1000&gt;;
+
+resets = &lt;0x05 0x05&gt;;
+
+reset-names=&quot;hsdma&quot;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x0b 0x04&gt;;
+
+#dma-cells = ;
+
+#dma-channels = ;
+
+#dma-requests = ;
+
+status = &quot;disabled&quot;;
+
+};
+
+};
+
+rstctrl {
+
+compatible = &quot;ralink,rt2880-reset&quot;;
+
+#reset-cells = ;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+clkctrl {
+
+compatible = &quot;ralink,rt2880-clock&quot;;
+
+#clock-cells = ;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+ethsys@1e000000 {
+
+compatible = &quot;mediatek,mt7621-ethsys\\0syscon&quot;;reg = &lt;0x1e000000 0x8000&gt;;
+
+linux,phandle = �;
+
+phandle = �;
+
+};
+
+raeth@1e100000 {
+
+compatible = &quot;mediatek,mt7621-eth&quot;;
+
+reg = &lt;0x1e100000 0xe000&gt;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x03 0x04&gt;;
+
+mediatek,ethsys = �;
+
+status = &quot;disabled&quot;;
+
+};
+
+ethernet@1e100000 {
+
+compatible = &quot;mediatek,mt7621-eth\\0syscon&quot;;
+
+reg = &lt;0x1e100000 0xe000&gt;;
+
+#address-cells = ;
+
+#size-cells = �;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x03 0x04&gt;;
+
+mediatek,ethsys = �;
+
+status = &quot;okay&quot;;
+
+mac@0 {
+
+compatible = &quot;mediatek,eth-mac&quot;;
+
+reg = �;
+
+phy-mode = &quot;trgmii&quot;;
+
+fixed-link {
+
+speed = &lt;0x3e8&gt;;
+
+full-duplex;
+
+pause;
+
+};
+
+};
+
+mac@1 {
+
+compatible = &quot;mediatek,eth-mac&quot;;
+
+reg = ;
+
+phy-mode = &quot;rgmii&quot;;
+
+fixed-link {
+
+speed = &lt;0x3e8&gt;;
+
+full-duplex;
+
+pause;
+
+};
+
+};
+
+mdio-bus {
+
+#address-cells = ;
+
+#size-cells = �;
+
+linux,phandle = �;
+
+phandle = �;
+
+ethernet-phy@1f {
+
+reg = �;
+
+phy-mode = &quot;rgmii&quot;;
+
+};
+
+};
+
+};
+
+gsw {
+
+compatible = &quot;mediatek,mt753x&quot;;
+
+mt7530,direct-phy-access;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x17 0x04&gt;;
+
+#address-cells = ;
+
+#size-cells = �;
+
+mediatek,mdio = �;
+
+mediatek,portmap = &quot;wllll&quot;;
+
+mediatek,mcm;
+
+resets = &lt;0x05 0x02&gt;;
+
+reset-names = &quot;mcm&quot;;
+
+port@5 {
+
+compatible = &quot;mediatek,mt753x-port&quot;;
+
+reg = ;
+
+phy-mode = &quot;rgmii&quot;;
+
+fixed-link {
+
+speed = &lt;0x3e8&gt;;
+
+full-duplex;
+
+};
+
+};
+
+port@6 {
+
+compatible = &quot;mediatek,mt753x-port&quot;;
+
+reg = ;
+
+phy-mode = &quot;trgmii&quot;;
+
+fixed-link {
+
+speed = &lt;0x3e8&gt;;
+
+full-duplex;
+
+};
+
+};
+
+mdio-bus {
+
+#address-cells = ;
+
+#size-cells = �;
+
+};
+
+};
+
+hnat@1e100000 {
+
+compatible = &quot;mediatek,mtk-hnat\_v1&quot;;
+
+reg = &lt;0x1e100000 0x3000&gt;;
+
+resets = &lt;0x0c 0x00&gt;;
+
+reset-names = &quot;mtketh&quot;;
+
+status = &quot;okay&quot;;
+
+mtketh-wan = &quot;eth1&quot;;
+
+mtketh-ppd = &quot;eth0&quot;;
+
+ext-devices = &quot;rax0\\0ra0\\0rax1\\0ra1\\0rax2\\0ra2\\0rax3\\0ra3\\0apclix0\\0apcli0&quot;;
+
+mtketh-max-gmac = ;
+
+};
+
+sdhci@1e130000 {
+
+status = &quot;okay&quot;;
+
+compatible = &quot;mediatek,mt7621-sdhci&quot;;
+
+reg = &lt;0x1e130000 0x4000&gt;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x14 0x04&gt;;
+
+pinctrl-names = &quot;default&quot;;
+
+pinctrl-0 = �;
+
+};
+
+pcie@1e140000 {
+
+compatible = &quot;mediatek,mt7621-pci&quot;;
+
+reg = &lt;0x1e140000 0x40000&gt;;
+
+#address-cells = ;
+
+#size-cells = ;
+
+pinctrl-names = &quot;default&quot;;
+
+pinctrl-0 = �;
+
+device\_type = &quot;pci&quot;;
+
+bus-range = &lt;0x00 0xff&gt;;
+
+ranges = &lt;0x2000000 0x00 0x00 0x60000000 0x00 0x10000000 0x1000000 0x00 0x00 0x1e160000 0x00 0x10000&gt;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x04 0x04 0x00 0x18 0x04 0x00 0x19 0x04&gt;;
+
+status = &quot;okay&quot;;
+
+resets = &lt;0x05 0x18 0x05 0x19 0x05 0x1a&gt;;
+
+reset-names = &quot;pcie0\\0pcie1\\0pcie2&quot;;
+
+clocks = &lt;0x10 0x18 0x10 0x19 0x10 0x1a&gt;;
+
+clock-names = &quot;pcie0\\0pcie1\\0pcie2&quot;;
+
+reset-gpios = &lt;0x02 0x13 0x01&gt;;
+
+reset-gpio-names = &quot;pcie&quot;;
+
+pcie0 {
+
+reg = &lt;0x00 0x00 0x00 0x00 0x00&gt;;
+
+#address-cells = ;
+
+#size-cells = ;
+
+device\_type = &quot;pci&quot;;
+
+};
+
+pcie1 {
+
+reg = &lt;0x800 0x00 0x00 0x00 0x00&gt;;
+
+#address-cells = ;
+
+#size-cells = ;
+
+device\_type = &quot;pci&quot;;
+
+};
+
+pcie2 {
+
+reg = &lt;0x1000 0x00 0x00 0x00 0x00&gt;;
+
+#address-cells = ;
+
+#size-cells = ;
+
+device\_type = &quot;pci&quot;;
+
+};
+
+};
+
+usb@1e1c0000 {compatible = &quot;mediatek,mt7621-xhci\\0mediatek,mt2701-xhci&quot;;
+
+reg = &lt;0x1e1c0000 0x1000 0x1e1d0700 0x100&gt;;
+
+reg-names = &quot;mac\\0ippc&quot;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x16 0x04&gt;;
+
+clocks = &lt;0x11 0x11 0x11 0x11&gt;;
+
+clock-names = &quot;sys\_ck\\0free\_ck\\0ahb\_ck\\0dma\_ck&quot;;
+
+phys = &lt;0x12 0x03 0x13 0x04 0x14 0x03&gt;;
+
+status = &quot;okay&quot;;
+
+};
+
+usb-phy@1e1d0000 {
+
+compatible = &quot;mediatek,mt7621-u3phy\\0mediatek,mt2701-u3phy&quot;;
+
+#address-cells = ;
+
+#size-cells = ;
+
+ranges;
+
+reg = &lt;0x1e1d0000 0x300&gt;;
+
+status = &quot;okay&quot;;
+
+usb-phy@0x1e1d0800 {
+
+reg = &lt;0x1e1d0800 0x100&gt;;
+
+#phy-cells = ;
+
+clocks = ;
+
+clock-names = &quot;ref&quot;;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+usb-phy@0x1e1d0900 {
+
+reg = &lt;0x1e1d0900 0x700&gt;;
+
+#phy-cells = ;
+
+clocks = ;
+
+clock-names = &quot;ref&quot;;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+usb-phy@0x1e1d1000 {
+
+reg = &lt;0x1e1d1000 0x100&gt;;
+
+#phy-cells = ;
+
+clocks = ;
+
+clock-names = &quot;ref&quot;;
+
+linux,phandle = ;
+
+phandle = ;
+
+};
+
+};
+
+interrupt-controller@1fbc0000 {
+
+compatible = &quot;mti,gic&quot;;
+
+reg = &lt;0x1fbc0000 0x2000&gt;;
+
+interrupt-controller;
+
+#interrupt-cells = ;
+
+mti,reserved-cpu-vectors = ;
+
+linux,phandle = ;
+
+phandle = ;
+
+timer {
+
+compatible = &quot;mti,gic-timer&quot;;
+
+interrupts = &lt;0x01 0x01 0x00&gt;;
+
+clocks = ;
+
+};
+
+};
+
+pinctrl {
+
+compatible = &quot;mtk,mtkmips-pinmux&quot;;
+
+pinctrl-names = &quot;default&quot;;
+
+pinctrl-0 = ;
+
+pinctrl0 {
+
+linux,phandle = ;
+
+phandle = ;
+
+gpio {
+
+mtk,group = &quot;i2c&quot;;
+
+mtk,function = &quot;gpio&quot;;
+
+};
+
+uart2 {
+
+mtk,group = &quot;uart2&quot;;
+
+mtk,function = &quot;uart2&quot;;
+
+};
+
+uart3 {
+
+mtk,group = &quot;uart3&quot;;
+
+mtk,function = &quot;uart3&quot;;
+
+};
+
+jtag {
+
+mtk,group = &quot;jtag&quot;;
+
+mtk,function = &quot;gpio&quot;;
+
+};
+
+wdt {
+
+mtk,group = &quot;wdt&quot;;
+
+mtk,function = &quot;gpio&quot;;
+
+};
+
+sdhci {
+
+mtk,group = &quot;sdhci&quot;;
+
+mtk,function = &quot;gpio&quot;;
+
+};
+
+};
+
+i2c {
+
+linux,phandle = ;
+
+phandle = ;
+
+i2c {
+
+mtk,group = &quot;i2c&quot;;
+
+mtk,function = &quot;gpio&quot;;
+
+};
+
+};
+
+mdio {
+
+mdio {
+
+mtk,group = &quot;mdio&quot;;
+
+mtk,function = &quot;mdio&quot;;
+
+};
+
+};
+
+nand {
+
+linux,phandle = �;
+
+phandle = �;
+
+spi-nand {
+
+mtk,group = &quot;spi&quot;;
+
+mtk,function = &quot;nand1&quot;;
+
+};
+
+sdhci-nand {
+
+mtk,group = &quot;sdhci&quot;;
+
+mtk,function = &quot;nand2&quot;;
+
+};
+
+};
+
+pcie {
+
+linux,phandle = �;
+
+phandle = �;
+
+pcie {
+
+mtk,group = &quot;pcie&quot;;
+
+mtk,function = &quot;gpio&quot;;
+
+};
+
+};
+
+rgmii1 {
+
+rgmii1 {
+
+mtk,group = &quot;rgmii1&quot;;
+
+mtk,function = &quot;rgmii1&quot;;
+
+};
+
+};
+
+rgmii2 {
+
+rgmii2 {
+
+mtk,group = &quot;rgmii2&quot;;
+
+mtk,function = &quot;rgmii2&quot;;
+
+};
+
+};
+
+sdhci {
+
+linux,phandle = �;
+
+phandle = �;
+
+sdhci {
+
+mtk,group = &quot;sdhci&quot;;
+
+mtk,function = &quot;sdhci&quot;;
+
+};
+
+};
+
+spi {
+
+linux,phandle = ;
+
+phandle = ;
+
+spi {
+
+mtk,group = &quot;spi&quot;;
+
+mtk,function = &quot;spi&quot;;
+
+};
+
+};
+
+uart1 {
+
+uart1 {
+
+mtk,group = &quot;uart1&quot;;
+
+mtk,function = &quot;uart1&quot;;
+
+};
+
+};
+
+uart2 {
+
+uart2 {
+
+mtk,group = &quot;uart2&quot;;
+
+mtk,function = &quot;uart2&quot;;
+
+};
+
+};
+
+uart3 {
+
+uart3 {
+
+mtk,group = &quot;uart3&quot;;
+
+mtk,function = &quot;uart3&quot;;
+
+};
+
+};
+
+};
+
+crypto@1e004000 {
+
+status = &quot;okay&quot;;
+
+compatible = &quot;mediatek,mtk-eip93&quot;;
+
+reg = &lt;0x1e004000 0x1000&gt;;
+
+interrupt-parent = ;
+
+interrupts = &lt;0x00 0x13 0x04&gt;;
+
+};
+
+chosen {
+
+bootargs = &quot;console=ttyS0,115200&quot;;
+
+};
+
+};
+
+</code></pre>
+<pre><code>configurations {
+	default = &quot;config@1&quot;;
+
+	config@1 {
+		description = &quot;OpenWrt&quot;;
+		kernel = &quot;kernel@1&quot;;
+		fdt = &quot;fdt@1&quot;;
+	};
+};
+</code></pre>
+<p>};</p>
+<pre><code>
+This is the settings section for booting.Kernel IMG is defined to use kernel@1, and the device volume is defined to use fdt@1.
+
+* * *
+
+Now that we have confirmed the Kernel IMG data, we can extract and analyze this part.
+
+One problem here is that if you try to decompress the Kernel IMG with LZMA and binarize it, the Kernel IMG is broken. There are some that are not linked to libc files, but if you open them, you can see that there are abnormally few functions. There are many HEX values that are not interpreted properly.
+
+![](/assets/images/tistory/tistory-46318ff0b3f2/009.png)
+
+![](/assets/images/tistory/tistory-46318ff0b3f2/010.png)
+
+These are some of the parts that were not interpreted properly...
+
+![](/assets/images/tistory/tistory-46318ff0b3f2/011.png)
+
+I wrote a code to decompile the binary so that it can be extracted and analyzed using Python's ghidra module, but it cannot be interpreted. Below is the only extracted part.
+
+</code></pre>
+<p>whrd@whrdser:~/Desktop/study/capstone/iptime_firm$ cat output.txt
+Decompiled Functions:</p>
+<p>/* Function: entry */</p>
+<p>/* WARNING: Control flow encountered bad instruction data */</p>
+<p>void processEntry entry(void)</p>
+<p>{
+syscall(0);
+syscall(0);
+/* WARNING: Bad instruction - Truncating control flow here */
+halt_baddata();
+}</p>
+<pre><code>
+Converting and analyzing DTB files to DTS was the first time I encountered files in this format, so I wanted to analyze them properly. In other words, if your goal is to extract the inside of a file, you can extract it directly from DTB, which is the compiled form of DTS.
+
+![](/assets/images/tistory/tistory-46318ff0b3f2/012.png)
+
+The lzma\_data.dtb file used here is a file that extracts the remaining parts except for 0 to 55 corresponding to PART 1. (While shoveling...)
+
+If you look here, you can see your friend compressed as XZ. You can extract this friend.
+
+</code></pre>
+<p>dd if=./lzma_data.dtb of=dtb/pls bs=1 skip=3801198 count=1120328</p>
+<pre><code>
+When extracted using this command, a file with proper linking is extracted.
+
+![](/assets/images/tistory/tistory-46318ff0b3f2/013.png)
+
+![](/assets/images/tistory/tistory-46318ff0b3f2/014.png)
+
+You can see that all functions are normal.
+
+I attempted to use the Kernel environment by using the Kernel IMG as is, but **KERNEL PANNIC!!!!!!!!!!**
+
+#### PART 4
+
+The DTB in the middle happens to be a friend of the hardware DTB seen in PART 3.
+
+(To be exact, while analyzing, I reinstalled binwalk with a different version, and it ended up like this while following my friend.)
+
+Then, we will extract the part located between the DTB and the last squash part.
+
+</code></pre>
+<p>dd if=ax2004m_ml_15_056.bin of=bin3 bs=1 skip=3681780 count=119364</p>
+<pre><code>
+![](/assets/images/tistory/tistory-46318ff0b3f2/015.png)
+
+It is just an empty file filled with 0x00 from beginning to end.
+
+#### PART 5
+
+Finally, the final filesystem extraction.
+
+</code></pre>
+<p>dd if=ax2004m_ml_15_056.bin of=bin4 bs=1 skip=3801144
+unsquashfs bin4</p>
+<pre><code>
+Try extracting it via dd and unzipping it via unsquashfs in the same way.
+
+![](/assets/images/tistory/tistory-46318ff0b3f2/016.png)
+
+* * *
+
+First, let's cover this in this post, and then continue in Part 2.</code></pre>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/iptime-firmware-analyze-1/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

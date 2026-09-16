@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] Environment Setting · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ https://lrl.kr/JT5m カーネルexploitへの導入 | PAWNYABLE!カーネルexploitへの導入「ユーザーランドのpwnは一通り勉強したけど、カーネルからは難しそうで㉋が&quot;Go out&quot; and do many things.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/kernel-environment-setting/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-environment-setting/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-environment-setting/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Environment Setting · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ https://lrl.kr/JT5m カーネルexploitへの導入 | PAWNYABLE!カーネルexploitへの導入「ユーザーランドのpwnは一通り勉強したけど、カーネルからは難しそうで㉋が&quot;Go out&quot; and do many things."><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-environment-setting/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Environment Setting","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ https://lrl.kr/JT5m カーネルexploitへの導入 | PAWNYABLE!カーネルexploitへの導入「ユーザーランドのpwnは一通り勉強したけど、カーネルからは難しそうで㉋が\"Go out\" and do many things.","datePublished":"2024-06-05","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-environment-setting/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/kernel-environment-setting/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Environment Setting</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ https://lrl.kr/JT5m カーネルexploitへの導入 | PAWNYABLE!カーネルexploitへの導入「ユーザーランドのpwnは一通り勉強したけど、カーネルからは難しそうで㉋が&quot;Go out&quot; and do many things.</p><div class="article-meta"><time datetime="2024-06-05">Jun 5, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong></p>
+<p><a href="https://lrl.kr/JT5m">https://lrl.kr/JT5m</a></p>
+<p> [カーネルexploitへの導入 | PAWNYABLE!</p>
+<p>カーネルexploitへの導入「ユーザーランドのpwnは一通り勉強したけど、カーネルからは難しそうで手が出ない「という方はいでしょう。しかし、実はカーネルexploitでは、場合によってはと</p>
+<p>pawnyable.cafe](<a href="https://lrl.kr/JT5m">https://lrl.kr/JT5m</a>)</p>
+<p>In the practice, we used the example file posted on pawnyable.cafe.</p>
+<hr>
+<p>Download example file</p>
+<pre><code>mkdir kernel
+cd kernel
+wget https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01.tar.gz
+tar -xzvf LK01.tar.gz
+</code></pre>
+<p>It also installs qemu appropriate for each environment.</p>
+<pre><code>apt install qemu-system
+</code></pre>
+<hr>
+<p>To build a virtual environment through qemu, a disk image that is mounted as the root directory is required separately from the Linux kernel.</p>
+<p>cpio is a lightweight disk image file. </p>
+<pre><code>mkdir root
+cd root
+cpio -idv &lt; ../rootfs.cpio
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-20d10d01bd1d/001.png" alt=""></p>
+<p>If you execute the above, the initial files necessary for system booting are normally located in the root directory.</p>
+<p>At this time, since it is often compressed with gz in the .cpio file, if cpio cannot be released, you must check it using the file command.</p>
+<p><img src="/assets/images/tistory/tistory-20d10d01bd1d/002.png" alt=""></p>
+<p>When debugging, if you do not use the root account, there are parts that are inconvenient or cannot be obtained in the process of setting breakpoints or checking function addresses. Therefore, it is necessary to first acquire root privileges.</p>
+<p>When the system starts, /sbin/init is run, which runs the /etc/init.d/rcS script.</p>
+<p>In this script, files that start with S are executed. If you look at ./etc/init.d/, you can see that there is a file called S99pawnyable.</p>
+<pre><code>#!/bin/sh
+
+##
+## Setup
+##
+mdev -s
+mount -t proc none /proc
+mkdir -p /dev/pts
+mount -vt devpts -o gid=4,mode=620 none /dev/pts
+chmod 666 /dev/ptmx
+stty -opost
+echo 2 &gt; /proc/sys/kernel/kptr_restrict
+#echo 1 &gt; /proc/sys/kernel/dmesg_restrict
+
+##
+## Install driver
+##
+insmod /root/vuln.ko
+mknod -m 666 /dev/holstein c `grep holstein /proc/devices | awk '{print $1;}'` 0
+
+##
+## User shell
+##
+echo -e &quot;\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n&quot;
+echo &quot;[ Holstein v1 (LK01) - Pawnyable ]&quot;
+setsid cttyhack setuidgid 1337 sh
+
+##
+## Cleanup
+##
+umount /proc
+poweroff -d 0 -f
+</code></pre>
+<p>In this script, various initial environment settings are defined. Let’s look at the last line setsid here.</p>
+<pre><code>setsid cttyhack setuidgid 1337 sh
+</code></pre>
+<p>This is code that runs a shell with user privileges when the kernel is started.</p>
+<p>To run it with the root account, change 1337 to 0 and save it.</p>
+<p>Additionally, you must disable the kernel protection techniques that will be discussed later.</p>
+<pre><code>#echo 2 &gt; /proc/sys/kernel/kptr_restrict
+#echo 1 &gt; /proc/sys/kernel/dmesg_restrict
+</code></pre>
+<p>Just comment it out as above and save it.</p>
+<p>Afterwards, I will set the modified file back to cpio.</p>
+<pre><code>find . -print0 | cpio -o --format=newc --null --owner=root &gt; ../rootfs_updated.cpio
+</code></pre>
+<p>Next, we will modify <a href="http://run.sh">run.sh</a>.</p>
+<pre><code>#!/bin/sh
+qemu-system-x86_64 \
+    -m 64M \
+    -nographic \
+    -kernel bzImage \
+    -append &quot;console=ttyS0 loglevel=3 oops=panic panic=-1 nopti nokaslr&quot; \
+    -no-reboot \
+    -cpu qemu64 \
+    -smp 1 \
+    -monitor /dev/null \
+    -initrd rootfs.cpio \
+    -net nic,model=virtio \
+    -net user
+</code></pre>
+<p>-m : Specifies virtual RAM size<br>
+-nographic : CLI settings<br>
+-kernel: Specify kernel image file<br>
+-append: Add kernel-related settings<br>
+-cpu: virtual cpu settings<br>
+-smp : CPU socket, core, thread settings<br>
+-monitor : Monitor console to display debugging information while qemu is running<br>
+-initrd : Specify disk image file<br>
+-net : Network card settings</p>
+<p>To enable debugging, just add the option below to the <a href="http://run.sh">run.sh</a> file above.</p>
+<p>-gdb : Options for debugging with gdb</p>
+<pre><code>#!/bin/sh
+qemu-system-x86_64 \
+    -m 64M \
+    -nographic \
+    -kernel bzImage \
+    -append &quot;console=ttyS0 loglevel=3 oops=panic panic=-1 nopti nokaslr&quot; \
+    -no-reboot \
+    -cpu qemu64 \
+    -smp 1 \
+    -monitor /dev/null \
+    -initrd rootfs_updated.cpio \
+    -net nic,model=virtio \
+    -net user \
+    -gdb tcp::1234
+</code></pre>
+<p>When you run the script, you can see that you are connected to a shell with root privileges as shown below.</p>
+<p><img src="/assets/images/tistory/tistory-20d10d01bd1d/003.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-environment-setting/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

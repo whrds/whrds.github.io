@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[IPTIME] FIRMWARE ANALYZE #2 · whrds.log</title><meta name="description" content="I will continue writing from #1. QEMUNow, we will analyze using the extracted files. KERNEL IMG focused on static analysis and selected emulating and analyzing ROOTFS as the next task. You may have accessed the page that appears in the window below to set up your home&#039;s WIFI or open a Minecraft server when you were young.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/iptime-firmware-analyze-2/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/iptime-firmware-analyze-2/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/iptime-firmware-analyze-2/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[IPTIME] FIRMWARE ANALYZE #2 · whrds.log"><meta property="og:description" content="I will continue writing from #1. QEMUNow, we will analyze using the extracted files. KERNEL IMG focused on static analysis and selected emulating and analyzing ROOTFS as the next task. You may have accessed the page that appears in the window below to set up your home&#039;s WIFI or open a Minecraft server when you were young."><meta property="og:url" content="https://whrds.github.io/en/posts/iptime-firmware-analyze-2/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[IPTIME] FIRMWARE ANALYZE #2","description":"I will continue writing from #1. QEMUNow, we will analyze using the extracted files. KERNEL IMG focused on static analysis and selected emulating and analyzing ROOTFS as the next task. You may have accessed the page that appears in the window below to set up your home's WIFI or open a Minecraft server when you were young.","datePublished":"2025-02-13","inLanguage":"en","url":"https://whrds.github.io/en/posts/iptime-firmware-analyze-2/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/iptime-firmware-analyze-2/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[IPTIME] FIRMWARE ANALYZE #2</h1><p class="article-description">I will continue writing from #1. QEMUNow, we will analyze using the extracted files. KERNEL IMG focused on static analysis and selected emulating and analyzing ROOTFS as the next task. You may have accessed the page that appears in the window below to set up your home&#039;s WIFI or open a Minecraft server when you were young.</p><div class="article-meta"><time datetime="2025-02-13">Feb 13, 2025</time><span>·</span><span>5 min read</span></div></header><div class="prose"><p>I will continue writing from #1.</p>
+<h3>QEMU</h3>
+<p>Now, let’s analyze the extracted files.<br>
+KERNEL IMG first focused on static analysis and selected emulating and analyzing ROOTFS as the next task.</p>
+<p>You may have accessed a page that opens a window like the one below to set up your home’s WIFI or open a Minecraft server when you were young.</p>
+<p>[ 192.168.0.1 ]</p>
+<p><img src="/assets/images/tistory/tistory-e020efdb66d7/001.png" alt=""></p>
+<p>Since this page is ultimately a website, a web service must be run to emulate FIRMWARE.</p>
+<p>Normally, rc.d and rcS files exist. In this case, you can check what processes come up when the file system boots… but this friend doesn’t have anything like that… I think it exists under a different name or in binary form, but I’m still working on it.</p>
+<p><img src="/assets/images/tistory/tistory-e020efdb66d7/002.png" alt=""></p>
+<p>We looked at what commands there are to activate web services.</p>
+<p>There are busyboxes that contain basic commands such as ls and id, commands to check the network, etc. Here, httpd can be seen as the main one. In addition to httpd, you can also see a service-related binary called servd.</p>
+<p><img src="/assets/images/tistory/tistory-e020efdb66d7/003.png" alt=""></p>
+<p>I tried running it right away, but there were errors… Since httpd only showed config errors, I tried to solve this problem first.</p>
+<p>Since the file name was httpd, I thought it was an httpd.conf file and tried creating the file in that path, but the same symptom occurred.</p>
+<p>Referring to a config file means reading the config file through fopen() inside httpd. Therefore, I thought that if I dynamically analyze the binary, I would be able to check which path the file is being imported from.</p>
+<p>I wrote a simple post about dynamic debugging using QEMU when dealing with ARCH.</p>
+<p><a href="https://whrdud727.tistory.com/entry/AArch64-Debugging">https://whrdud727.tistory.com/entry/AArch64-Debugging</a></p>
+<p> [[AArch64] Debugging</p>
+<p>※ If there are any mistakes, please let us know. We will check and correct it. ※ The debugging method was mentioned earlier, but dynamic debugging cannot be performed using that method. In this post, dynamic data</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/AArch64-Debugging">https://whrdud727.tistory.com/entry/AArch64-Debugging</a>)</p>
+<pre><code>qemu-mipsel-static -L ~/firm/iptime/again/squashfs-root/ -g 4444 ~/firm/iptime/again/squashfs-root/sbin/httpd
+</code></pre>
+<p>Open gdb server on port 4444 through qemu.</p>
+<p>Afterwards, run the command below in another terminal.</p>
+<pre><code>sudo gdb-multiarch
+set arch mips:isa32
+set endian little
+file /home/fuzzing/firm/iptime/again/squashfs-root/sbin/httpd
+target remote localhost:4444
+
+b*0x401A54
+c
+</code></pre>
+<p>Use mips-based arch and set it to little endian. Afterwards, connect remotely.</p>
+<p>The 0x401A54 point where the breakpoint is set is the caller of the function that performs fopen().</p>
+<p><img src="/assets/images/tistory/tistory-e020efdb66d7/004.png" alt=""></p>
+<p>sub_405D04() is called with that byte_415760 as the argument.</p>
+<p>At this time, fopen() is performed using the byte_415760 value received as an argument as the filename. </p>
+<p>To find out what is in the filename, you can call bp with fopen(), but since the same value is entered as is, I set it at that point.</p>
+<p>Afterwards, I checked the memory…</p>
+<p><img src="/assets/images/tistory/tistory-e020efdb66d7/005.png" alt=""></p>
+<p>Unlike AMD, which consists of existing friends such as rdi and rsi, you can see that there are registers whose names are hard to distinguish.</p>
+<p>Here, the first argument is the a0 register with the value 0x415760.</p>
+<p><img src="/assets/images/tistory/tistory-e020efdb66d7/006.png" alt=""></p>
+<p>The problem is simply that the data portion remains empty until fopen() is called.</p>
+<p>While statically debugging the httpd file with IDA64 to see why, I discovered something strange.</p>
+<p>It had a slightly different structure from httpd that I had previously seen while analyzing httpd and 1-DAY of TPLINK devices.</p>
+<p>And since BOA was constantly mentioned internally, I installed and analyzed it myself to study BOA.</p>
+<p>Although httpd and boa are both web-related processes, their structures are different.</p>
+<p>However, it was strange that the structures were similar, so I looked into it and found that boa had been renamed to httpd in IPTIME…</p>
+<p><img src="/assets/images/tistory/tistory-e020efdb66d7/007.png" alt=""></p>
+<p>Really… why… </p>
+<p>Then I was able to be sure that the conf file was boa.conf and not something like httpd.conf.</p>
+<p>The problem was that there was no boa.conf file inside rootfs, but when I ran the strings command, I could see why it was not there.</p>
+<p>When the file system is booted, the plugin_http.so command is created due to the execution of some binary or script.</p>
+<pre><code>strigns /usr/service.plugin/plugin_http.so
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-e020efdb66d7/008.png" alt=""></p>
+<p>The entire part of the code is as follows.</p>
+<pre><code>int __fastcall sub_147C(const char *a1, int a2)
+{
+  FILE *v4; // $v0
+  FILE *v5; // $s0
+  int max_firmware_size; // $v0
+  const char *url_service_ip; // $v0
+  int fakedns; // $s4
+  int v9; // $v0
+  const char *v10; // $a1
+  char v12[256]; // [sp+20h] [-2C0h] BYREF
+  char v13[256]; // [sp+120h] [-1C0h] BYREF
+  char v14[128]; // [sp+220h] [-C0h] BYREF
+  char v15[32]; // [sp+2A0h] [-40h] BYREF
+  char v16[32]; // [sp+2C0h] [-20h] BYREF
+
+  snprintf(v14, 0x80u, &quot;/var/run/boa_vh.%d.conf&quot;, a2);
+  strcpy(v16, &quot;&quot;);
+  get_http_auth_method(v16);
+  v4 = fopen(v14, &quot;w+&quot;);
+  if ( !v4 )
+  {
+    fputs(&quot;Critical Error to make boa_vh.conf\n&quot;, stderr);
+    goto LABEL_25;
+  }
+  v5 = v4;
+  fprintf(v4, &quot;Port %d\n&quot;, a2);
+  fputs(&quot;User root\n&quot;, v5);
+  fputs(&quot;Group root\n&quot;, v5);
+  fputs(&quot;ServerAdmin root@localhost\n&quot;, v5);
+  fputs(&quot;VirtualHost\n&quot;, v5);
+  fputs(&quot;DocumentRoot /home/httpd\n&quot;, v5);
+  fputs(&quot;UserDir public_html\n&quot;, v5);
+  fputs(&quot;DirectoryIndex index.html\n&quot;, v5);
+  fputs(&quot;E404 /ui/index.html\n&quot;, v5);
+  fputs(&quot;KeepAliveMax 100\n&quot;, v5);
+  fputs(&quot;KeepAliveTimeout 10\n&quot;, v5);
+  fputs(&quot;MimeTypes /etc/mime.types\n&quot;, v5);
+  fputs(&quot;DefaultType text/plain\n&quot;, v5);
+  fputs(&quot;AddType application/x-httpd-cgi cgi\n&quot;, v5);
+  fputs(&quot;AddType text/html html\n&quot;, v5);
+  fputs(&quot;AddType image/svg+xml svg\n&quot;, v5);
+  if ( !strcmp(v16, &quot;session&quot;) )
+    fprintf(v5, &quot;ScriptAlias /sess-bin/ /%s/\n&quot;, &quot;cgibin&quot;);
+  else
+    fprintf(v5, &quot;ScriptAlias /cgi-bin/ /%s/\n&quot;, &quot;cgibin&quot;);
+  fprintf(v5, &quot;ScriptAlias /login/ /%s/login-cgi/\n&quot;, &quot;cgibin&quot;);
+  fprintf(v5, &quot;ScriptAlias /ddns/ /%s/ddns/\n&quot;, &quot;cgibin&quot;);
+  fputs(&quot;ScriptAlias /info/ /home/httpd/info/\n&quot;, v5);
+  fputs(&quot;ServerName \&quot;\&quot;\n&quot;, v5);
+  max_firmware_size = get_max_firmware_size();
+  fprintf(v5, &quot;SinglePostLimit %zu\n&quot;, max_firmware_size);
+  if ( strcmp(v16, &quot;session&quot;) )
+  {
+    fputs(&quot;Auth /cgi-bin /etc/httpd.passwd\n&quot;, v5);
+    fputs(&quot;Auth /cgi /etc/httpd.passwd\n&quot;, v5);
+    fputs(&quot;Auth /main /etc/httpd.passwd\n&quot;, v5);
+    fputs(&quot;Auth /easymesh /etc/httpd.passwd\n&quot;, v5);
+  }
+  if ( !strcmp(a1, &quot;lan&quot;) )
+  {
+    strcpy(v15, &quot;&quot;);
+    strcpy(v12, &quot;&quot;);
+    if ( !wl_helper_get_status() || !wl_helper_get_redirect_uri(v12, 256, v15, 32) )
+    {
+      if ( get_url_redirect_option() )
+      {
+        url_service_ip = (const char *)get_url_service_ip();
+        snprintf(v15, 0x20u, &quot;%s&quot;, url_service_ip);
+        snprintf(v12, 0x100u, &quot;http://%s:%d/login/urlredir.cgi?page=url_redirect&quot;, v15, a2);
+      }
+      else
+      {
+        fakedns = get_fakedns();
+        if ( !fakedns || get_network_link(&quot;wan1&quot;) &amp;&amp; !get_network_ip(&quot;wan1&quot;, v13) )
+          goto LABEL_21;
+        if ( get_ifconfig(&quot;br-lan&quot;, v15, 0) == 1 )
+        {
+          fputs(&quot;httpd: IF_LOCAL is not initialized yet\n&quot;, stderr);
+          goto LABEL_21;
+        }
+        snprintf(v12, 0x100u, &quot;http://%s:%d&quot;, v15, a2);
+      }
+    }
+    fprintf(v5, &quot;RedirectSrvIP %s\n&quot;, v15);
+    fprintf(v5, &quot;RedirectURI %s\n&quot;, v12);
+  }
+LABEL_21:
+  if ( !get_ftm() &amp;&amp; sysauth_get_cred(v13, 256) )
+    fprintf(v5, &quot;SHA256_creds %s\n&quot;, v13);
+  fprintf(v5, &quot;AuthType %s\n&quot;, v16);
+  fclose(v5);
+LABEL_25:
+  snprintf(v12, 0x80u, &quot;httpd -s %s&quot;, v14);
+  v9 = sub_13F8(v12);
+  if ( v9 )
+    v10 = &quot;Error&quot;;
+  else
+    v10 = &quot;OK&quot;;
+  return e_log(&quot;Start httpd %s(%d)&quot;, v10, v9);
+}
+</code></pre>
+<p>Through this code, you can find out the internal configuration of boa.conf, including its name format.</p>
+<pre><code>snprintf(v14, 0x80u, &quot;/var/run/boa_vh.%d.conf&quot;, a2);
+</code></pre>
+<p>The boa_vh.[ port ].conf format is used.</p>
+<pre><code>  fprintf(v4, &quot;Port %d\n&quot;, a2);
+  fputs(&quot;User root\n&quot;, v5);
+  fputs(&quot;Group root\n&quot;, v5);
+  fputs(&quot;ServerAdmin root@localhost\n&quot;, v5);
+  fputs(&quot;VirtualHost\n&quot;, v5);
+
+.....
+
+    fputs(&quot;Auth /cgi /etc/httpd.passwd\n&quot;, v5);
+    fputs(&quot;Auth /main /etc/httpd.passwd\n&quot;, v5);
+    fputs(&quot;Auth /easymesh /etc/httpd.passwd\n&quot;, v5);
+  }
+</code></pre>
+<p>You can check the conf file configuration,</p>
+<pre><code>  snprintf(v12, 0x80u, &quot;httpd -s %s&quot;, v14);
+  v9 = sub_13F8(v12);
+  if ( v9 )
+    v10 = &quot;Error&quot;;
+  else
+    v10 = &quot;OK&quot;;
+  return e_log(&quot;Start httpd %s(%d)&quot;, v10, v9);
+</code></pre>
+<p>I was even able to find out how to run the httpd service.</p>
+<p>Configure the conf file directly using -s, an option that does not exist in regular boa files.</p>
+<p>Analyze the above code and execute the command below using the obtained conf file as the path.</p>
+<pre><code>sudo chroot / /usr/bin/qemu-mipsel-static /home/fuzzing/firm/iptime/again/squashfs-root/sbin/httpd -s /home/fuzzing/firm/iptime/again/squashfs-root/tmp/var/run/boa_vh.4321.conf
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-e020efdb66d7/009.png" alt=""></p>
+<p>Although normal access to the web page was not possible, the cgi operation itself was successful as no 404 error or path not found message was displayed.I wondered if the conf file could not be properly referenced, so I checked further with dynamic debugging.</p>
+<p>Proceed in the same way up to the point where bp was entered previously and set the memory value to an absolute path using the command below.</p>
+<pre><code>set {char[100]} 0x00415760 = &quot;/home/fuzzing/firm/iptime/again/squashfs-root/tmp/var/run/boa_vh.7777.conf&quot;
+</code></pre>
+<p>The conf file used at this time is as follows.</p>
+<pre><code>Port 7777
+User root
+Group root
+ServerAdmin root@localhost
+VirtualHost
+DocumentRoot /home/fuzzing/firm/iptime/again/squashfs-root/home/httpd
+UserDir public_html
+DirectoryIndex index.html
+KeepAliveMax 100
+KeepAliveTimeout 10
+MimeTypes /etc/mime.types
+DefaultType text/plain
+AddType application/x-httpd-cgi cgi
+AddType text/html html
+ScriptAlias /sess-bin/ /home/fuzzing/firm/iptime/again/squashfs-root/cgibin/
+ScriptAlias /cgi-bin/ /home/fuzzing/firm/iptime/again/squashfs-root/cgibin/
+ScriptAlias /nd-bin/ /home/fuzzing/firm/iptime/again/squashfs-root/ndbin/
+ScriptAlias /login/ /home/fuzzing/firm/iptime/again/squashfs-root/cgibin/login-cgi/
+ScriptAlias /ddns/ /home/fuzzing/firm/iptime/again/squashfs-root/cgibin/ddns/
+ServerName &quot;&quot;
+SinglePostLimit 4194304
+Auth /cgi-bin /home/fuzzing/firm/iptime/again/squashfs-root/etc/httpd.passwd
+Auth /main /home/fuzzing/firm/iptime/again/squashfs-root/etc/httpd.passwd
+</code></pre>
+<p>Even if you run it in this way, only a white screen appears as before, so it seems that you need to install a few other services before the httpd service starts working.</p>
+<p><img src="/assets/images/tistory/tistory-e020efdb66d7/010.png" alt=""></p>
+<p>Analysis of CGI was also completed.  There are two paths: <strong>/cgibin/</strong> and <strong>/home/httpd/</strong>.</p>
+<p>We discovered a number of areas that seemed vulnerable, but…</p>
+<pre><code>        msg_newline_to_br(v21, v23, 256);
+        printf(v23);
+        printf(&quot;&lt;/span&gt;&quot;);
+</code></pre>
+<p>If you look at just one part, this is it! This is the cgi part that builds the web page, and no matter how you look at it, it looks like FSB will occur as a PWNABLE vulnerability and XSS as a WEB vulnerability!!</p>
+<p>However, although it is not a part that receives direct input, I think there is a way…</p>
+<p>In order to accurately analyze and check whether it actually happens, you have to emulate it or take apart your router… For this, it’s time to figure out the operation order of other services and do some digging to make them work…</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/iptime-firmware-analyze-2/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

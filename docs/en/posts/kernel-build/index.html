@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] build · whrds.log</title><meta name="description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. To analyze Kernel 1-day, build a Kernel version that matches the vulnerable version, just as you built the environment for 1-day analysis in the user space.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/kernel-build/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-build/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-build/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] build · whrds.log"><meta property="og:description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. To analyze Kernel 1-day, build a Kernel version that matches the vulnerable version, just as you built the environment for 1-day analysis in the user space."><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-build/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] build","description":"※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. To analyze Kernel 1-day, build a Kernel version that matches the vulnerable version, just as you built the environment for 1-day analysis in the user space.","datePublished":"2024-11-12","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-build/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/kernel-build/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] build</h1><p class="article-description">※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. To analyze Kernel 1-day, build a Kernel version that matches the vulnerable version, just as you built the environment for 1-day analysis in the user space.</p><div class="article-meta"><time datetime="2024-11-12">Nov 12, 2024</time><span>·</span><span>4 min read</span></div></header><div class="prose"><p><strong>※ Since the analysis was conducted with reference to the data, there may be errors.</strong> </p>
+<p><strong>※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action.</strong></p>
+<p>  In order to analyze Kernel 1-day, you must build a Kernel version that matches the vulnerable version, just as you built the environment for 1-day analysis in the user space. What you need to prepare for this is bzimage, vmlinux, and a rootfs image file that contains the binaries for PoC operation that match the vulnerable version.</p>
+<p>In order to analyze CVE-2022-1015, one of the Kernel 1-days, I studied Kernel environment construction and would like to write it.</p>
+<hr>
+<h4>1. Kernel source install</h4>
+<p>First, you must install the Kernel file appropriate for the vulnerable version. For this we will use git.</p>
+<pre><code>git clone git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-696de103e19e/001.png" alt=""></p>
+<p>Executing the command takes some time because the Kernel file is very large.</p>
+<p>Afterwards, install the necessary packages for the build.</p>
+<pre><code>wget https://mirrors.edge.kernel.org/pub/linux/kernel/[version]
+
+tar -xzvf ./kernel.tar.gz
+</code></pre>
+<p>You can also proceed with installation using wget.</p>
+<p>If you proceed this way, you must also proceed with decompression.</p>
+<h4>2. Install package</h4>
+<pre><code>sudo apt-get install git-all fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison
+</code></pre>
+<p>If you install these packages, you can perform subsequent tasks normally.</p>
+<h4>3. Version check</h4>
+<pre><code>git checkout -b CV5.12.2 v5.12.2
+
+____________________________________________________________________________________
+
+git checkout[commit code]
+-&gt; ex)  git checkout 9f4ad9e425a1d3b6a34617b8ea226d56a119a717
+</code></pre>
+<p>If you know the commit value of git in the later method, you can write that value or write the version you want to install in the format above.</p>
+<h4>4. Prepare.config</h4>
+<p>Here, the methods are divided into two.</p>
+<p>There is a way to either use the .config file of the Linux environment kernel currently in use or create a new one.</p>
+<p>4-1. Copy Kernel config</p>
+<pre><code>mkdir build
+cd build
+cp /boot/config-$(uname -r) .config
+</code></pre>
+<p>Use the uname-r command above to find and retrieve .config with information about the current account.</p>
+<p>Afterwards, open the .config file and comment out the contents below.</p>
+<pre><code>CONFIG_MODULE_SIG_ALL
+CONFIG_MODULE_SIG_KEY
+CONFIG_SYSTEM_TRUSTED_KEYScd
+</code></pre>
+<p>4-2. Make New Default config</p>
+<pre><code>make defconfig
+</code></pre>
+<p>Since the internal values are not set by creating the most basic .config file, you must configure them while building.</p>
+<p>4-3. Make New Setting config</p>
+<p>If you want to perform debug settings for a kernel other than the default value, you must proceed in this way.</p>
+<p>(If you want to apply other settings directly…) -&gt; Use the methods above.</p>
+<pre><code>make manuconfig
+</code></pre>
+<p>When you enter the command, a gray window will appear on a blue background. (TMI: It appears the same in the CLI environment. I study remotely on a personal server, and it was a bit surprising that it looked like a GUI.)</p>
+<p>There are two main things to set here.</p>
+<p><img src="/assets/images/tistory/tistory-696de103e19e/002.png" alt=""></p>
+<p>First, go to [Kernel hacking].</p>
+<p><img src="/assets/images/tistory/tistory-696de103e19e/003.png" alt=""></p>
+<p>Here, go to [Compile-time checks and compiler options].</p>
+<p><img src="/assets/images/tistory/tistory-696de103e19e/004.png" alt=""></p>
+<p>Afterwards, check [Compile the kernel with debug info] at the top by pressing the <strong>Y</strong> key.</p>
+<p>The second setting says that there is KGPG in the [Kernel hacking] section, but that setting did not exist in my environment.</p>
+<p><img src="/assets/images/tistory/tistory-696de103e19e/005.png" alt=""></p>
+<p>When you have completed the settings, save with [SAVE] and exit. A .config file will be created.</p>
+<h4>5. make </h4>
+<pre><code>make -j$(nproc) O=../build/
+</code></pre>
+<p>Once you have completed the settings, enter the following to execute the build.</p>
+<p>At this time, a lot of prompts will appear asking you to enter y, m, n, etc. for various settings, but just press and hold the [ENTER] key. If you do this, it will automatically be set to the default value. (There is no need to read them one by one!!)</p>
+<p><img src="/assets/images/tistory/tistory-696de103e19e/006.png" alt=""></p>
+<p>It may vary depending on the building environment, but for me, it took more than an hour.</p>
+<hr>
+<p><strong>SO…long…time…</strong></p>
+<hr>
+<p><img src="/assets/images/tistory/tistory-696de103e19e/007.png" alt=""></p>
+<p>If the files were created normally as above, check whether bzImage and vmlinux exist.</p>
+<p><img src="/assets/images/tistory/tistory-696de103e19e/008.png" alt=""></p>
+<p>If you enter the arch/x86/boot/ path, you can see that bzImage is there. You can then run the Kernel using this file and the vmlinux file.</p>
+<hr>
+<h4>6. rootfs img</h4>
+<p>A rootfs image is required to run the kernel. For this, debootstrap is used.</p>
+<pre><code>sudo debootstrap --arch amd64 jammy /path/to/rootfs http://archive.ubuntu.com/ubuntu
+</code></pre>
+<p>When you execute the above command, an image file will be created in /path/to/rootfs.</p>
+<p>The path must be set to the desired path.</p>
+<p>The subsequent process is simple. </p>
+<p>Just modify the img file to suit your desired configuration and run the script as shown below.</p>
+<pre><code>#!/bin/sh
+qemu-system-x86_64 \
+    -m 64M \
+    -nographic \
+    -kernel bzImage \
+    -append &quot;console=ttyS0 loglevel=3 oops=panic panic=-1 nopti nokaslr&quot; \
+    -no-reboot \
+    -cpu qemu64, +smep \
+    -gdb tcp::12345 \
+    -smp 1 \
+    -monitor /dev/null \
+    -initrd debugfs.cpio \
+    -net nic,model=virtio \
+    -net user
+</code></pre>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-build/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

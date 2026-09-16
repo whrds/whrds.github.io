@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[Android] Emulation - Environ Setting · whrds.log</title><meta name="description" content="계속해서 공부하면서 지식의 폭을 넓혀보고자 이쪽도 한번 공부해보고자 한다.(공부하고 싶은게 너무 많은데...) 휴대폰 루팅하는 것에 대해서는 천천히 공부 및 실습을 해보고 나서 다뤄볼 예정이다.이번 게시글에서는 Android Studio를 통해 에뮬레이팅하여 shell 및 burp suite 붙이는 방법에 대해 다루겠다.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/android-emulation-environ-setting/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/android-emulation-environ-setting/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/android-emulation-environ-setting/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[Android] Emulation - Environ Setting · whrds.log"><meta property="og:description" content="계속해서 공부하면서 지식의 폭을 넓혀보고자 이쪽도 한번 공부해보고자 한다.(공부하고 싶은게 너무 많은데...) 휴대폰 루팅하는 것에 대해서는 천천히 공부 및 실습을 해보고 나서 다뤄볼 예정이다.이번 게시글에서는 Android Studio를 통해 에뮬레이팅하여 shell 및 burp suite 붙이는 방법에 대해 다루겠다."><meta property="og:url" content="https://whrds.github.io/ko/posts/android-emulation-environ-setting/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[Android] Emulation - Environ Setting","description":"계속해서 공부하면서 지식의 폭을 넓혀보고자 이쪽도 한번 공부해보고자 한다.(공부하고 싶은게 너무 많은데...) 휴대폰 루팅하는 것에 대해서는 천천히 공부 및 실습을 해보고 나서 다뤄볼 예정이다.이번 게시글에서는 Android Studio를 통해 에뮬레이팅하여 shell 및 burp suite 붙이는 방법에 대해 다루겠다.","datePublished":"2026-01-07","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/android-emulation-environ-setting/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/android-emulation-environ-setting/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[Android] Emulation - Environ Setting</h1><p class="article-description">계속해서 공부하면서 지식의 폭을 넓혀보고자 이쪽도 한번 공부해보고자 한다.(공부하고 싶은게 너무 많은데...) 휴대폰 루팅하는 것에 대해서는 천천히 공부 및 실습을 해보고 나서 다뤄볼 예정이다.이번 게시글에서는 Android Studio를 통해 에뮬레이팅하여 shell 및 burp suite 붙이는 방법에 대해 다루겠다.</p><div class="article-meta"><time datetime="2026-01-07">2026년 1월 7일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p>계속해서 공부하면서 지식의 폭을 넓혀보고자 이쪽도 한번 공부해보고자 한다.</p>
+<p>(공부하고 싶은게 너무 많은데…)</p>
+<p>휴대폰 루팅하는 것에 대해서는 천천히 공부 및 실습을 해보고 나서 다뤄볼 예정이다.</p>
+<p>이번 게시글에서는 Android Studio를 통해 에뮬레이팅하여 shell 및 burp suite 붙이는 방법에 대해 다루겠다.</p>
+<p>일단 설치해줄 것들이 좀 있는데…</p>
+<pre><code>brew install jadx
+
+# Android Studio 설치
+https://developer.android.com/studio?hl=ko 
+
+# 향후 분석을 위한 후킹용 frida 준비
+pip3 install frida
+pip3 install frida-tools
+
+# apk 관련 툴 설치
+brew install apktool
+</code></pre>
+<p>대충 위에 것들 설치를 진행하고 향후 필요한 툴들은 추가로 설치하면 된다.</p>
+<p>참고로 작업환경이 MAC이기 때문에 brew를 통해 진행하였다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/001.png" alt=""></p>
+<p>jadx의 경우 jadx-gui를 통해 향후 android에 대한 분석을 진행할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/002.png" alt=""></p>
+<p>에뮬레이팅은 Android Stuido를 통해 진행할 수 있는데 [Tools -&gt; Device Manager]을 통해 설정할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/003.png" alt=""></p>
+<p>에뮬레이팅을 할 때에는 원하는 기종을 선택하여 진행하면 된다.</p>
+<p>(해당 이미지에서는 이전 CTF용 문제를 위해 구축했던 환경을 그대로 가져왔다)</p>
+<pre><code>sudo ln -s /Users/&lt;User ID&gt;/Library/Android/sdk/platform-tools/adb /usr/local/bin/adb
+</code></pre>
+<p>Android Studio에서는 이제 adb라는 명령을 통해 내부 셸에 접속하곤 한다. </p>
+<p>이에 편의성을 위해 심볼릭 링크를 설정해준다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/004.png" alt=""></p>
+<pre><code>adb devices
+</code></pre>
+<p>에뮬레이팅이 되었다면 해당 명령을 통해 device 리스트를 조회할 수 있다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/005.png" alt=""></p>
+<pre><code>adb shell
+</code></pre>
+<p>내부 셸로도 접근이 가능하다! </p>
+<p>Android도 IoT와 마찬가지로 네트워크 트래픽을 분석하는 경우도 있다고 한다.</p>
+<p>이에 burp suite를 통해 분석할 수 있는 환경을 구축하고자 한다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/006.png" alt=""></p>
+<p>먼저 burp suite에서 [proxy -&gt; settings]에 들어가서 All interfaces가 접근 가능하도록 포트 하나를 설정해준다.</p>
+<p>이후 에뮬레이팅된 휴대폰 설정에서 proxy 설정을 진행해준다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/007.png" alt=""></p>
+<p>이런식으로 설정을 해주면 되는데, 여기까지만 하면 인터넷에 접속했을때 아래처럼 정상적으로 페이지 접속이 되지 않을 것이다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/008.png" alt=""></p>
+<p>인증서 때문에 발생하는 것이기 때문인데 현재 proxy를 burp suite로 설정을 해주었으므로 해당 인증서를 가져와 설치해주면 된다.</p>
+<pre><code>http://burp
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/009.png" alt=""></p>
+<p>우측 상단에 [CA Certificate]를 클릭하여 인증서 설치를 진행해준다.</p>
+<p>der 확장자이기 때문에 adb로 붙은 셸 내부에서 cer 확장자로 변경해준다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/010.png" alt=""></p>
+<p>이후 휴대폰 설정에서 인증서 설치를 진행해주면 된다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/011.png" alt=""></p>
+<p>여기까지 진행하면 burp suite에서 정상적으로 내부 트래픽에 대한 분석이 가능해진다.</p>
+<p><img src="/assets/images/tistory/tistory-8e958806759e/012.png" alt=""></p>
+<p>이제 루팅 공부하고 1-Day, CTF 문제들을 기반으로 공부를 진행해볼 예정이다!</p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/android-emulation-environ-setting/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

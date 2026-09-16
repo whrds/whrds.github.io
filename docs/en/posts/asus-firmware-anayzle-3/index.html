@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[ASUS] FIRMWARE ANAYZLE #3 · whrds.log</title><meta name="description" content="While continuing to analyze IPTIME, I felt that I would not be able to make progress for that model without acquiring equipment or disassembling the existing equipment, so I tried changing the TARGET. This time, I want to make emulation easier. I will use emulating tools, including FIRMAE, and organize the list to select a target.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/asus-firmware-anayzle-3/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/asus-firmware-anayzle-3/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/asus-firmware-anayzle-3/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[ASUS] FIRMWARE ANAYZLE #3 · whrds.log"><meta property="og:description" content="While continuing to analyze IPTIME, I felt that I would not be able to make progress for that model without acquiring equipment or disassembling the existing equipment, so I tried changing the TARGET. This time, I want to make emulation easier. I will use emulating tools, including FIRMAE, and organize the list to select a target."><meta property="og:url" content="https://whrds.github.io/en/posts/asus-firmware-anayzle-3/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[ASUS] FIRMWARE ANAYZLE #3","description":"While continuing to analyze IPTIME, I felt that I would not be able to make progress for that model without acquiring equipment or disassembling the existing equipment, so I tried changing the TARGET. This time, I want to make emulation easier. I will use emulating tools, including FIRMAE, and organize the list to select a target.","datePublished":"2025-06-23","inLanguage":"en","url":"https://whrds.github.io/en/posts/asus-firmware-anayzle-3/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/asus-firmware-anayzle-3/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[ASUS] FIRMWARE ANAYZLE #3</h1><p class="article-description">While continuing to analyze IPTIME, I felt that I would not be able to make progress for that model without acquiring equipment or disassembling the existing equipment, so I tried changing the TARGET. This time, I want to make emulation easier. I will use emulating tools, including FIRMAE, and organize the list to select a target.</p><div class="article-meta"><time datetime="2025-06-23">Jun 23, 2025</time><span>·</span><span>5 min read</span></div></header><div class="prose"><p>While continuing to analyze IPTIME, I felt that I would not be able to make progress for that model without acquiring equipment or disassembling the existing equipment, so I tried changing the TARGET.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/001.png" alt=""></p>
+<p>This time, I wanted to make emulating easier, so I tried to select a target by using emulating tools, including FIRMAE, and organizing the list. But surprisingly, it has never been successful in my environment…</p>
+<p>In the end, I decided to select a suitable device and emulate and analyze it myself.</p>
+<p>The selected equipment is ASUS’s RT_AX57.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/002.png" alt=""></p>
+<p>Since we first started the project with two people, we chose this equipment that costs about 40,000 won per person.</p>
+<p>(Hmm… I ended up going it alone in the middle…)</p>
+<p>First of all, attempts to use emulating tools for this equipment failed.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/003.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/004.png" alt=""></p>
+<p>If you check it through binwalk, you can see that it is more complicated than iptime. </p>
+<p>The structures of dtb, kernel img, and rootfs are the same, but the internal properties are shown more separately. I will not write about this separately because I have extracted each of these and summarized the analysis once in iptime.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/005.png" alt=""></p>
+<p>It uses ARM architecture.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/006.png" alt=""></p>
+<p>First, I confirmed that the httpd protocol exists.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/007.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/008.png" alt=""></p>
+<p>As a result of analysis through IDA PRO, it was confirmed that unlike iptime, the boa process was not renamed but httpd.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/009.png" alt=""></p>
+<p>I checked to see if there were cgi files, but they did not exist in the extracted files.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/010.png" alt=""></p>
+<p>Nevertheless, there are asp files and binary files that use cgi.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/011.png" alt=""></p>
+<p>It was confirmed that the cgi file was implemented as internal logic within the httpd process.</p>
+<p>And the friend you should have checked first is rc.d.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/012.png" alt=""></p>
+<p>It should be possible to check all the processes running when booting through that path, but the necessary script does not exist. </p>
+<p>It seems that the extraction is not done properly or is performed in init.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/013.png" alt=""></p>
+<p>Check the init path.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/014.png" alt=""></p>
+<p>Then, I analyzed the scripts, and most of them were hardware setup and system initialization scripts, and I could not find any logic that raises the file system and runs various processes.</p>
+<p>Leaving aside detailed process analysis, I first attempted to emulate the httpd process.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/015.png" alt=""></p>
+<p>To restore the conf file, I searched as if I had restored the boa script in iptime, but httpd was executing it by referring to the conf logic implemented internally. Therefore, I decided that there was no need to restore it separately, so I immediately revived the process.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/016.png" alt=""></p>
+<pre><code>sudo qemu-arm-static -L ./ ./usr/sbin/httpd
+</code></pre>
+<p>First of all, there were two main types of errors.</p>
+<p>1. A message indicating failure is output during the netlink socket initialization process. This is said to be because netlink sockets are not fully supported in QEMU user mode. However, this part is not a big problem, so you can ignore it.</p>
+<p>2. Port 80, which httpd requires, is already in use. For this part, simply stop apache2 that is using port 80 or change the port using the -p option and try again.</p>
+<p>Afterwards, create the /var/run path and try again.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/017.png" alt=""></p>
+<p>If you do this, you will see that only the netlink message appears. If you try to access the web at this time…</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/018.png" alt=""></p>
+<p>Once the connection fails, a segment fault occurs in the terminal.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/019.png" alt=""></p>
+<p>Wow…ohhh…</p>
+<p>To solve this part, I used the command strace. This command is a command that tracks syscalls or signals.</p>
+<pre><code>sudo strace -f  chroot . ./qemu-arm-static ./usr/sbin/httpd
+</code></pre>
+<p>By inputting data like this, the log was output and analysis was attempted.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/020.png" alt=""></p>
+<p>Tracking is possible in this way, but there were two main problems identified through the logs.</p>
+<p>1. The nvram series functions used in ASUS models are highly dependent on hardware. Therefore, when the functions are called, they do not work properly and terminate. 2. It says the path is wrong. When analyzing iptime and referring to various references, the command must be executed from the home path of the rootfs file system. However, when I look at the log while trying to emulate Asus, I can’t find the asp files that need to be executed.</p>
+<p>First, to solve problem number 2, I modified the path to ./www/.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/021.png" alt=""></p>
+<p>If you modify the path, you will be able to view various web-related files, but other commands or conf configuration information will not be loaded. Therefore, the paths such as ./bin and ./usr were moved to ./www.</p>
+<p>Afterwards, I tried function hooking to solve problem number 1.</p>
+<p>The functions to hook are nvram_get(), nvram_get_init(), nvram_set(), nvram_unset(), and nvram_commit().</p>
+<p>For the corresponding functions, the c file was structured as follows. In particular, in the case of the nvram_get() function, the values ​​that must be returned are different depending on the value, so <a href="http://libnvram.so">libnvram.so</a> was analyzed and the return value was set.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/022.png" alt=""></p>
+<pre><code>#define _GNU_SOURCE
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+
+const char* nvram_get(const char* name) {
+    fprintf(stderr, &quot;[fake_nvram] get(%s)\n&quot;, name);
+
+    if (strcmp(name, &quot;http_enable&quot;) == 0) return &quot;1&quot;;
+    if (strcmp(name, &quot;login_timestamp&quot;) == 0) return &quot;1749615239&quot;;
+    if (strcmp(name, &quot;productid&quot;) == 0) return &quot;RT-AX57&quot;;
+    if (strcmp(name, &quot;odmpid&quot;) == 0) return &quot;RT-AX57U&quot;;
+    if (strcmp(name, &quot;preferred_lang&quot;) == 0) return &quot;EN&quot;;
+    if (strcmp(name, &quot;lan_ipaddr&quot;) == 0) return &quot;192.168.1.1&quot;;
+    if (strcmp(name, &quot;lan_netmask&quot;) == 0) return &quot;255.255.255.0&quot;;
+    if (strcmp(name, &quot;debug_cprintf&quot;) == 0) return &quot;1&quot;;
+    if (strcmp(name, &quot;debug_cprintf_file&quot;) == 0) return &quot;/dev/null&quot;;
+    if (strcmp(name, &quot;x_Setting&quot;) == 0) return &quot;1&quot;;
+    if (strcmp(name, &quot;territory_code&quot;) == 0) return &quot;US&quot;;
+    if (strcmp(name, &quot;https_lanport&quot;) == 0) return &quot;8443&quot;;
+
+    return &quot;&quot;;
+}
+
+int nvram_get_int(const char* name) {
+    fprintf(stderr, &quot;[fake_nvram] get_int(%s)\n&quot;, name);
+
+    if (strcmp(name, &quot;HTTPD_DBG&quot;) == 0) return 0;
+    if (strcmp(name, &quot;httpd_force_lock&quot;) == 0) return 0;
+    if (strcmp(name, &quot;x_Setting&quot;) == 0) return 1;
+
+    return 0;
+}
+
+int nvram_set(const char* name, const char* value) {
+    fprintf(stderr, &quot;[fake_nvram] set(%s, %s)\n&quot;, name, value);
+    return 0;
+}
+
+int nvram_unset(const char* name) {
+    fprintf(stderr, &quot;[fake_nvram] unset(%s)\n&quot;, name);
+    return 0;
+}
+
+int nvram_commit(void) {
+    fprintf(stderr, &quot;[fake_nvram] commit()\n&quot;);
+    return 0;
+}
+</code></pre>
+<p>Write the file and cross-compile it with arm.</p>
+<pre><code>sudo apt install gcc-arm-linux-gnueabi
+arm-linux-gnueabi-gcc -shared -fPIC -o libnvram_fake.so fake_nvram.c
+</code></pre>
+<p>Afterwards, execute the command below.</p>
+<pre><code>sudo strace -f  chroot ./www/ ./qemu-arm-static -E LD_PRELOAD=./libnvram_fake.so ./usr/sbin/httpd
+</code></pre>
+<p>If you want to analyze through gdb, open the gdb server here.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/023.png" alt=""></p>
+<p>Emulation was (partially) successful.</p>
+<p>Accordingly, we verified and reported the suspected vulnerability code we had found.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/024.png" alt=""></p>
+<p><a href="https://www.asus.com/content/asus-product-security-advisory/">https://www.asus.com/content/asus-product-security-advisory/</a></p>
+<p> [ASUS Product Security Advisory｜ASUS Global</p>
+<p><a href="https://www.asus.com/content/asus-product-security-advisory/">www.asus.com</a></p>
+<p>Reports can be made at this URL.</p>
+<p>Afterwards, I wanted to run the shell to perform additional process analysis and make additional attempts, such as emulating.</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/025.png" alt=""></p>
+<p>Hmm… But there is no shell and it is replaced with memaccess…</p>
+<p>This is a binary for ASUS router developers and is intended to block root shells. We are researching/analyzing ways to circumvent this…</p>
+<p><img src="/assets/images/tistory/tistory-7789b9c0fa08/026.png" alt=""></p>
+<p>They said that emulation was partially successful, but the login process does not work properly unless you connect to GDB and adjust the values. I plan to do a little more research on this.</p>
+<p>What I have gained from analyzing and researching so far is as follows.</p>
+<p>1. Firmware analysis method</p>
+<p>   1-1. Firmware Structure </p>
+<p>   1-2. Analysis procedures and significance</p>
+<p>2. Emulating method</p>
+<p>    2-1. conf file recovery</p>
+<p>    2-2. Function hooking</p>
+<p>    2-3. Log analysis and error approach using strace</p>
+<p>3. Vulnerability Analysis</p>
+<p>    3-1. Vulnerability reporting experience</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/asus-firmware-anayzle-3/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

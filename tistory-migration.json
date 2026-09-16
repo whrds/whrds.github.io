@@ -1,0 +1,799 @@
+{
+  "source": "https://whrdud727.tistory.com",
+  "migratedAt": "2026-09-16T13:48:00.978Z",
+  "discovered": 79,
+  "migrated": 79,
+  "failures": [],
+  "posts": [
+    {
+      "url": "https://whrdud727.tistory.com/entry/2026-DEF-CON-34-CTF-%ED%9A%8C%EA%B3%A0-Jindomix%EC%97%90%EC%84%9C-Jinddabis%EA%B9%8C%EC%A7%80",
+      "title": "2026 DEF CON 34 CTF 회고: Jindomix에서 Jinddabi's까지",
+      "date": "2026-08-14",
+      "key": "tistory-b94dbd1b7bbd",
+      "slug": "2026-def-con-34-ctf-retrospective-from-jindomix-to-jinddabi-s",
+      "ko": "content\\ko\\2026-def-con-34-ctf-retrospective-from-jindomix-to-jinddabi-s.md",
+      "en": "content\\en\\2026-def-con-34-ctf-retrospective-from-jindomix-to-jinddabi-s.md",
+      "images": 4
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/AI-%EC%8B%9C%EB%8C%80%EC%9D%98-%EB%B3%B4%EC%95%88-%EA%B3%B5%EB%B6%80-%EB%B0%A9%ED%96%A5%EC%84%B1-%EA%B0%9C%EC%9D%B8%EC%A0%81%EC%9D%B8-%EC%83%9D%EA%B0%81",
+      "title": "AI 시대의 보안 공부 방향성 (개인적인 생각)",
+      "date": "2026-05-19",
+      "key": "tistory-9ad8ad342007",
+      "slug": "direction-of-security-studies-in-the-ai-era-personal-opinion",
+      "ko": "content\\ko\\direction-of-security-studies-in-the-ai-era-personal-opinion.md",
+      "en": "content\\en\\direction-of-security-studies-in-the-ai-era-personal-opinion.md",
+      "images": 1
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/Android-Rooting-in-MAC-OS",
+      "title": "[Android] Rooting in MAC OS",
+      "date": "2026-01-10",
+      "key": "tistory-c0a04e263161",
+      "slug": "android-rooting-in-mac-os",
+      "ko": "content\\ko\\android-rooting-in-mac-os.md",
+      "en": "content\\en\\android-rooting-in-mac-os.md",
+      "images": 12
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/Android-Emulation-Environ-Setting",
+      "title": "[Android] Emulation - Environ Setting",
+      "date": "2026-01-07",
+      "key": "tistory-8e958806759e",
+      "slug": "android-emulation-environ-setting",
+      "ko": "content\\ko\\android-emulation-environ-setting.md",
+      "en": "content\\en\\android-emulation-environ-setting.md",
+      "images": 12
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/HOLYSHIELD-2025-Writeup",
+      "title": "HOLYSHIELD 2025 Writeup",
+      "date": "2025-12-28",
+      "key": "tistory-a9f7e62c938c",
+      "slug": "holyshield-2025-writeup",
+      "ko": "content\\ko\\holyshield-2025-writeup.md",
+      "en": "content\\en\\holyshield-2025-writeup.md",
+      "images": 10
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/FIRMWARE-%EA%B0%9C%EC%9D%B8-%EA%B3%B5%EB%B6%80-%EC%A4%91-%EB%B6%84%EC%84%9D%EC%9D%B4-%EB%81%9D%EB%82%9C-%EC%9D%B4%ED%9B%84-%EA%B3%B5%EA%B0%9C%EB%A1%9C-%EC%A0%84%ED%99%98-%EC%98%88%EC%A0%95",
+      "title": "[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE",
+      "date": "2025-08-28",
+      "key": "tistory-27d29bcca2fa",
+      "slug": "tp-link-firmware-analyze-4-1-how-to-get-firmware",
+      "ko": "content\\ko\\tp-link-firmware-analyze-4-1-how-to-get-firmware.md",
+      "en": "content\\en\\tp-link-firmware-analyze-4-1-how-to-get-firmware.md",
+      "images": 35
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/FIRMWARE-%EC%B7%A8%EC%95%BD%EC%A0%90-%ED%83%90%EC%83%89",
+      "title": "[FIRMWARE] 취약점 탐색",
+      "date": "2025-08-25",
+      "key": "tistory-17a38d649c0d",
+      "slug": "firmware-vulnerability-detection",
+      "ko": "content\\ko\\firmware-vulnerability-detection.md",
+      "en": "content\\en\\firmware-vulnerability-detection.md",
+      "images": 0
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/FIRMWARE-Command",
+      "title": "[FIRMWARE] Command",
+      "date": "2025-08-25",
+      "key": "tistory-058612323cbb",
+      "slug": "firmware-command",
+      "ko": "content\\ko\\firmware-command.md",
+      "en": "content\\en\\firmware-command.md",
+      "images": 5
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/FIRMWARE-EXTRACT-BINARY-FROM-CRAMFS",
+      "title": "[FIRMWARE] EXTRACT BINARY FROM CRAMFS",
+      "date": "2025-08-23",
+      "key": "tistory-daa9a0bc0337",
+      "slug": "firmware-extract-binary-from-cramfs",
+      "ko": "content\\ko\\firmware-extract-binary-from-cramfs.md",
+      "en": "content\\en\\firmware-extract-binary-from-cramfs.md",
+      "images": 9
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/FIRMWARE-FIRMWARE-STRUCT",
+      "title": "[FIRMWARE] FIRMWARE STRUCTER",
+      "date": "2025-08-23",
+      "key": "tistory-011868369e34",
+      "slug": "firmware-firmware-structer",
+      "ko": "content\\ko\\firmware-firmware-structer.md",
+      "en": "content\\en\\firmware-firmware-structer.md",
+      "images": 10
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/ASUS-FIRMWARE-ANAYZLE-3",
+      "title": "[ASUS] FIRMWARE ANAYZLE #3",
+      "date": "2025-06-23",
+      "key": "tistory-7789b9c0fa08",
+      "slug": "asus-firmware-anayzle-3",
+      "ko": "content\\ko\\asus-firmware-anayzle-3.md",
+      "en": "content\\en\\asus-firmware-anayzle-3.md",
+      "images": 26
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/IPTIME-FIRMWARE-ANALYZE-2",
+      "title": "[IPTIME] FIRMWARE ANALYZE #2",
+      "date": "2025-02-13",
+      "key": "tistory-e020efdb66d7",
+      "slug": "iptime-firmware-analyze-2",
+      "ko": "content\\ko\\iptime-firmware-analyze-2.md",
+      "en": "content\\en\\iptime-firmware-analyze-2.md",
+      "images": 10
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/IPTIME-FIRMWARE-ANALYZE-1",
+      "title": "[IPTIME] FIRMWARE ANALYZE #1",
+      "date": "2025-02-13",
+      "key": "tistory-46318ff0b3f2",
+      "slug": "iptime-firmware-analyze-1",
+      "ko": "content\\ko\\iptime-firmware-analyze-1.md",
+      "en": "content\\en\\iptime-firmware-analyze-1.md",
+      "images": 16
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/CVE-twistedweb-module-CVE-2024-41671",
+      "title": "[CVE] twisted.web module (CVE-2024-41671)",
+      "date": "2025-01-22",
+      "key": "tistory-86860c4725ba",
+      "slug": "cve-twisted-web-module-cve-2024-41671",
+      "ko": "content\\ko\\cve-twisted-web-module-cve-2024-41671.md",
+      "en": "content\\en\\cve-twisted-web-module-cve-2024-41671.md",
+      "images": 3
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/CVE-Apache2-CVE-2021-41773-CVE-2021-42013",
+      "title": "[CVE] Apache2 (CVE-2021-41773 & CVE-2021-42013)",
+      "date": "2025-01-20",
+      "key": "tistory-c1ada4569d64",
+      "slug": "cve-apache2-cve-2021-41773-cve-2021-42013",
+      "ko": "content\\ko\\cve-apache2-cve-2021-41773-cve-2021-42013.md",
+      "en": "content\\en\\cve-apache2-cve-2021-41773-cve-2021-42013.md",
+      "images": 3
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/CVE-nftabes-CVE-2024-1086-1",
+      "title": "[CVE] nf_tabes (CVE-2024-1086)",
+      "date": "2025-01-16",
+      "key": "tistory-5b3ff490d6ef",
+      "slug": "cve-nf-tabes-cve-2024-1086",
+      "ko": "content\\ko\\cve-nf-tabes-cve-2024-1086.md",
+      "en": "content\\en\\cve-nf-tabes-cve-2024-1086.md",
+      "images": 11
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/CVE-nftables-CVE-2022-32250",
+      "title": "[CVE] nf_tables (CVE-2022-32250)",
+      "date": "2024-11-26",
+      "key": "tistory-00664f1e3b30",
+      "slug": "cve-nf-tables-cve-2022-32250",
+      "ko": "content\\ko\\cve-nf-tables-cve-2022-32250.md",
+      "en": "content\\en\\cve-nf-tables-cve-2022-32250.md",
+      "images": 12
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/CVE-nftables-CVE-2022-1016",
+      "title": "[CVE] nf_tables (CVE-2022-1016)",
+      "date": "2024-11-21",
+      "key": "tistory-5d09f4c4a833",
+      "slug": "cve-nf-tables-cve-2022-1016",
+      "ko": "content\\ko\\cve-nf-tables-cve-2022-1016.md",
+      "en": "content\\en\\cve-nf-tables-cve-2022-1016.md",
+      "images": 6
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/CVE-nftables-CVE-2022-1015",
+      "title": "[CVE] nf_tables (CVE-2022-1015)",
+      "date": "2024-11-15",
+      "key": "tistory-0cb846ef766b",
+      "slug": "cve-nf-tables-cve-2022-1015",
+      "ko": "content\\ko\\cve-nf-tables-cve-2022-1015.md",
+      "en": "content\\en\\cve-nf-tables-cve-2022-1015.md",
+      "images": 27
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-Heap-Use-After-Free",
+      "title": "[KERNEL] Heap Use After Free",
+      "date": "2024-11-14",
+      "key": "tistory-21ae322697ad",
+      "slug": "kernel-heap-use-after-free",
+      "ko": "content\\ko\\kernel-heap-use-after-free.md",
+      "en": "content\\en\\kernel-heap-use-after-free.md",
+      "images": 0
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-Heap-OverFlow",
+      "title": "[KERNEL] Heap OverFlow",
+      "date": "2024-11-14",
+      "key": "tistory-1b15a9a45937",
+      "slug": "kernel-heap-overflow",
+      "ko": "content\\ko\\kernel-heap-overflow.md",
+      "en": "content\\en\\kernel-heap-overflow.md",
+      "images": 7
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-Slab-Allocator",
+      "title": "[KERNEL] Slab Allocator",
+      "date": "2024-11-14",
+      "key": "tistory-d01af56b9754",
+      "slug": "kernel-slab-allocator",
+      "ko": "content\\ko\\kernel-slab-allocator.md",
+      "en": "content\\en\\kernel-slab-allocator.md",
+      "images": 20
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-build",
+      "title": "[KERNEL] build",
+      "date": "2024-11-12",
+      "key": "tistory-696de103e19e",
+      "slug": "kernel-build",
+      "ko": "content\\ko\\kernel-build.md",
+      "en": "content\\en\\kernel-build.md",
+      "images": 8
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/Kernel-Send-Script-to-CTF",
+      "title": "[KERNEL] Send Script to CTF",
+      "date": "2024-10-29",
+      "key": "tistory-ecef5f3635fa",
+      "slug": "kernel-send-script-to-ctf",
+      "ko": "content\\ko\\kernel-send-script-to-ctf.md",
+      "en": "content\\en\\kernel-send-script-to-ctf.md",
+      "images": 1
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/CVE-liblzmaso-CVE-2024-3094",
+      "title": "[CVE] liblzma.so (CVE-2024-3094)",
+      "date": "2024-10-10",
+      "key": "tistory-123e40e00478",
+      "slug": "cve-liblzma-so-cve-2024-3094",
+      "ko": "content\\ko\\cve-liblzma-so-cve-2024-3094.md",
+      "en": "content\\en\\cve-liblzma-so-cve-2024-3094.md",
+      "images": 26
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-KROPKPTI-bypass",
+      "title": "[KERNEL] KROP_(KPTI bypass)",
+      "date": "2024-06-28",
+      "key": "tistory-1988ea5328ae",
+      "slug": "kernel-krop-kpti-bypass",
+      "ko": "content\\ko\\kernel-krop-kpti-bypass.md",
+      "en": "content\\en\\kernel-krop-kpti-bypass.md",
+      "images": 7
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-KROPSMEP-bypass",
+      "title": "[KERNEL] KROP_(SMEP bypass)",
+      "date": "2024-06-28",
+      "key": "tistory-cd4ac779c5dc",
+      "slug": "kernel-krop-smep-bypass",
+      "ko": "content\\ko\\kernel-krop-smep-bypass.md",
+      "en": "content\\en\\kernel-krop-smep-bypass.md",
+      "images": 3
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-KBOF",
+      "title": "[KERNEL] KBOF",
+      "date": "2024-06-27",
+      "key": "tistory-9743f1296bfa",
+      "slug": "kernel-kbof",
+      "ko": "content\\ko\\kernel-kbof.md",
+      "en": "content\\en\\kernel-kbof.md",
+      "images": 7
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-Use-After-Free",
+      "title": "[PWNABLE] Use After Free",
+      "date": "2024-06-24",
+      "key": "tistory-2656f66a8685",
+      "slug": "pwnable-use-after-free",
+      "ko": "content\\ko\\pwnable-use-after-free.md",
+      "en": "content\\en\\pwnable-use-after-free.md",
+      "images": 12
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-Heap-Chunk-Structure",
+      "title": "[PWNABLE] Heap Chunk Structure",
+      "date": "2024-06-24",
+      "key": "tistory-c084fac95b4c",
+      "slug": "pwnable-heap-chunk-structure",
+      "ko": "content\\ko\\pwnable-heap-chunk-structure.md",
+      "en": "content\\en\\pwnable-heap-chunk-structure.md",
+      "images": 4
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-FSOP",
+      "title": "[PWNABLE] FSOP",
+      "date": "2024-06-24",
+      "key": "tistory-8af5082e9c5d",
+      "slug": "pwnable-fsop",
+      "ko": "content\\ko\\pwnable-fsop.md",
+      "en": "content\\en\\pwnable-fsop.md",
+      "images": 1
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-rtld-global",
+      "title": "[PWNABLE] rtld global",
+      "date": "2024-06-24",
+      "key": "tistory-6887f7a3f117",
+      "slug": "pwnable-rtld-global",
+      "ko": "content\\ko\\pwnable-rtld-global.md",
+      "en": "content\\en\\pwnable-rtld-global.md",
+      "images": 12
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-environ-stack-leak",
+      "title": "[PWNABLE] environ stack leak",
+      "date": "2024-06-24",
+      "key": "tistory-8beaf703795a",
+      "slug": "pwnable-environ-stack-leak",
+      "ko": "content\\ko\\pwnable-environ-stack-leak.md",
+      "en": "content\\en\\pwnable-environ-stack-leak.md",
+      "images": 11
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-Stack-Pivoting",
+      "title": "[PWNABLE] Stack Pivoting",
+      "date": "2024-06-24",
+      "key": "tistory-0fea48d33bf4",
+      "slug": "pwnable-stack-pivoting",
+      "ko": "content\\ko\\pwnable-stack-pivoting.md",
+      "en": "content\\en\\pwnable-stack-pivoting.md",
+      "images": 2
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-FPO",
+      "title": "[PWNABLE] FPO",
+      "date": "2024-06-24",
+      "key": "tistory-f391d7d86e68",
+      "slug": "pwnable-fpo",
+      "ko": "content\\ko\\pwnable-fpo.md",
+      "en": "content\\en\\pwnable-fpo.md",
+      "images": 5
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-Out-Of-Bounds",
+      "title": "[PWNABLE] Out Of Bounds",
+      "date": "2024-06-24",
+      "key": "tistory-58fe9a713fd6",
+      "slug": "pwnable-out-of-bounds",
+      "ko": "content\\ko\\pwnable-out-of-bounds.md",
+      "en": "content\\en\\pwnable-out-of-bounds.md",
+      "images": 2
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-OffByOne",
+      "title": "[PWNABLE] Off_By_One",
+      "date": "2024-06-24",
+      "key": "tistory-d43d36c81946",
+      "slug": "pwnable-off-by-one",
+      "ko": "content\\ko\\pwnable-off-by-one.md",
+      "en": "content\\en\\pwnable-off-by-one.md",
+      "images": 2
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-OneGadget",
+      "title": "[PWNABLE] One_Gadget",
+      "date": "2024-06-24",
+      "key": "tistory-f16b9482209a",
+      "slug": "pwnable-one-gadget",
+      "ko": "content\\ko\\pwnable-one-gadget.md",
+      "en": "content\\en\\pwnable-one-gadget.md",
+      "images": 3
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-dsfsb",
+      "title": "[PWNABLE] DSFSB",
+      "date": "2024-06-24",
+      "key": "tistory-d0f6d31273dc",
+      "slug": "pwnable-dsfsb",
+      "ko": "content\\ko\\pwnable-dsfsb.md",
+      "en": "content\\en\\pwnable-dsfsb.md",
+      "images": 4
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-fmtstrpayload",
+      "title": "[PWNABLE] fmtstr_payload",
+      "date": "2024-06-24",
+      "key": "tistory-3ade6e6201e3",
+      "slug": "pwnable-fmtstr-payload",
+      "ko": "content\\ko\\pwnable-fmtstr-payload.md",
+      "en": "content\\en\\pwnable-fmtstr-payload.md",
+      "images": 1
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-FSB",
+      "title": "[PWNABLE] FSB",
+      "date": "2024-06-24",
+      "key": "tistory-b0994a81b2cb",
+      "slug": "pwnable-fsb",
+      "ko": "content\\ko\\pwnable-fsb.md",
+      "en": "content\\en\\pwnable-fsb.md",
+      "images": 7
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module",
+      "title": "[KERNEL] Holstein Module",
+      "date": "2024-06-20",
+      "key": "tistory-2904b5c93deb",
+      "slug": "kernel-holstein-module",
+      "ko": "content\\ko\\kernel-holstein-module.md",
+      "en": "content\\en\\kernel-holstein-module.md",
+      "images": 1
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-%EB%B3%B4%ED%98%B8-%EA%B8%B0%EB%B2%95",
+      "title": "[KERNEL] 보호 기법",
+      "date": "2024-06-13",
+      "key": "tistory-d725f51a7ecb",
+      "slug": "kernel-protection-technique",
+      "ko": "content\\ko\\kernel-protection-technique.md",
+      "en": "content\\en\\kernel-protection-technique.md",
+      "images": 0
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-Environment-Setting",
+      "title": "[KERNEL] Environment Setting",
+      "date": "2024-06-05",
+      "key": "tistory-20d10d01bd1d",
+      "slug": "kernel-environment-setting",
+      "ko": "content\\ko\\kernel-environment-setting.md",
+      "en": "content\\en\\kernel-environment-setting.md",
+      "images": 3
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-Kernel-Exploit",
+      "title": "[KERNEL] Kernel Exploit?",
+      "date": "2024-06-05",
+      "key": "tistory-735794578235",
+      "slug": "kernel-kernel-exploit",
+      "ko": "content\\ko\\kernel-kernel-exploit.md",
+      "en": "content\\en\\kernel-kernel-exploit.md",
+      "images": 0
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/KERNEL-Linux-Structure",
+      "title": "[KERNEL] Linux Structure",
+      "date": "2024-06-05",
+      "key": "tistory-dbb2dbc260c4",
+      "slug": "kernel-linux-structure",
+      "ko": "content\\ko\\kernel-linux-structure.md",
+      "en": "content\\en\\kernel-linux-structure.md",
+      "images": 2
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/Fuzzing-101-LibXML2-CVE-2017-9048",
+      "title": "[Fuzzing 101] LibXML2 (CVE-2017-9048)",
+      "date": "2024-06-03",
+      "key": "tistory-62348715c18a",
+      "slug": "fuzzing-101-libxml2-cve-2017-9048",
+      "ko": "content\\ko\\fuzzing-101-libxml2-cve-2017-9048.md",
+      "en": "content\\en\\fuzzing-101-libxml2-cve-2017-9048.md",
+      "images": 6
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/Fuzzing-101-liftoff-CVE-2016-9297",
+      "title": "[Fuzzing 101] libtiff (CVE-2016-9297)",
+      "date": "2024-06-01",
+      "key": "tistory-07df18b8d3ef",
+      "slug": "fuzzing-101-libtiff-cve-2016-9297",
+      "ko": "content\\ko\\fuzzing-101-libtiff-cve-2016-9297.md",
+      "en": "content\\en\\fuzzing-101-libtiff-cve-2016-9297.md",
+      "images": 19
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-SROP",
+      "title": "[PWNABLE] SROP",
+      "date": "2024-05-02",
+      "key": "tistory-b274056796bb",
+      "slug": "pwnable-srop",
+      "ko": "content\\ko\\pwnable-srop.md",
+      "en": "content\\en\\pwnable-srop.md",
+      "images": 3
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/AArch64-Buffer-OverFlow-%EC%8B%A4%EC%8A%B5",
+      "title": "[AArch64] Buffer OverFlow (실습)",
+      "date": "2024-05-01",
+      "key": "tistory-e16623b654cb",
+      "slug": "aarch64-buffer-overflow-practice",
+      "ko": "content\\ko\\aarch64-buffer-overflow-practice.md",
+      "en": "content\\en\\aarch64-buffer-overflow-practice.md",
+      "images": 5
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/AArch64-PAC",
+      "title": "[AArch64] PAC",
+      "date": "2024-04-08",
+      "key": "tistory-176b1d39004b",
+      "slug": "aarch64-pac",
+      "ko": "content\\ko\\aarch64-pac.md",
+      "en": "content\\en\\aarch64-pac.md",
+      "images": 5
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/AArch64-Debugging",
+      "title": "[AArch64] Debugging",
+      "date": "2024-03-23",
+      "key": "tistory-14d4a184d653",
+      "slug": "aarch64-debugging",
+      "ko": "content\\ko\\aarch64-debugging.md",
+      "en": "content\\en\\aarch64-debugging.md",
+      "images": 4
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/AArch64-Buffer-OverFlow-with-chaining",
+      "title": "[AArch64] Buffer OverFlow (with chaining)",
+      "date": "2024-03-20",
+      "key": "tistory-7761d84afc1a",
+      "slug": "aarch64-buffer-overflow-with-chaining",
+      "ko": "content\\ko\\aarch64-buffer-overflow-with-chaining.md",
+      "en": "content\\en\\aarch64-buffer-overflow-with-chaining.md",
+      "images": 3
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/AArch64-Buffer-OverFlow",
+      "title": "[AArch64] Buffer OverFlow",
+      "date": "2024-03-20",
+      "key": "tistory-8a8955e8774c",
+      "slug": "aarch64-buffer-overflow",
+      "ko": "content\\ko\\aarch64-buffer-overflow.md",
+      "en": "content\\en\\aarch64-buffer-overflow.md",
+      "images": 5
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/AArch64-x8664-%EA%B0%84%EB%8B%A8-%EB%B9%84%EA%B5%90",
+      "title": "[AArch64] x86_64 간단 비교",
+      "date": "2024-03-20",
+      "key": "tistory-ea29bb13e5df",
+      "slug": "aarch64-x86-64-simple-comparison",
+      "ko": "content\\ko\\aarch64-x86-64-simple-comparison.md",
+      "en": "content\\en\\aarch64-x86-64-simple-comparison.md",
+      "images": 3
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/Fuzzing-101-TCPdump-CVE-2017-13028",
+      "title": "[Fuzzing 101] TCPdump (CVE-2017-13028)",
+      "date": "2024-01-19",
+      "key": "tistory-1c836ca977b2",
+      "slug": "fuzzing-101-tcpdump-cve-2017-13028",
+      "ko": "content\\ko\\fuzzing-101-tcpdump-cve-2017-13028.md",
+      "en": "content\\en\\fuzzing-101-tcpdump-cve-2017-13028.md",
+      "images": 14
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/Fuzzing-101-libexif-CVE-2009-3895",
+      "title": "[Fuzzing 101] libexif (CVE-2009-3895)",
+      "date": "2024-01-16",
+      "key": "tistory-d8250938a0df",
+      "slug": "fuzzing-101-libexif-cve-2009-3895",
+      "ko": "content\\ko\\fuzzing-101-libexif-cve-2009-3895.md",
+      "en": "content\\en\\fuzzing-101-libexif-cve-2009-3895.md",
+      "images": 16
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/Fuzzing-101-libexif-CVE-2012-2836",
+      "title": "[Fuzzing 101] libexif (CVE-2012-2836)",
+      "date": "2024-01-08",
+      "key": "tistory-09b776860e8b",
+      "slug": "fuzzing-101-libexif-cve-2012-2836",
+      "ko": "content\\ko\\fuzzing-101-libexif-cve-2012-2836.md",
+      "en": "content\\en\\fuzzing-101-libexif-cve-2012-2836.md",
+      "images": 19
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-ROP64bit",
+      "title": "[PWNABLE] ROP_64bit",
+      "date": "2023-12-01",
+      "key": "tistory-c12e6171f061",
+      "slug": "pwnable-rop-64bit",
+      "ko": "content\\ko\\pwnable-rop-64bit.md",
+      "en": "content\\en\\pwnable-rop-64bit.md",
+      "images": 2
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-ROP32bit",
+      "title": "[PWNABLE] ROP_32bit",
+      "date": "2023-12-01",
+      "key": "tistory-a06ebd940643",
+      "slug": "pwnable-rop-32bit",
+      "ko": "content\\ko\\pwnable-rop-32bit.md",
+      "en": "content\\en\\pwnable-rop-32bit.md",
+      "images": 4
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/Fuzzing-101-Xpdf-CVE-2019-13288",
+      "title": "[Fuzzing 101] Xpdf (CVE-2019-13288)",
+      "date": "2023-11-18",
+      "key": "tistory-f6925030136c",
+      "slug": "fuzzing-101-xpdf-cve-2019-13288",
+      "ko": "content\\ko\\fuzzing-101-xpdf-cve-2019-13288.md",
+      "en": "content\\en\\fuzzing-101-xpdf-cve-2019-13288.md",
+      "images": 7
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/CVE-Curl-CVE-2023-38545",
+      "title": "[CVE] Curl (CVE-2023-38545)",
+      "date": "2023-11-16",
+      "key": "tistory-a9e3cd6ff308",
+      "slug": "cve-curl-cve-2023-38545",
+      "ko": "content\\ko\\cve-curl-cve-2023-38545.md",
+      "en": "content\\en\\cve-curl-cve-2023-38545.md",
+      "images": 8
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-syscall",
+      "title": "[PWNABLE] syscall",
+      "date": "2023-11-08",
+      "key": "tistory-056f20fb92e1",
+      "slug": "pwnable-syscall",
+      "ko": "content\\ko\\pwnable-syscall.md",
+      "en": "content\\en\\pwnable-syscall.md",
+      "images": 0
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-RTLChaining",
+      "title": "[PWNABLE] RTL_Chaining",
+      "date": "2023-11-08",
+      "key": "tistory-98a777c41cfe",
+      "slug": "pwnable-rtl-chaining",
+      "ko": "content\\ko\\pwnable-rtl-chaining.md",
+      "en": "content\\en\\pwnable-rtl-chaining.md",
+      "images": 14
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-bss-%ED%99%95%EC%9D%B8%ED%95%98%EA%B8%B0",
+      "title": "[PWNABLE] .bss 확인하기",
+      "date": "2023-11-07",
+      "key": "tistory-3e7f3a390222",
+      "slug": "pwnable-check-bss",
+      "ko": "content\\ko\\pwnable-check-bss.md",
+      "en": "content\\en\\pwnable-check-bss.md",
+      "images": 3
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-Gadget-%EC%B0%BE%EA%B8%B0",
+      "title": "[PWNABLE] Gadget 찾기",
+      "date": "2023-11-07",
+      "key": "tistory-b1bf11c8e44d",
+      "slug": "pwnable-finding-gadget",
+      "ko": "content\\ko\\pwnable-finding-gadget.md",
+      "en": "content\\en\\pwnable-finding-gadget.md",
+      "images": 4
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-RTL",
+      "title": "[PWNABLE] RTL",
+      "date": "2023-10-22",
+      "key": "tistory-fb026a46c243",
+      "slug": "pwnable-rtl",
+      "ko": "content\\ko\\pwnable-rtl.md",
+      "en": "content\\en\\pwnable-rtl.md",
+      "images": 4
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-Shellcode-RTS",
+      "title": "[PWNABLE] Shellcode & RTS",
+      "date": "2023-10-22",
+      "key": "tistory-4706b08f72f8",
+      "slug": "pwnable-shellcode-rts",
+      "ko": "content\\ko\\pwnable-shellcode-rts.md",
+      "en": "content\\en\\pwnable-shellcode-rts.md",
+      "images": 2
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-NX-bit",
+      "title": "[PWNABLE] NX bit",
+      "date": "2023-10-22",
+      "key": "tistory-14caa6c4e322",
+      "slug": "pwnable-nx-bit",
+      "ko": "content\\ko\\pwnable-nx-bit.md",
+      "en": "content\\en\\pwnable-nx-bit.md",
+      "images": 3
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-ASLR-%EB%B3%B4%ED%98%B8%EA%B8%B0%EB%B2%95",
+      "title": "[PWNABLE] ASLR 보호기법",
+      "date": "2023-10-22",
+      "key": "tistory-82c31cff9454",
+      "slug": "pwnable-aslr-protection-technique",
+      "ko": "content\\ko\\pwnable-aslr-protection-technique.md",
+      "en": "content\\en\\pwnable-aslr-protection-technique.md",
+      "images": 5
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-CanaryGOT-Overwrite",
+      "title": "[PWNABLE] Canary_GOT Overwrite",
+      "date": "2023-10-22",
+      "key": "tistory-be437eb64d47",
+      "slug": "pwnable-canary-got-overwrite",
+      "ko": "content\\ko\\pwnable-canary-got-overwrite.md",
+      "en": "content\\en\\pwnable-canary-got-overwrite.md",
+      "images": 7
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-GOT-Overwrite",
+      "title": "[PWNABLE] GOT Overwrite",
+      "date": "2023-10-04",
+      "key": "tistory-e0899e23fb45",
+      "slug": "pwnable-got-overwrite",
+      "ko": "content\\ko\\pwnable-got-overwrite.md",
+      "en": "content\\en\\pwnable-got-overwrite.md",
+      "images": 5
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-plt-got",
+      "title": "[PWNABLE] plt & got",
+      "date": "2023-10-04",
+      "key": "tistory-218fb7259047",
+      "slug": "pwnable-plt-got",
+      "ko": "content\\ko\\pwnable-plt-got.md",
+      "en": "content\\en\\pwnable-plt-got.md",
+      "images": 6
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-Canary-%EC%9A%B0%ED%9A%8C",
+      "title": "[PWNABLE] Canary 우회",
+      "date": "2023-09-24",
+      "key": "tistory-136d7c463f6c",
+      "slug": "pwnable-canary-bypass",
+      "ko": "content\\ko\\pwnable-canary-bypass.md",
+      "en": "content\\en\\pwnable-canary-bypass.md",
+      "images": 17
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-Canary%EC%84%A4%EB%AA%85",
+      "title": "[PWNABLE] Canary_설명",
+      "date": "2023-09-24",
+      "key": "tistory-7e1b9689acc3",
+      "slug": "pwnable-canary-description",
+      "ko": "content\\ko\\pwnable-canary-description.md",
+      "en": "content\\en\\pwnable-canary-description.md",
+      "images": 12
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLE-Calling-Convention",
+      "title": "[PWNABLE] Calling Convention",
+      "date": "2023-09-18",
+      "key": "tistory-7be1b58a1192",
+      "slug": "pwnable-calling-convention",
+      "ko": "content\\ko\\pwnable-calling-convention.md",
+      "en": "content\\en\\pwnable-calling-convention.md",
+      "images": 7
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLEReturn-Address-Overwrite",
+      "title": "[PWNABLE]Return Address Overwrite",
+      "date": "2023-09-18",
+      "key": "tistory-465ad6c4abda",
+      "slug": "pwnable-return-address-overwrite",
+      "ko": "content\\ko\\pwnable-return-address-overwrite.md",
+      "en": "content\\en\\pwnable-return-address-overwrite.md",
+      "images": 6
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/PWNABLEStack-Buffer-OverFlow",
+      "title": "[PWNABLE]Stack Buffer OverFlow",
+      "date": "2023-09-06",
+      "key": "tistory-bc8b2be0d67f",
+      "slug": "pwnable-stack-buffer-overflow",
+      "ko": "content\\ko\\pwnable-stack-buffer-overflow.md",
+      "en": "content\\en\\pwnable-stack-buffer-overflow.md",
+      "images": 10
+    },
+    {
+      "url": "https://whrdud727.tistory.com/entry/LINUX-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EA%B5%AC%EC%A1%B0",
+      "title": "[LINUX] 메모리 구조",
+      "date": "2023-09-04",
+      "key": "tistory-e863c2da7c8a",
+      "slug": "linux-memory-structure",
+      "ko": "content\\ko\\linux-memory-structure.md",
+      "en": "content\\en\\linux-memory-structure.md",
+      "images": 6
+    }
+  ]
+}

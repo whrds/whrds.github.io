@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PWNABLE] ASLR Protection Technique · whrds.log</title><meta name="description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is a protection technique that randomly changes the addresses of the stack, heap, and shared library areas every time the binary is executed, excluding the code area. You can see that the addresses change every time it is executed. This is the code of the above executable file. #include #include #include cha">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-aslr-protection-technique/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-aslr-protection-technique/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-aslr-protection-technique/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] ASLR Protection Technique · whrds.log"><meta property="og:description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is a protection technique that randomly changes the addresses of the stack, heap, and shared library areas every time the binary is executed, excluding the code area. You can see that the addresses change every time it is executed. This is the code of the above executable file. #include #include #include cha"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-aslr-protection-technique/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] ASLR Protection Technique","description":"※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is a protection technique that randomly changes the addresses of the stack, heap, and shared library areas every time the binary is executed, excluding the code area. You can see that the addresses change every time it is executed. This is the code of the above executable file. #include #include #include cha","datePublished":"2023-10-22","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-aslr-protection-technique/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/pwnable-aslr-protection-technique/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] ASLR Protection Technique</h1><p class="article-description">※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is a protection technique that randomly changes the addresses of the stack, heap, and shared library areas every time the binary is executed, excluding the code area. You can see that the addresses change every time it is executed. This is the code of the above executable file. #include #include #include cha</p><div class="article-meta"><time datetime="2023-10-22">Oct 22, 2023</time><span>·</span><span>1 min read</span></div></header><div class="prose"><p><strong>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections.</strong> <strong>※</strong> </p>
+<p>This is a protection technique that randomly changes the addresses of the stack, heap, and shared library areas, excluding the code area, every time the binary is executed.</p>
+<p><img src="/assets/images/tistory/tistory-82c31cff9454/001.png" alt=""></p>
+<p>You can see that the addresses change every time it is executed.</p>
+<p>This is the code of the above executable file.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+ 
+char *global = &quot;whrd&quot;;
+  
+int main(){
+    char *heap = malloc(100);
+    char *stack[] = {&quot;whrd&quot;};
+ 
+    printf(&quot;[Heap]  address: %p\n&quot;, heap);
+    printf(&quot;[Stack] address: %p\n&quot;, stack);
+    printf(&quot;[libc]  address: %p\n&quot;,**(&amp;stack + 3));
+    printf(&quot;[.data] address: %p\n&quot;,global);
+    gets(heap);
+    return 0;
+}
+</code></pre>
+<p>Currently, ASLR is applied.</p>
+<pre><code> cat /proc/sys/kernel/randomize_va_space
+</code></pre>
+<p>You can check this using the above command.</p>
+<p><img src="/assets/images/tistory/tistory-82c31cff9454/002.png" alt=""></p>
+<p>There are three possible states for the application of ASLR: 0, 1, and 2.</p>
+<p><strong>First, the state with 0 applied</strong> is shown below.</p>
+<p><img src="/assets/images/tistory/tistory-82c31cff9454/003.png" alt=""></p>
+<p>You can see that the address areas do not change.</p>
+<p><strong>The state with 1 applied</strong> is shown below.</p>
+<p><img src="/assets/images/tistory/tistory-82c31cff9454/004.png" alt=""></p>
+<p>Only the stack and libc areas change.</p>
+<p><strong>The state with the default value 2 applied</strong> is shown below.</p>
+<p><img src="/assets/images/tistory/tistory-82c31cff9454/005.png" alt=""></p>
+<p>You can see that all addresses change.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-aslr-protection-technique/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

