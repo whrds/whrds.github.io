@@ -32,9 +32,9 @@ tags: ["Tag one", "Tag two"]
 ---
 ```
 
-Run `npm run build` before committing when you want to inspect the generated `docs/` output locally. GitHub Actions also rebuilds and deploys the site on every push to `main`.
+Run `npm run build` before committing. GitHub Pages publishes the generated `docs/` directory from the `main` branch.
 
 ## GitHub Pages
 
-Use the repository name `whrds.github.io`. In **Settings → Pages → Build and deployment**, choose **GitHub Actions** as the source.
+Use the repository name `whrds.github.io`. In **Settings → Pages → Build and deployment**, choose **Deploy from a branch**, then select **main** and **/docs**.
 
