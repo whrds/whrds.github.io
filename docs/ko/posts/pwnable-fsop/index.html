@@ -14,6 +14,7 @@
     <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="주 메뉴">
       <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/categories/">카테고리</a>
       <a href="/ko/about/">소개</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] FSOP</h1><p class="article-description">FSOPFile Stream Oriented ProgrammingC의 표준 라이브러리인 libc에서 file stream의 내부 필드를 조작하여 악의적인 코드를 수행하는 공격 기법이다. libc에서 파일 스트림은 FILE 구조체로 관리되며, 이 구조체의 필드들은 파일 입출력 작업을 추상화한다.file stream 구조체 </p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><h3>FSOP</h3>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] FSOP</h1><p class="article-description">FSOPFile Stream Oriented ProgrammingC의 표준 라이브러리인 libc에서 file stream의 내부 필드를 조작하여 악의적인 코드를 수행하는 공격 기법이다. libc에서 파일 스트림은 FILE 구조체로 관리되며, 이 구조체의 필드들은 파일 입출력 작업을 추상화한다.file stream 구조체 </p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><h3>FSOP</h3>
 <p>File Stream Oriented Programming</p>
 <p>C의 표준 라이브러리인 libc에서 file stream의 내부 필드를 조작하여 악의적인 코드를 수행하는 공격 기법이다. libc에서 파일 스트림은 FILE 구조체로 관리되며, 이 구조체의 필드들은 파일 입출력 작업을 추상화한다.</p>
 <ul>

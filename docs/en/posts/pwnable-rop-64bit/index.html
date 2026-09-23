@@ -14,6 +14,7 @@
     <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="Main navigation">
       <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/categories/">Categories</a>
       <a href="/en/about/">About</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] ROP 64bit</h1><p class="article-description">※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ In the previous 32-bit, this time we will cover 64-bit. #include void gift(){   asm   (&quot;pop %r9&quot;);   asm   (&quot;pop %r8&quot;);   asm    (&quot;pop %rcx&quot;);   asm   (&quot;pop %rdx&quot;);</p><div class="article-meta"><time datetime="2023-12-01">Dec 1, 2023</time><span>·</span><span>1 min read</span></div></header><div class="prose"><p>**※ Please tell us if there is a wrong part. We will fix it after confirmation. *****</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] ROP 64bit</h1><p class="article-description">※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ In the previous 32-bit, this time we will cover 64-bit. #include void gift(){   asm   (&quot;pop %r9&quot;);   asm   (&quot;pop %r8&quot;);   asm    (&quot;pop %rcx&quot;);   asm   (&quot;pop %rdx&quot;);</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-12-01">Dec 1, 2023</time><span>·</span><span>1 min read</span></div></header><div class="prose"><p>**※ Please tell us if there is a wrong part. We will fix it after confirmation. *****</p>
 <p>In the previous 32-bit, this time we’ll cover 64-bit.</p>
 <pre><code>#include &lt;stdio.h&gt;
 

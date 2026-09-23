@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STUDY / PWNABLE_AMD64 · whrds.log</title><meta name="description" content="STUDY / PWNABLE_AMD64 · 33 articles">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/categories/pwnable-amd64/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/categories/pwnable-amd64/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/categories/pwnable-amd64/">
+  <meta property="og:type" content="website"><meta property="og:title" content="STUDY / PWNABLE_AMD64 · whrds.log"><meta property="og:description" content="STUDY / PWNABLE_AMD64 · 33 articles"><meta property="og:url" content="https://whrds.github.io/en/categories/pwnable-amd64/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/">Notes</a>
+      <a href="/en/categories/" aria-current="page">Categories</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/categories/pwnable-amd64/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><section class="category-page shell"><a class="category-back" href="/en/categories/">← All categories</a><div class="category-page-head"><h1>STUDY / PWNABLE_AMD64</h1><span>33 articles</span></div><div class="post-list"><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-dsfsb/">[PWNABLE]DSFSB</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ Double State Format String Bug This is an fsb technique used in situations where the buffer is declared as a global variable. //gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c#include</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-environ-stack-leak/">[PWNABLE] environ stack leak</a></h3><p>Stack address using __environ leak__environ is one of the environment variables that contains system information (referenced by execve series functions). You can find the symbol in the libc file. This is a confirmation of the value contained in the environ. You can also see that the relevant parts belong to the stack area. my overall</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 1 min read</span></div>
+      <h3><a href="/en/posts/pwnable-fmtstr-payload/">[PWNABLE] fmtstr_payload</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ fmtstr_payload is a function that automates exploiting fsb vulnerabilities. payload = fmtstr_payload(offset, {address: value to cover})payload = fmtstr_payload(7, {addr:value})as above</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-fpo/">[PWNABLE] FPO</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ Frame Pointer Overflow (brief explanation) Modulating sfp. As a result, it is a technique for modulating IP registers. Overflow of at least 1 byte in the sfp area must be possible. A function other than main() is required. this</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 7 min read</span></div>
+      <h3><a href="/en/posts/pwnable-fsb/">[PWNABLE] FSB</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ FSB stands for Format String Bug, and as the name suggests, it is a vulnerability that occurs due to incorrect use of format specifier. You may have used printf() a lot to print variables, as shown below. printf(&quot;%d&quot;,num1); It is better to use it in this way.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 3 min read</span></div>
+      <h3><a href="/en/posts/pwnable-fsop/">[PWNABLE]FSOP</a></h3><p>FSOPFile Stream Oriented Programming This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.file stream structure</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 3 min read</span></div>
+      <h3><a href="/en/posts/pwnable-heap-chunk-structure/">[PWNABLE] Heap Chunk Structure</a></h3><p>Memory Allocator: Efficiently allocates limited memory resources to each process. - Dynamically allocates and frees memory during execution. - The type of algorithm used varies depending on the implementation. - ptmalloc2 is used in Ubuntu. A feature of ptmalloc2 is that it does not erase data on freed memory.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-off-by-one/">[PWNABLE] Off_By_One</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique that was also used when dealing with canary leaks. https://whrdud727.tistory.com/entry/PWNABLE-Canary-%EC%9A%B0%ED%9A%8C [PWNABLE] Canary bypass※ Please let me know if there are any mistakes.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-one-gadget/">[PWNABLE] One_Gadget</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ It is a tool that finds the part that executes a cell such as execve(&#039;/bin/sh&#039;,0,0) in the libc file. In other words, if one_gadget is entered in the ret position of the stack, you can immediately obtain the shell. How to install gem ins</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 1 min read</span></div>
+      <h3><a href="/en/posts/pwnable-out-of-bounds/">[PWNABLE] Out Of Bounds</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ Out of Bounds occurs when a negative number or a value outside the size of the array is entered as an array index value. This can be prevented by simply inserting the verification process code for the index during development. if (idx = 128) { printf(&quot;Invalid index!\</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 3 min read</span></div>
+      <h3><a href="/en/posts/pwnable-rtld-global/">[PWNABLE] rtld global</a></h3><p>rtld global is a structure for managing code and variables when a program is executed and registered as a process. It is referenced at the point where execution ends. It can be checked when terminated by return. This is a simple practical example.#include int main(){ return 0; }If you check the binary __stack, you can see the main function call.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 1 min read</span></div>
+      <h3><a href="/en/posts/pwnable-stack-pivoting/">[PWNABLE] Stack Pivoting</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique to configure a Fake Stack in an area with write permission using a gadget. If the payload is stored, overflow should only occur up to ret. If the payload is not stored, up to chain + leave_ret.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">Jun 24, 2024</time> · 4 min read</span></div>
+      <h3><a href="/en/posts/pwnable-use-after-free/">[PWNABLE] Use After Free</a></h3><p>Use After Free (UAF) vulnerability is a security vulnerability that occurs when a pointer that has been freed after memory allocation is still used. This is an error that occurs in memory management, and an attacker can exploit it to cause abnormal operation of the program or execute arbitrary code. Memory is allocated through malloc, etc., and freed through free.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-05-02">May 2, 2024</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-srop/">[PWNABLE] SROP</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ SROP (SigReturn-Oriented Programming) is a ROP technique that uses the sigreturn syscall. In the process of processing signals, interaction between user mode and kernel mode occurs. This process is called context switching. you</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-12-01">Dec 1, 2023</time> · 3 min read</span></div>
+      <h3><a href="/en/posts/pwnable-rop-32bit/">[PWNABLE] ROP 32bit</a></h3><p>※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ For ROP, we’ve never mentioned some time before. Return-Oriented Programming is a method to bypass ASLR, which is one of the attacks to perform by reconfiguring functions using gadget. ROP 32</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-12-01">Dec 1, 2023</time> · 1 min read</span></div>
+      <h3><a href="/en/posts/pwnable-rop-64bit/">[PWNABLE] ROP 64bit</a></h3><p>※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ In the previous 32-bit, this time we will cover 64-bit. #include void gift(){   asm   (&quot;pop %r9&quot;);   asm   (&quot;pop %r8&quot;);   asm    (&quot;pop %rcx&quot;);   asm   (&quot;pop %rdx&quot;);</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-11-08">Nov 8, 2023</time> · 4 min read</span></div>
+      <h3><a href="/en/posts/pwnable-rtl-chaining/">[PWNABLE] RTL_Chaining</a></h3><p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ RTL_Chaining is an attack technique that applies the RTL method to form a chain and execute it. Although it may not be clear yet what it means to &quot;form a chain,&quot; it will be used very importantly in ROP, which will be discussed next, so please try to understand it and move on.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-11-08">Nov 8, 2023</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-syscall/">[PWNABLE] syscall</a></h3><p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is a concept used when performing the ROP technique that will be discussed next. Before proceeding, let me mention one thing about ROP: it is a technique used to bypass ASLR. When carrying out an attack, wouldn&#039;t it be enough to just find out the addresses of functions such as read, write, and system?</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-11-07">Nov 7, 2023</time> · 1 min read</span></div>
+      <h3><a href="/en/posts/pwnable-check-bss/">[PWNABLE] Check .bss</a></h3><p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ When discussing memory structure, I explained that the bss segment is the area where uninitialized variables are stored. Since we will be covering various techniques in the future, this segment is important. To find the location of the bss segment, you can use the readelf command. reade</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-11-07">Nov 7, 2023</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-finding-gadget/">[PWNABLE] Finding Gadget</a></h3><p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ In previous RTL, the explanation for &quot;gadget&quot; is as follows: 2023.10.22 - [STUDY/PWNABLE] - [PWNABLE] RTL generally refers to a &quot;code snippet.&quot; At first glance, this might sound confusing. A ret gadget</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-22">Oct 22, 2023</time> · 1 min read</span></div>
+      <h3><a href="/en/posts/pwnable-aslr-protection-technique/">[PWNABLE] ASLR Protection Technique</a></h3><p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is a protection technique that randomly changes the addresses of the stack, heap, and shared library areas every time the binary is executed, excluding the code area. You can see that the addresses change every time it is executed. This is the code of the above executable file. #include #include #include cha</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-22">Oct 22, 2023</time> · 3 min read</span></div>
+      <h3><a href="/en/posts/pwnable-canary-got-overwrite/">[PWNABLE] Canary_GOT Overwrite</a></h3><p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ Previously, I posted about the Canary technique and methods to bypass it, https://whrdud727.tistory.com/10 [PWNABLE] Canary_설명 ※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ SSP(Stack S</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-22">Oct 22, 2023</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-nx-bit/">[PWNABLE] NX bit</a></h3><p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ I should have posted this along with the BOF, but the order was a bit messed up;; No eXecute bit is an abbreviation for not granting execution rights to the stack area. For comparison, I compiled the same C file in two different ways. The non_ex file is in a state where the NX bit is disabled.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-22">Oct 22, 2023</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-rtl/">[PWNABLE] RTL</a></h3><p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ # Due to the exam period, I was unable to create original examples for some of the recently posted articles. # From the next practical session onward, I will create original examples and proceed. RTL Return to Library is a technique used to bypass NX-bit, which is one of the memory protection methods.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-22">Oct 22, 2023</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-shellcode-rts/">[PWNABLE] Shellcode &amp; RTS</a></h3><p>A piece of code used to obtain a Shell, one of the objectives of system hacking with Shellcode. It is composed of bytecode and can be used in a state where the stack area has execution rights (NX-BIT disabled). There is a feature called shellcraft.sh in pwntools. It is a helpful function that generates shellcode, and by using this function, you can</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-04">Oct 4, 2023</time> · 3 min read</span></div>
+      <h3><a href="/en/posts/pwnable-got-overwrite/">[PWNABLE] GOT Overwrite</a></h3><p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is an attack technique using plt&amp;got that was previously written. https://whrdud727.tistory.com/15 [PWNABLE] plt &amp; got ※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ This is in the context of studying the system.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-04">Oct 4, 2023</time> · 2 min read</span></div>
+      <h3><a href="/en/posts/pwnable-plt-got/">[PWNABLE] plt &amp; got</a></h3><p>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ In the context of studying the system, you would have heard a lot about plt and got. plt holds data about got, and got holds data about the actual address of functions. You would have some understanding of this level. First, let&#039;s look at the concept. PLT (Procedure Linkage Table)</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-24">Sep 24, 2023</time> · 4 min read</span></div>
+      <h3><a href="/en/posts/pwnable-canary-bypass/">[PWNABLE] Canary bypass</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ We discussed canary in the previous post. This time we will cover the workarounds. 1. canary leak 2. got overwrite (I will explain it briefly, and more details will be discussed after posting about plt/got.) 3. master can</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-24">Sep 24, 2023</time> · 4 min read</span></div>
+      <h3><a href="/en/posts/pwnable-canary-description/">[PWNABLE] Canary_Description</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ SSP (Stack Smashing Protector) is a technique to protect sfp and ret from stack buffer overflow. Verification is performed using the value called canary of the stack. If you look at the stack picture, it is between buf and sfp.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-18">Sep 18, 2023</time> · 3 min read</span></div>
+      <h3><a href="/en/posts/pwnable-calling-convention/">[PWNABLE] Calling Convention</a></h3><p>Although it is not very important in the current situation where Stack Buffer OverFlow and Return Address OverFlow are in progress, it is one of the most basic parts to understand attack techniques such as rtl, rop, fsb, etc. in future postings. Linux function calling conventions are broadly divided into two types. (</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-18">Sep 18, 2023</time> · 3 min read</span></div>
+      <h3><a href="/en/posts/pwnable-return-address-overwrite/">[PWNABLE]Return Address Overwrite</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ I briefly discussed Buffer OverFlow in the last post. This time, we will cover a technique that attacks the ret part located in the stack frame, which modifies the stack. Stack Frame basically has the above structure.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-06">Sep 6, 2023</time> · 5 min read</span></div>
+      <h3><a href="/en/posts/pwnable-stack-buffer-overflow/">[PWNABLE]Stack Buffer OverFlow</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-04">Sep 4, 2023</time> · 3 min read</span></div>
+      <h3><a href="/en/posts/linux-memory-structure/">[LINUX] Memory structure</a></h3><p>※ If there are any mistakes, please let us know. We will check and correct it. ※ The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment]. CODE segment This is the area where the code written by the user is stored. The code of the program to be executed is stored.</p>
+      
+    </article></div></section></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

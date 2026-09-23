@@ -12,7 +12,7 @@ const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
 const copy = {
   ko: {
     siteDescription: '보안 연구, 리버스 엔지니어링, 퍼징과 펌웨어 분석에 관한 기록.',
-    navNotes: '글', navAbout: '소개', eyebrow: 'Security research notes',
+    navNotes: '글', navCategories: '카테고리', navAbout: '소개', eyebrow: 'Security research notes',
     headline: '끄저끄적 작성 중...',
     intro: '취약점 연구, 리버스 엔지니어링, 퍼징과 펌웨어 분석 과정에서 얻은 생각과 시행착오를 기록합니다.',
     latest: '최근 글', articles: '개의 글', profileTitle: 'ZZoMb1E',
@@ -23,12 +23,12 @@ const copy = {
       '2026 · DEF CON 34 CTF Finalist — 7th, Jinddabi’s',
       '2026 · QNAP 취약점 제보'
     ],
-    topics: '관심 분야', back: '모든 글 보기', readIn: '이 글을 영어로 읽기',
+    topics: '관심 분야', categories: '카테고리', allCategories: '전체 카테고리', back: '모든 글 보기', readIn: '이 글을 영어로 읽기',
     footer: '관찰하고, 검증하고, 기록합니다.', minRead: '분 읽기', notFound: '페이지를 찾을 수 없습니다', home: '홈으로 이동'
   },
   en: {
     siteDescription: 'Notes on security research, reverse engineering, fuzzing, and firmware analysis.',
-    navNotes: 'Notes', navAbout: 'About', eyebrow: 'Security research notes',
+    navNotes: 'Notes', navCategories: 'Categories', navAbout: 'About', eyebrow: 'Security research notes',
     headline: 'Writing things down...',
     intro: 'Notes on the ideas, experiments, and mistakes behind vulnerability research, reverse engineering, fuzzing, and firmware analysis.',
     latest: 'Latest notes', articles: 'articles', profileTitle: 'ZZoMb1E',
@@ -39,7 +39,7 @@ const copy = {
       '2026 · DEF CON 34 CTF Finalist — 7th, Jinddabi’s',
       '2026 · QNAP vulnerability report'
     ],
-    topics: 'Focus areas', back: 'View all notes', readIn: 'Read this post in Korean',
+    topics: 'Focus areas', categories: 'Categories', allCategories: 'All categories', back: 'View all notes', readIn: 'Read this post in Korean',
     footer: 'Observe, verify, document.', minRead: 'min read', notFound: 'Page not found', home: 'Go home'
   }
 };
@@ -48,6 +48,22 @@ const topics = {
   ko: ['취약점 연구', '리버스 엔지니어링', '퍼징', '펌웨어'],
   en: ['Vulnerability Research', 'Reverse Engineering', 'Fuzzing', 'Firmware']
 };
+
+const categoryInfo = {
+  'STUDY/PWNABLE_AMD64': { slug: 'pwnable-amd64', ko: 'STUDY / PWNABLE_AMD64', en: 'STUDY / PWNABLE_AMD64' },
+  'STUDY/CVE && Fuzzing': { slug: 'cve-fuzzing', ko: 'STUDY / CVE && Fuzzing', en: 'STUDY / CVE && Fuzzing' },
+  'STUDY/KERNEL': { slug: 'kernel', ko: 'STUDY / KERNEL', en: 'STUDY / KERNEL' },
+  'STUDY/FirmWare 분석(시도)': { slug: 'firmware', ko: 'STUDY / FirmWare 분석(시도)', en: 'STUDY / Firmware Analysis' },
+  'STUDY/PWNABLE_AArch64': { slug: 'pwnable-aarch64', ko: 'STUDY / PWNABLE_AArch64', en: 'STUDY / PWNABLE_AArch64' },
+  'Write Up/CTF': { slug: 'ctf-writeups', ko: 'Write Up / CTF', en: 'Write-ups / CTF' },
+  'STUDY/Android': { slug: 'android', ko: 'STUDY / Android', en: 'STUDY / Android' },
+  '공부하기 싫다': { slug: 'misc', ko: '공부하기 싫다', en: 'Miscellaneous' }
+};
+
+const categoryMeta = (name) => categoryInfo[name] || { slug: encodeURIComponent(name || 'uncategorized'), ko: name || '미분류', en: name || 'Uncategorized' };
+const categoryRoute = (lang, name) => `/${lang}/categories/${categoryMeta(name).slug}/`;
+const categoryLabel = (lang, name) => categoryMeta(name)[lang];
+const categoriesFor = (posts) => Object.keys(categoryInfo).filter((name) => posts.some((post) => post.data.category === name));
 
 const escapeHtml = (value = '') => String(value)
   .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -77,6 +93,7 @@ function header(lang, alternate, active = 'notes') {
     <a class="brand" href="/${lang}/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="${lang === 'ko' ? '주 메뉴' : 'Main navigation'}">
       <a href="/${lang}/"${active === 'notes' ? ' aria-current="page"' : ''}>${t.navNotes}</a>
+      <a href="/${lang}/categories/"${active === 'categories' ? ' aria-current="page"' : ''}>${t.navCategories}</a>
       <a href="/${lang}/about/"${active === 'about' ? ' aria-current="page"' : ''}>${t.navAbout}</a>
     </nav>
     <div class="header-tools">
@@ -115,17 +132,49 @@ function layout({ lang, title, description, route, alternate, body, active = 'no
 </body></html>`;
 }
 
+function postCards(lang, posts) {
+  const t = copy[lang];
+  return posts.map((post) => {
+    const extraTags = (post.data.tags || []).filter((tag) => tag !== post.data.category);
+    return `<article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="${categoryRoute(lang, post.data.category)}">${escapeHtml(categoryLabel(lang, post.data.category))}</a><span><time datetime="${escapeHtml(post.data.date)}">${formatDate(post.data.date, lang)}</time> · ${readingTime(post.body, lang)} ${t.minRead}</span></div>
+      <h3><a href="${routeFor(post)}">${escapeHtml(post.data.title)}</a></h3><p>${escapeHtml(post.data.description)}</p>
+      ${extraTags.length ? `<div class="tags">${extraTags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</div>` : ''}
+    </article>`;
+  }).join('');
+}
+
+function categoryLinks(lang, posts) {
+  return categoriesFor(posts).map((name) => {
+    const count = posts.filter((post) => post.data.category === name).length;
+    return `<a href="${categoryRoute(lang, name)}"><span>${escapeHtml(categoryLabel(lang, name))}</span><strong>${count}</strong></a>`;
+  }).join('');
+}
+
 function homePage(lang, posts) {
   const t = copy[lang];
-  const cards = posts.map((post) => `<a class="post-card" href="${routeFor(post)}">
-    <div class="post-card-top"><time datetime="${escapeHtml(post.data.date)}">${formatDate(post.data.date, lang)}</time><span>${readingTime(post.body, lang)} ${t.minRead}</span></div>
-    <h3>${escapeHtml(post.data.title)}</h3><p>${escapeHtml(post.data.description)}</p>
-    <div class="tags">${(post.data.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</div>
-  </a>`).join('');
   const body = `<section class="hero"><div class="shell"><p class="eyebrow">${t.eyebrow}</p><h1>${t.headline}</h1><p class="hero-copy">${t.intro}</p><div class="hero-meta">${topics[lang].map((x) => `<span class="pill">${x}</span>`).join('')}</div></div></section>
-  <div class="shell content-grid"><section><div class="section-head"><h2>${t.latest}</h2><span>${posts.length} ${t.articles}</span></div><div class="post-list">${cards}</div></section>
-  <aside class="sidebar"><div class="sidebar-section"><p class="sidebar-label">Profile</p><div class="profile-card"><strong>${t.profileTitle}</strong><ul>${t.profile.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></div><div class="sidebar-section"><p class="sidebar-label">${t.topics}</p><div class="topic-list">${topics[lang].map((x) => `<span>${x}</span>`).join('')}</div></div></aside></div>`;
+  <div class="shell content-grid"><section><div class="section-head"><h2>${t.latest}</h2><span>${posts.length} ${t.articles}</span></div><div class="post-list">${postCards(lang, posts)}</div></section>
+  <aside class="sidebar"><div class="sidebar-section"><p class="sidebar-label">Profile</p><div class="profile-card"><strong>${t.profileTitle}</strong><ul>${t.profile.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></div><div class="sidebar-section"><p class="sidebar-label">${t.categories}</p><nav class="category-list">${categoryLinks(lang, posts)}</nav><a class="all-categories" href="/${lang}/categories/">${t.allCategories} →</a></div></aside></div>`;
   return layout({ lang, description: t.siteDescription, route: `/${lang}/`, alternate: `/${lang === 'ko' ? 'en' : 'ko'}/`, body });
+}
+
+function categoryIndexPage(lang, posts) {
+  const t = copy[lang];
+  const cards = categoriesFor(posts).map((name) => {
+    const count = posts.filter((post) => post.data.category === name).length;
+    return `<a class="category-card" href="${categoryRoute(lang, name)}"><span>${escapeHtml(categoryLabel(lang, name))}</span><strong>${count}</strong><small>${t.articles}</small></a>`;
+  }).join('');
+  const body = `<section class="category-page shell"><p class="eyebrow">${t.navCategories}</p><div class="category-page-head"><h1>${t.allCategories}</h1><span>${posts.length} ${t.articles}</span></div><div class="category-grid">${cards}</div></section>`;
+  return layout({ lang, title: t.navCategories, description: t.siteDescription, route: `/${lang}/categories/`, alternate: `/${lang === 'ko' ? 'en' : 'ko'}/categories/`, body, active: 'categories' });
+}
+
+function categoryPage(lang, name, posts) {
+  const t = copy[lang];
+  const label = categoryLabel(lang, name);
+  const route = categoryRoute(lang, name);
+  const body = `<section class="category-page shell"><a class="category-back" href="/${lang}/categories/">← ${t.allCategories}</a><div class="category-page-head"><h1>${escapeHtml(label)}</h1><span>${posts.length} ${t.articles}</span></div><div class="post-list">${postCards(lang, posts)}</div></section>`;
+  return layout({ lang, title: label, description: `${label} · ${posts.length} ${t.articles}`, route, alternate: categoryRoute(lang === 'ko' ? 'en' : 'ko', name), body, active: 'categories' });
 }
 
 function articlePage(item, translation) {
@@ -133,7 +182,7 @@ function articlePage(item, translation) {
   const t = copy[lang];
   const route = routeFor(item);
   const alternate = translation ? routeFor(translation) : `/${lang === 'ko' ? 'en' : 'ko'}/`;
-  const inner = `<article class="article-wrap"><header class="article-header"><p class="eyebrow">${data.page ? t.navAbout : t.eyebrow}</p><h1>${escapeHtml(data.title)}</h1><p class="article-description">${escapeHtml(data.description)}</p>${data.page ? '' : `<div class="article-meta"><time datetime="${escapeHtml(data.date)}">${formatDate(data.date, lang)}</time><span>·</span><span>${readingTime(body, lang)} ${t.minRead}</span></div>`}</header><div class="prose">${html}</div><div class="article-end"><a href="/${lang}/">← ${t.back}</a>${translation ? `<a href="${alternate}" hreflang="${translation.lang}">${t.readIn} →</a>` : ''}</div></article>`;
+  const inner = `<article class="article-wrap"><header class="article-header"><p class="eyebrow">${data.page ? t.navAbout : t.eyebrow}</p><h1>${escapeHtml(data.title)}</h1><p class="article-description">${escapeHtml(data.description)}</p>${data.page ? '' : `<div class="article-meta"><a class="post-category" href="${categoryRoute(lang, data.category)}">${escapeHtml(categoryLabel(lang, data.category))}</a><span>·</span><time datetime="${escapeHtml(data.date)}">${formatDate(data.date, lang)}</time><span>·</span><span>${readingTime(body, lang)} ${t.minRead}</span></div>`}</header><div class="prose">${html}</div><div class="article-end"><a href="/${lang}/">← ${t.back}</a>${translation ? `<a href="${alternate}" hreflang="${translation.lang}">${t.readIn} →</a>` : ''}</div></article>`;
   return layout({ lang, title: data.title, description: data.description, route, alternate, body: inner, active: data.page ? 'about' : 'notes', type: data.page ? 'website' : 'article', date: data.date });
 }
 
@@ -158,6 +207,10 @@ async function build() {
   for (const lang of ['ko', 'en']) {
     const posts = all.filter((item) => item.lang === lang && !item.data.page).sort((a, b) => String(b.data.date).localeCompare(String(a.data.date)));
     await writeRoute(`/${lang}/`, homePage(lang, posts));
+    await writeRoute(`/${lang}/categories/`, categoryIndexPage(lang, posts));
+    for (const name of categoriesFor(posts)) {
+      await writeRoute(categoryRoute(lang, name), categoryPage(lang, name, posts.filter((post) => post.data.category === name)));
+    }
     await writeRoute(`/${lang}/feed.xml`, feed(lang, posts));
   }
   for (const item of all) {
@@ -168,7 +221,11 @@ async function build() {
   await fs.writeFile(path.join(outDir, 'index.html'), '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><script>const l=(navigator.language||"ko").toLowerCase().startsWith("ko")?"ko":"en";location.replace(`/${l}/`)</script><noscript><meta http-equiv="refresh" content="0;url=/ko/"></noscript></head></html>');
   await fs.writeFile(path.join(outDir, '404.html'), layout({ lang: 'ko', title: '404', description: copy.ko.notFound, route: '/404.html', alternate: '/en/', body: `<section class="not-found"><div><strong>404</strong><h1>${copy.ko.notFound}</h1><p>The page may have moved or no longer exists.</p><a href="/ko/">${copy.ko.home}</a></div></section>` }));
   await fs.writeFile(path.join(outDir, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`);
-  const routes = ['/', '/ko/', '/en/', ...all.map(routeFor)];
+  const categoryRoutes = ['ko', 'en'].flatMap((lang) => {
+    const posts = all.filter((item) => item.lang === lang && !item.data.page);
+    return [`/${lang}/categories/`, ...categoriesFor(posts).map((name) => categoryRoute(lang, name))];
+  });
+  const routes = ['/', '/ko/', '/en/', ...categoryRoutes, ...all.map(routeFor)];
   await fs.writeFile(path.join(outDir, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${routes.map((route) => `<url><loc>${absolute(route)}</loc></url>`).join('')}</urlset>`);
   await fs.writeFile(path.join(outDir, '.nojekyll'), '');
   console.log(`Built ${all.length} content pages in docs/`);

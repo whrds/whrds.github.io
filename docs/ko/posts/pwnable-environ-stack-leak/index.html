@@ -14,6 +14,7 @@
     <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="주 메뉴">
       <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/categories/">카테고리</a>
       <a href="/ko/about/">소개</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] environ stack leak</h1><p class="article-description">__environ을 이용한 스택 주소 leak__environ은 환경 변수 중 하나로 시스템의 정보를 갖고 있는 변수이다.(execve 계열의 함수가 참조한다.)libc파일에서 심볼을 찾을 수 있다. environ에 들어있는 값을 확인한 모습이다. 해당 부분들이 stack 영역에 속하는 것 또한 알 수 있다. 전체적인 내</p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><h3>__environ을 이용한 스택 주소 leak</h3>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] environ stack leak</h1><p class="article-description">__environ을 이용한 스택 주소 leak__environ은 환경 변수 중 하나로 시스템의 정보를 갖고 있는 변수이다.(execve 계열의 함수가 참조한다.)libc파일에서 심볼을 찾을 수 있다. environ에 들어있는 값을 확인한 모습이다. 해당 부분들이 stack 영역에 속하는 것 또한 알 수 있다. 전체적인 내</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><h3>__environ을 이용한 스택 주소 leak</h3>
 <p>__environ은 환경 변수 중 하나로 시스템의 정보를 갖고 있는 변수이다.</p>
 <p>(execve 계열의 함수가 참조한다.)</p>
 <p><img src="/assets/images/tistory/tistory-8beaf703795a/001.png" alt=""></p>

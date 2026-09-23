@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STUDY / PWNABLE_AArch64 · whrds.log</title><meta name="description" content="STUDY / PWNABLE_AArch64 · 6 개의 글">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/categories/pwnable-aarch64/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/categories/pwnable-aarch64/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/categories/pwnable-aarch64/">
+  <meta property="og:type" content="website"><meta property="og:title" content="STUDY / PWNABLE_AArch64 · whrds.log"><meta property="og:description" content="STUDY / PWNABLE_AArch64 · 6 개의 글"><meta property="og:url" content="https://whrds.github.io/ko/categories/pwnable-aarch64/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/">글</a>
+      <a href="/ko/categories/" aria-current="page">카테고리</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/categories/pwnable-aarch64/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><section class="category-page shell"><a class="category-back" href="/ko/categories/">← 전체 카테고리</a><div class="category-page-head"><h1>STUDY / PWNABLE_AArch64</h1><span>6 개의 글</span></div><div class="post-list"><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-aarch64/">STUDY / PWNABLE_AArch64</a><span><time datetime="2024-05-01">2024년 5월 1일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/aarch64-buffer-overflow-practice/">[AArch64] Buffer OverFlow (실습)</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ aarch64 기법 공부 중 대학 동기가 문제를 하나 만들어주었다. [Exploitable]이라는 이름의 Buffer OverFlow 문제이다. symbol이 지워져있다.. (아 귀찮... 그래도 static은 안걸려있으니까...) main()으로 </p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-aarch64/">STUDY / PWNABLE_AArch64</a><span><time datetime="2024-04-08">2024년 4월 8일</time> · 2 분 읽기</span></div>
+      <h3><a href="/ko/posts/aarch64-pac/">[AArch64] PAC</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Pointer Authentication CodePointer를 서명하여 올바른 메모리 주소라는 무결성을 보장해주는 ARMv8.3 에서 추가된 보안 기법이다. amd64를 포함하여 대부분의 stack에서의 취약점은 [ret]를 변조하여 수행한다. 가</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-aarch64/">STUDY / PWNABLE_AArch64</a><span><time datetime="2024-03-23">2024년 3월 23일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/aarch64-debugging/">[AArch64] Debugging</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 디버깅하는 방법을 앞에서 언급을 했지만 해당 방법으로는 동적 디버깅을 수행할 수 없다. 이번 게시글에서는 동적 디버깅을 수행하는 방법을 다루겠다. (직접 시행착오하며 겪은 것을 바탕으로 작성하는 것이기 때문에 더 효율적인 방법이 있을 수도 있다.) </p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-aarch64/">STUDY / PWNABLE_AArch64</a><span><time datetime="2024-03-20">2024년 3월 20일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/aarch64-buffer-overflow-with-chaining/">[AArch64] Buffer OverFlow (with chaining)</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 바뀐 ASM과 register 들을 이용하여 gadget 사용하는 방법을 조금 다루겠다. #include #include #include void gift(){ write(1, &quot;/bin/sh\x00&quot;,0x8); system(&#039;ls&#039;); } void</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-aarch64/">STUDY / PWNABLE_AArch64</a><span><time datetime="2024-03-20">2024년 3월 20일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/aarch64-buffer-overflow/">[AArch64] Buffer OverFlow</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Buffer OverFlow에 대한 개념은 아래 링크에서 확인할 수 있다. https://whrdud727.tistory.com/5 [PWNABLE]Stack Buffer OverFlow ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-aarch64/">STUDY / PWNABLE_AArch64</a><span><time datetime="2024-03-20">2024년 3월 20일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/aarch64-x86-64-simple-comparison/">[AArch64] x86_64 간단 비교</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 효율적인 전력 사용과 높은 성능의 위해서 설계된 architecture이다. 주로 스마트폰, 임베디드 시스템 등의 환경에서 사용되고 있다. 간단하게 x86_64와 비교해보겠다. #include int main(int argc, char*argv[])</p>
+      
+    </article></div></section></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STUDY / PWNABLE_AMD64 · whrds.log</title><meta name="description" content="STUDY / PWNABLE_AMD64 · 33 개의 글">
+  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/categories/pwnable-amd64/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/categories/pwnable-amd64/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/categories/pwnable-amd64/">
+  <meta property="og:type" content="website"><meta property="og:title" content="STUDY / PWNABLE_AMD64 · whrds.log"><meta property="og:description" content="STUDY / PWNABLE_AMD64 · 33 개의 글"><meta property="og:url" content="https://whrds.github.io/ko/categories/pwnable-amd64/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/">글</a>
+      <a href="/ko/categories/" aria-current="page">카테고리</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/categories/pwnable-amd64/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+    </div>
+  </div></header>
+  <main id="main"><section class="category-page shell"><a class="category-back" href="/ko/categories/">← 전체 카테고리</a><div class="category-page-head"><h1>STUDY / PWNABLE_AMD64</h1><span>33 개의 글</span></div><div class="post-list"><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-dsfsb/">[PWNABLE] DSFSB</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Double State Format String Bug버퍼가 전역 변수로 선언되어 있는 등의 상황에서 사용하는 fsb 기법이다. //gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c#include </p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-environ-stack-leak/">[PWNABLE] environ stack leak</a></h3><p>__environ을 이용한 스택 주소 leak__environ은 환경 변수 중 하나로 시스템의 정보를 갖고 있는 변수이다.(execve 계열의 함수가 참조한다.)libc파일에서 심볼을 찾을 수 있다. environ에 들어있는 값을 확인한 모습이다. 해당 부분들이 stack 영역에 속하는 것 또한 알 수 있다. 전체적인 내</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-fmtstr-payload/">[PWNABLE] fmtstr_payload</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ fmtstr_payload는 fsb 취약점을 Explot하는 것을 자동화해주는 함수이다. payload = fmtstr_payload(offset, {주소 : 덮을 값})payload = fmtstr_payload(7, {addr:value})위와 </p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-fpo/">[PWNABLE] FPO</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Frame Pointer Overflow (간략하게 설명)sfp를 변조하는 것으로, 결과적으로 보았을 때, IP 레지스터를 변조하는 기법이다.sfp 영역에 최소 1바이트 이상의 overflow가 가능해야 한다.main()이외의 함수가 필요하다. 이 </p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 4 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-fsb/">[PWNABLE] FSB</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ FSB는 Format String Bug의 약자로 이름 그대로 형식 지정자의 잘못 사용으로 인해 발생하는 취약점이다.변수의 출력을 위해 아래와 같이 printf()를 많이 사용해왔을 것이다.printf(&quot;%d&quot;,num1);이 방식대로 사용하는 것이 </p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 2 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-fsop/">[PWNABLE] FSOP</a></h3><p>FSOPFile Stream Oriented ProgrammingC의 표준 라이브러리인 libc에서 file stream의 내부 필드를 조작하여 악의적인 코드를 수행하는 공격 기법이다. libc에서 파일 스트림은 FILE 구조체로 관리되며, 이 구조체의 필드들은 파일 입출력 작업을 추상화한다.file stream 구조체 </p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-heap-chunk-structure/">[PWNABLE] Heap Chunk Structure</a></h3><p>Memorry Allocator : 한정된 메모리 자원을 각 프로세스에 효율적으로 배분하는 작업을 한다.- 실행중에 메모리를 동적으로 할당 및 해제한다.- 구현에 따라 사용된 알고리즘의 종류가 달라진다 - ptmalloc2은 ubuntu에서 사용한다 ptmalloc2의 특징으로는 해제된 메모리에 대한 데이터를 지우지 않고</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-off-by-one/">[PWNABLE] Off_By_One</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ canary leak을 다룰 때도 사용했던 기법이다.https://whrdud727.tistory.com/entry/PWNABLE-Canary-%EC%9A%B0%ED%9A%8C [PWNABLE] Canary 우회※ 잘못된 부분이 있으면 알려주세요. </p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-one-gadget/">[PWNABLE] One_Gadget</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ libc 파일 내에서 execve(&#039;/bin/sh&#039;,0,0) 과 같은 셀을 실행주는 부분을 찾아주는 tool이다.다시 말해서 stack의 ret 위치에 one_gadget이 들어간다면 shell을 바로 얻을 수 있다는 것이다. 설치 방법gem ins</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-out-of-bounds/">[PWNABLE] Out Of Bounds</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Out Of Bounds는 배열의 인덱스 값을 음수 혹은 배열의 크기를 벗어난 값을 입력했을 때 발생한다. 개발할 때 인덱스에 대한 검증 과정 코드만 넣어주면 방지가 가능하다. if (idx = 128) { printf(&quot;Invalid index!\</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-rtld-global/">[PWNABLE] rtld global</a></h3><p>rtld global프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.실행이 종료되는 지점에서 참조된다.return에 의해 종료될 때 확인이 가능하다. 간단한 실습 예제이다.#include int main(){ return 0; }바이너리 __stack부터 확인해보면 main함수 호츨을 </p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-stack-pivoting/">[PWNABLE] Stack Pivoting</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ gadget을 사용하여 쓰기 권한이 있는 영역에 Fake Stack를 구성하는 기법이다.payload가 저장되어 있는 경우, ret까지만 overflow가 발생해야 한다.payload가 저장되어 있지 않은 경우, chain + leave_ret 까지</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-06-24">2024년 6월 24일</time> · 2 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-use-after-free/">[PWNABLE] Use After Free</a></h3><p>Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다. 메모리는 malloc 등을 통해 할당되고, free를 통해 해제된다</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2024-05-02">2024년 5월 2일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-srop/">[PWNABLE] SROP</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SROP( SigReturn-Oriented Programming )는 sigreturn syscall을 사용하는 ROP 기법이다. Signal을 처리하는 과정에서 유저모드 커널모드 간의 상호작용이 일어난다.이 과정을 컨텍스트 스위칭이라고 한다. 유</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-12-01">2023년 12월 1일</time> · 2 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-rop-32bit/">[PWNABLE] ROP_32bit</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ ROP에 대해서는 앞에서 몇번 언급을 한 적이 있다. Return-Oriented Programming 으로 gadget을 이용하여 함수들을 새로 구성하여 수행하는 공격으로메모리 보호기법 중 하나인 ASLR을 우회하기 위한 기법이다. ROP는 32비</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-12-01">2023년 12월 1일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-rop-64bit/">[PWNABLE] ROP_64bit</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전에서는 32비트에 다뤘다면 이번에는 64비트를 다루겠다. #include void gift(){ __asm__ (&quot;pop %r9&quot;); __asm__ (&quot;pop %r8&quot;); __asm__ (&quot;pop %rcx&quot;); __asm__ (&quot;pop %rdx&quot;</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-11-08">2023년 11월 8일</time> · 2 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-rtl-chaining/">[PWNABLE] RTL_Chaining</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ RTL_Chaining은 RTL 기법을 응용하여 Chain 형태를 구성하여 수행하는 공격 기법이다. 체인을 구성한다라는 것이 무슨 말인지 아직은 잘 이해가 되지 않을 것인데, 이 다음에 다룰 ROP에서도 매우 중요하게 사용되기 때문에 이해하고 넘어가</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-11-08">2023년 11월 8일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-syscall/">[PWNABLE] syscall</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 다음에 다룰 ROP 기법을 수행하는데 있어서 사용되는 개념이다. 미리 ROP에 대해 한가지 적어두자면 ASLR을 우회하기 위해 사용하는 기법이다. 공격을 수행하는데 있어서 read, write, system 등 함수들의 주소만 알아내면 되지 않을까?</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-11-07">2023년 11월 7일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-check-bss/">[PWNABLE] .bss 확인하기</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 메모리 구조를 다루면서 bss에 대한 초기화 되지 않은 변수들이 저장되는 영역이다라고 설명을 했었다. 앞으로 다양한 기법을 다루기에 해당 세그먼트가 중요하다. bss 세그먼트의 위치를 찾는 방법은 readelf라는 명령어를 사용하면 된다. reade</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-11-07">2023년 11월 7일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-finding-gadget/">[PWNABLE] Gadget 찾기</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ gadget이 무엇인지 이전 RTL에서 다음과 같이 설명을 해두었다. 2023.10.22 - [STUDY/PWNABLE] - [PWNABLE] RTL 일반적으로 &#039;코드 조각&#039;을 의미한다. 이렇게만 보면 이게 무슨 소리인가 싶을 것이다. ret 가젯을</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-22">2023년 10월 22일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-aslr-protection-technique/">[PWNABLE] ASLR 보호기법</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 바이너리가 실행될 때마다 코드 영역을 제외한 스택, 힙, 공유 라이브러리 영역의 주소를 랜덤하게 바꿔주는 보호기법이다. 실행할 때마다 주소가 바뀌는 것을 볼 수 있다. 위 실행 파일의 코드이다. #include #include #include cha</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-22">2023년 10월 22일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-canary-got-overwrite/">[PWNABLE] Canary_GOT Overwrite</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 앞서 Canary기법과 우회하는 방법에 대해 포스팅을 했다, https://whrdud727.tistory.com/10 [PWNABLE] Canary_설명 ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack S</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-22">2023년 10월 22일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-nx-bit/">[PWNABLE] NX bit</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ BOF 하면서 포스팅했어야 하는데 순서가 좀 틀렸네요;; No eXecute bit의 약자로 스택 영역에 실행권한을 부여하지 않는 것이다. 비교를 위해 같은 c파일을 2가지 방법으로 컴파일 했다. non_ex 파일은 NX bit가 비활성화 된 상태이</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-22">2023년 10월 22일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-rtl/">[PWNABLE] RTL</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ # 시험기간이 있었던 바람에 최근 포스팅한 게시글 중 일부 예제를 직접 만들지는 못했습니다. # 다음 실습부터 다시 직접 예제를 만들며 진행하겠습니다. RTL Return to Library는 메모리 보호 기법 중 하나인 NX-bit를 우회하기 위한</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-22">2023년 10월 22일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-shellcode-rts/">[PWNABLE] Shellcode &amp; RTS</a></h3><p>Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-04">2023년 10월 4일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-got-overwrite/">[PWNABLE] GOT Overwrite</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전에 작성한 plt&amp;got를 이용한 공격 기법이다. https://whrdud727.tistory.com/15 [PWNABLE] plt &amp; got ※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 시스템을 공부하는 상황에서 </p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-10-04">2023년 10월 4일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-plt-got/">[PWNABLE] plt &amp; got</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 시스템을 공부하는 상황에서 plt와 got에 대해 많이 들어보았을 것이다. plt에는 got의 데이터를 가지고 있고, got에는 함수의 실제 주소에 대한 데이터를 가지고 있다. 이 정도로 알고 있을 것이다. 먼저 개념을 살펴보면 PLT (Proced</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-24">2023년 9월 24일</time> · 2 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-canary-bypass/">[PWNABLE] Canary 우회</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전 포스팅에서 canary에 대해 다루었다. 이번에는 그 우회 방법들을 다루겠다. 1. canary leak 2. got overwrite (간단하게만 설명하고, 자세한 내용은 plt/got에 대한 포스팅 이후 다루겠다.) 3. master can</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-24">2023년 9월 24일</time> · 2 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-canary-description/">[PWNABLE] Canary_설명</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SSP(Stack Smashing Protector) Stack buffer Overflow로부터 sfp와 ret를 보호하기 위한 기법으로, Stack의 canary라는 값을 이용하여 검증을 수행한다. Stack 그림으로 보면 buf와 sfp 사이에</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-18">2023년 9월 18일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-calling-convention/">[PWNABLE] Calling Convention</a></h3><p>Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. (</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-18">2023년 9월 18일</time> · 2 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-return-address-overwrite/">[PWNABLE]Return Address Overwrite</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 저번 게시글에서 Buffer OverFlow에 대해 간략하게 다뤘다. 이번에는 Stack을 변조하는 것인 Stack Frame에 위치하는 ret 부분을 공격하는 기법에 대해 다루겠다. Stack Frame은 기본적으로 위와 같은 구조를 가지고 있다.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-06">2023년 9월 6일</time> · 2 분 읽기</span></div>
+      <h3><a href="/ko/posts/pwnable-stack-buffer-overflow/">[PWNABLE]Stack Buffer OverFlow</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Buffer OverFlow는 발생하는 영역에 따라서 Stack Buffer OverFlow와 Heap Buffer OverFlow로 나뉜다.Heap에 대해서는 다음에 다룰 예정이기 때문에 Stack Buffer OverFlow만 작성하도록 하겠다.</p>
+      
+    </article><article class="post-card">
+      <div class="post-card-top"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span><time datetime="2023-09-04">2023년 9월 4일</time> · 1 분 읽기</span></div>
+      <h3><a href="/ko/posts/linux-memory-structure/">[LINUX] 메모리 구조</a></h3><p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다. CODE 세그먼트 유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있</p>
+      
+    </article></div></section></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <script src="/assets/app.js" defer></script>
+</body></html>

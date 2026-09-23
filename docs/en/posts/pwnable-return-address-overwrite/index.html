@@ -14,6 +14,7 @@
     <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="Main navigation">
       <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/categories/">Categories</a>
       <a href="/en/about/">About</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]Return Address Overwrite</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ I briefly discussed Buffer OverFlow in the last post. This time, we will cover a technique that attacks the ret part located in the stack frame, which modifies the stack. Stack Frame basically has the above structure.</p><div class="article-meta"><time datetime="2023-09-18">Sep 18, 2023</time><span>·</span><span>3 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> </p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]Return Address Overwrite</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ I briefly discussed Buffer OverFlow in the last post. This time, we will cover a technique that attacks the ret part located in the stack frame, which modifies the stack. Stack Frame basically has the above structure.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-18">Sep 18, 2023</time><span>·</span><span>3 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> </p>
 <p>In the last post, I briefly discussed Buffer OverFlow.</p>
 <p>This time, we will cover a technique that attacks the ret part located in the stack frame, which modifies the stack.</p>
 <p><img src="/assets/images/tistory/tistory-465ad6c4abda/001.png" alt=""></p>

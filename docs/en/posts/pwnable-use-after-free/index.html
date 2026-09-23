@@ -14,6 +14,7 @@
     <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="Main navigation">
       <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/categories/">Categories</a>
       <a href="/en/about/">About</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Use After Free</h1><p class="article-description">Use After Free (UAF) vulnerability is a security vulnerability that occurs when a pointer that has been freed after memory allocation is still used. This is an error that occurs in memory management, and an attacker can exploit it to cause abnormal operation of the program or execute arbitrary code. Memory is allocated through malloc, etc., and freed through free.</p><div class="article-meta"><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>4 min read</span></div></header><div class="prose"><p>Use After Free (UAF) vulnerability is a security vulnerability that occurs when a pointer that has been freed after memory allocation is still used. This is an error that occurs in memory management, and an attacker can exploit it to cause abnormal operation of the program or execute arbitrary code.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Use After Free</h1><p class="article-description">Use After Free (UAF) vulnerability is a security vulnerability that occurs when a pointer that has been freed after memory allocation is still used. This is an error that occurs in memory management, and an attacker can exploit it to cause abnormal operation of the program or execute arbitrary code. Memory is allocated through malloc, etc., and freed through free.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>4 min read</span></div></header><div class="prose"><p>Use After Free (UAF) vulnerability is a security vulnerability that occurs when a pointer that has been freed after memory allocation is still used. This is an error that occurs in memory management, and an attacker can exploit it to cause abnormal operation of the program or execute arbitrary code.</p>
 <p>Memory is allocated through malloc, etc., and freed through free. Freed memory can be reused for other purposes. However, if the released pointer continues to be used, it is called <strong>Dangling Pointer</strong>.</p>
 <p><img src="/assets/images/tistory/tistory-2656f66a8685/001.png" alt=""></p>
 <p>• <strong>Step 1</strong>: Memory allocation (malloc)</p>

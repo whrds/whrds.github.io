@@ -14,6 +14,7 @@
     <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="주 메뉴">
       <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/categories/">카테고리</a>
       <a href="/ko/about/">소개</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Use After Free</h1><p class="article-description">Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다. 메모리는 malloc 등을 통해 할당되고, free를 통해 해제된다</p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p>Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Use After Free</h1><p class="article-description">Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다. 메모리는 malloc 등을 통해 할당되고, free를 통해 해제된다</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p>Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다.</p>
 <p>메모리는 malloc 등을 통해 할당되고, free를 통해 해제된다. 해제된 메모리는 다른 용도로 재사용될 수 있다. 하지만 해제된 포인터가 계속 사용된다면, 이를 <strong>Dangling Pointer</strong>라고 한다.</p>
 <p><img src="/assets/images/tistory/tistory-2656f66a8685/001.png" alt=""></p>
 <p>• <strong>1단계</strong>: 메모리 할당 (malloc)</p>

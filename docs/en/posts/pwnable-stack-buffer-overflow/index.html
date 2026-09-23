@@ -14,6 +14,7 @@
     <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="Main navigation">
       <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/categories/">Categories</a>
       <a href="/en/about/">About</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]Stack Buffer OverFlow</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written.</p><div class="article-meta"><time datetime="2023-09-06">Sep 6, 2023</time><span>·</span><span>5 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> <br>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]Stack Buffer OverFlow</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-06">Sep 6, 2023</time><span>·</span><span>5 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> <br>
  <br>
 <strong>Buffer OverFlow</strong> is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs.<br>
 Since we will cover the Heap later, we will only write about Stack Buffer OverFlow.<br>

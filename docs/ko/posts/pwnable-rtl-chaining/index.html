@@ -14,6 +14,7 @@
     <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="주 메뉴">
       <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/categories/">카테고리</a>
       <a href="/ko/about/">소개</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] RTL_Chaining</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ RTL_Chaining은 RTL 기법을 응용하여 Chain 형태를 구성하여 수행하는 공격 기법이다. 체인을 구성한다라는 것이 무슨 말인지 아직은 잘 이해가 되지 않을 것인데, 이 다음에 다룰 ROP에서도 매우 중요하게 사용되기 때문에 이해하고 넘어가</p><div class="article-meta"><time datetime="2023-11-08">2023년 11월 8일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] RTL_Chaining</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ RTL_Chaining은 RTL 기법을 응용하여 Chain 형태를 구성하여 수행하는 공격 기법이다. 체인을 구성한다라는 것이 무슨 말인지 아직은 잘 이해가 되지 않을 것인데, 이 다음에 다룰 ROP에서도 매우 중요하게 사용되기 때문에 이해하고 넘어가</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-11-08">2023년 11월 8일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
 <p>RTL_Chaining은 RTL 기법을 응용하여 Chain 형태를 구성하여 수행하는 공격 기법이다.</p>
 <p>체인을 구성한다라는 것이 무슨 말인지 아직은 잘 이해가 되지 않을 것인데, </p>
 <p>이 다음에 다룰 ROP에서도 매우 중요하게 사용되기 때문에 이해하고 넘어가야 한다.</p>

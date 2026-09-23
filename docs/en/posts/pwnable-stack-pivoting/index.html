@@ -14,6 +14,7 @@
     <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="Main navigation">
       <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/categories/">Categories</a>
       <a href="/en/about/">About</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Stack Pivoting</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique to configure a Fake Stack in an area with write permission using a gadget. If the payload is stored, overflow should only occur up to ret. If the payload is not stored, up to chain + leave_ret.</p><div class="article-meta"><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>1 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Stack Pivoting</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ This is a technique to configure a Fake Stack in an area with write permission using a gadget. If the payload is stored, overflow should only occur up to ret. If the payload is not stored, up to chain + leave_ret.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>1 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
 <p>This is a technique to configure a Fake Stack in an area with write permission using a gadget.</p>
 <ul>
 <li>If payload is stored, overflow should occur only up to ret.</li>

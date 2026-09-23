@@ -14,6 +14,7 @@
     <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="주 메뉴">
       <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/categories/">카테고리</a>
       <a href="/ko/about/">소개</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Heap Chunk Structure</h1><p class="article-description">Memorry Allocator : 한정된 메모리 자원을 각 프로세스에 효율적으로 배분하는 작업을 한다.- 실행중에 메모리를 동적으로 할당 및 해제한다.- 구현에 따라 사용된 알고리즘의 종류가 달라진다 - ptmalloc2은 ubuntu에서 사용한다 ptmalloc2의 특징으로는 해제된 메모리에 대한 데이터를 지우지 않고</p><div class="article-meta"><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p>Memorry Allocator </p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Heap Chunk Structure</h1><p class="article-description">Memorry Allocator : 한정된 메모리 자원을 각 프로세스에 효율적으로 배분하는 작업을 한다.- 실행중에 메모리를 동적으로 할당 및 해제한다.- 구현에 따라 사용된 알고리즘의 종류가 달라진다 - ptmalloc2은 ubuntu에서 사용한다 ptmalloc2의 특징으로는 해제된 메모리에 대한 데이터를 지우지 않고</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p>Memorry Allocator </p>
 <p>: 한정된 메모리 자원을 각 프로세스에 효율적으로 배분하는 작업을 한다.</p>
 <p>- 실행중에 메모리를 동적으로 할당 및 해제한다.</p>
 <p>- 구현에 따라 사용된 알고리즘의 종류가 달라진다 - ptmalloc2은 ubuntu에서 사용한다</p>

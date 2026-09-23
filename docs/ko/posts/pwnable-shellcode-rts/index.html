@@ -14,6 +14,7 @@
     <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
     <nav class="main-nav" aria-label="주 메뉴">
       <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/categories/">카테고리</a>
       <a href="/ko/about/">소개</a>
     </nav>
     <div class="header-tools">
@@ -24,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Shellcode &amp; RTS</h1><p class="article-description">Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면</p><div class="article-meta"><time datetime="2023-10-22">2023년 10월 22일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><h4>Shellcode</h4>
+  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Shellcode &amp; RTS</h1><p class="article-description">Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-10-22">2023년 10월 22일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><h4>Shellcode</h4>
 <p>시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다.</p>
 <p>바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다.</p>
 <p>pwntools의 기능중에 shellcraft.sh라는 기능이 있다.</p>
