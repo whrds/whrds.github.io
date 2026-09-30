@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-check-bss/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-check-bss/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-check-bss/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] .bss 확인하기 · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 메모리 구조를 다루면서 bss에 대한 초기화 되지 않은 변수들이 저장되는 영역이다라고 설명을 했었다. 앞으로 다양한 기법을 다루기에 해당 세그먼트가 중요하다. bss 세그먼트의 위치를 찾는 방법은 readelf라는 명령어를 사용하면 된다. reade"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-check-bss/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] .bss 확인하기","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 메모리 구조를 다루면서 bss에 대한 초기화 되지 않은 변수들이 저장되는 영역이다라고 설명을 했었다. 앞으로 다양한 기법을 다루기에 해당 세그먼트가 중요하다. bss 세그먼트의 위치를 찾는 방법은 readelf라는 명령어를 사용하면 된다. reade","datePublished":"2023-11-07","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-check-bss/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -41,5 +41,5 @@
 <p>읽기가 가능한 이유가 중요한 이유는 해당 영역에 /bin/sh라는 문자열을 넣어두고 이용하면 공격에 사용될 수 있기 때문이다.</p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-check-bss/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js" defer></script>
+  <script src="/assets/app.js?v=57d1329ec205" defer></script>
 </body></html>

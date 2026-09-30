@@ -257,8 +257,10 @@ export async function mountHardware(host) {
   controls.target.set(0, .22, 0); controls.enableZoom = false; controls.enablePan = false;
   controls.enableDamping = false; controls.minPolarAngle = .30; controls.maxPolarAngle = 1.29;
   controls.rotateSpeed = .48; controls.update(); controls.saveState();
-  // Let vertical touch gestures scroll the blog; touch rotation is not required.
-  renderer.domElement.style.touchAction = 'pan-y';
+  // One finger rotates inside the canvas; the rest of the page still scrolls.
+  renderer.domElement.style.touchAction = 'none';
+  controls.touches.ONE = THREE.TOUCH.ROTATE;
+  if (matchMedia('(pointer: coarse)').matches) host.querySelector('[data-three-hint]').textContent = ko ? '모델 위에서 손가락으로 회전 · 바깥에서 스크롤' : 'Drag the model to rotate · swipe outside to scroll';
   let model = buildHardware(renderer), selected = 'board', switching = false;
   const models = new Map([['board', model]]); scene.add(model.assembly);
   host.dataset.model = selected;
@@ -273,7 +275,11 @@ export async function mountHardware(host) {
   floor.rotation.x = -Math.PI / 2; floor.position.y = -.28; floor.receiveShadow = true; scene.add(floor);
   let exploded = false, explosion = 0, motion = !reduced.matches && !compact;
   let visible = true, destroyed = false, contextLost = false, frame = 0, lastFrame = 0, dirty = true, phase = 0, lastTime = 0, renderedFrames = 0;
-  const setMotion = (value) => { motion = value; motionButton.setAttribute('aria-pressed', String(value)); };
+  const setMotion = (value) => {
+    if (motion !== value) lastTime = 0;
+    motion = value; motionButton.setAttribute('aria-pressed', String(value));
+    motionButton.textContent = ko ? (value ? '회전 멈추기' : '자동 회전') : (value ? 'Stop rotation' : 'Auto-rotate');
+  };
   setMotion(motion);
   function invalidate() { dirty = true; if (!frame && visible && !document.hidden && !destroyed && !contextLost) frame = requestAnimationFrame(tick); }
   function tick(now) {
@@ -281,12 +287,13 @@ export async function mountHardware(host) {
     if (destroyed || contextLost || !visible || document.hidden) return;
     const target = exploded ? 1 : 0;
     const transitioning = Math.abs(target - explosion) > .001;
-    const dt = Math.min((now - (lastTime || now)) / 1000, .05); lastTime = now;
     if (now - lastFrame < 1000 / 30 && !dirty) { frame = requestAnimationFrame(tick); return; }
+    // Measure elapsed time between rendered frames, not skipped RAF callbacks.
+    const dt = Math.min((now - (lastTime || now)) / 1000, .1); lastTime = now;
     lastFrame = now;
     explosion = reduced.matches ? target : THREE.MathUtils.damp(explosion, target, 9, Math.max(dt, 1 / 30));
     model.update(explosion);
-    if (motion) { phase += dt; model.assembly.rotation.y = Math.sin(phase * .32) * .12; }
+    if (motion) { phase = (phase + dt * Math.PI / 12) % (Math.PI * 2); model.assembly.rotation.y = phase; }
     renderer.render(scene, camera); dirty = false;
     // DOM-only diagnostics used by the smoke test, not a background timer.
     host.dataset.renderCalls = String(renderer.info.render.calls);
@@ -294,6 +301,9 @@ export async function mountHardware(host) {
     host.dataset.frames = String(++renderedFrames);
     host.dataset.geometries = String(renderer.info.memory.geometries);
     host.dataset.textures = String(renderer.info.memory.textures);
+    host.dataset.rotation = String(model.assembly.rotation.y);
+    host.dataset.azimuth = String(controls.getAzimuthalAngle());
+    host.dataset.polar = String(controls.getPolarAngle());
     if (motion || transitioning) frame = requestAnimationFrame(tick);
   }
   function resize() {
@@ -316,7 +326,12 @@ export async function mountHardware(host) {
   host.querySelector('[data-load-three]').hidden = true;
   status.textContent = ko ? '3D 모델 준비 완료. 아래 버튼으로 구조와 회전을 조절할 수 있습니다.' : '3D model ready. Use the buttons to inspect its structure and rotation.';
   const onExplode = () => { exploded = !exploded; explodeButton.setAttribute('aria-pressed', String(exploded)); status.textContent = ko ? (exploded ? '모델 구조를 펼쳤습니다.' : '모델을 조립했습니다.') : (exploded ? 'Exploded view.' : 'Assembled view.'); invalidate(); };
-  const onMotion = () => { setMotion(!motion); invalidate(); };
+  const onMotion = () => {
+    if (switching) return;
+    setMotion(!motion);
+    status.textContent = ko ? (motion ? '자동 회전을 시작했습니다.' : '자동 회전을 멈췄습니다.') : (motion ? 'Automatic rotation started.' : 'Automatic rotation stopped.');
+    invalidate();
+  };
   const onReset = () => { controls.reset(); exploded = false; explodeButton.setAttribute('aria-pressed', 'false'); model.assembly.rotation.y = 0; phase = 0; setMotion(false); invalidate(); };
   const onStart = () => { setMotion(false); };
   async function onSelect(event) {
@@ -363,9 +378,6 @@ export async function mountHardware(host) {
   const onReduced = () => { if (reduced.matches) setMotion(false); invalidate(); };
   const intersection = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; if (!visible) { cancelAnimationFrame(frame); frame = 0; } else { lastTime = 0; invalidate(); } });
   intersection.observe(host);
-  // Avoid OrbitControls capturing touch scroll. Desktop dragging remains enabled.
-  const preventTouch = (event) => { if (event.pointerType === 'touch') event.stopImmediatePropagation(); };
-  renderer.domElement.addEventListener('pointerdown', preventTouch, true);
   controls.addEventListener('start', onStart); controls.addEventListener('change', invalidate);
   explodeButton.addEventListener('click', onExplode); motionButton.addEventListener('click', onMotion); resetButton.addEventListener('click', onReset);
   document.addEventListener('visibilitychange', onVisibility); reduced.addEventListener('change', onReduced);

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import matter from 'gray-matter';
 import MarkdownIt from 'markdown-it';
 import { build as bundle } from 'esbuild';
@@ -9,6 +10,7 @@ const contentDir = path.join(root, 'content');
 const outDir = path.join(root, 'docs');
 const siteUrl = (process.env.SITE_URL || 'https://whrds.github.io').replace(/\/$/, '');
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
+let assetVersion = '';
 
 const copy = {
   ko: {
@@ -121,7 +123,7 @@ function layout({ lang, title, description, route, alternate, body, active = 'no
   <meta name="theme-color" content="#101215"><link rel="canonical" href="${canonical}">
   <link rel="alternate" hreflang="${lang}" href="${canonical}"><link rel="alternate" hreflang="${altLang}" href="${absolute(altRoute)}">
   <meta property="og:type" content="${type}"><meta property="og:title" content="${pageTitle}"><meta property="og:description" content="${escapeHtml(description || t.siteDescription)}"><meta property="og:url" content="${canonical}">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=${assetVersion}">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   ${jsonLd}
 </head><body>
@@ -129,7 +131,7 @@ function layout({ lang, title, description, route, alternate, body, active = 'no
   ${header(lang, altRoute, active)}
   <main id="main">${body}</main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© ${new Date().getUTCFullYear()} whrds.log</span></span><span>${t.footer}</span><a href="/${lang}/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js" defer></script>
+  <script src="/assets/app.js?v=${assetVersion}" defer></script>
 </body></html>`;
 }
 
@@ -221,6 +223,9 @@ async function build() {
   await fs.cp(path.join(root, 'static'), path.join(outDir, 'assets'), { recursive: true });
   await bundle({ entryPoints: [path.join(root, 'frontend/hero3d.js')], outfile: path.join(outDir, 'assets/hero3d.js'), bundle: true, minify: true, format: 'esm', target: ['es2022'], legalComments: 'eof' });
   await fs.copyFile(path.join(root, 'node_modules/three/LICENSE'), path.join(outDir, 'assets/three-LICENSE.txt'));
+  const versionHash = createHash('sha256');
+  for (const name of ['hero3d.js', 'app.js', 'styles.css']) versionHash.update(await fs.readFile(path.join(outDir, 'assets', name)));
+  assetVersion = versionHash.digest('hex').slice(0, 12);
   const all = [...await readContent('ko'), ...await readContent('en')];
   const translations = new Map(all.map((item) => [`${item.lang}:${item.data.translation_key}`, item]));
   for (const lang of ['ko', 'en']) {

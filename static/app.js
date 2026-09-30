@@ -31,6 +31,8 @@
   const ko = document.documentElement.lang === 'ko';
   const button = host.querySelector('[data-load-three]');
   const hint = host.querySelector('[data-three-hint]');
+  const version = new URL(document.currentScript?.src || location.href).searchParams.get('v');
+  const modelUrl = '/assets/hero3d.js' + (version ? '?v=' + encodeURIComponent(version) : '');
   let loading = false;
   let mounted = false;
   async function load() {
@@ -40,7 +42,7 @@
     button.disabled = true;
     button.textContent = ko ? '3D 준비 중…' : 'Preparing 3D…';
     try {
-      const { mountHardware } = await import('/assets/hero3d.js');
+      const { mountHardware } = await import(modelUrl);
       await mountHardware(host);
       mounted = true;
     } catch (error) {

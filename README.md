@@ -47,6 +47,9 @@ specifications of real products. No remote model or CDN is needed.
 Only the homepage loads the 3D bundle. Rendering pauses offscreen and in hidden tabs;
 auto-rotation defaults off on mobile and with reduced-motion preferences. Data Saver
 keeps the static preview until the viewer opts in. WebGL failure keeps the preview and posts usable.
+Drag with one finger inside the 3D canvas to orbit on mobile; swipe outside it to scroll.
+The auto-rotation button starts a continuous turn (one revolution in 24 seconds),
+and changes to a stop button while active. Manual dragging pauses auto-rotation.
 
 To run browser smoke tests with a locally installed Chrome:
 
