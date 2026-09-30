@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { buildMemory, buildFirmware, buildNAS } from './hardware-models.js';
 
 // An original, procedural hardware study. No downloaded model or tracking CDN.
 function randomFactory(seed) {
@@ -46,7 +47,7 @@ function boardTexture() {
     ctx.strokeStyle = '#799787'; ctx.lineWidth = 2; ctx.strokeRect(54, 54, n - 108, n - 108);
     ctx.font = '22px monospace'; ctx.fillStyle = '#b6c9ba';
     ctx.fillText('WHRDS / RESEARCH BOARD', 115, 128);
-    ctx.fillText('REV 01 · 2026', 115, 170);
+    ctx.fillText('REV 02 · 2026', 115, 170);
     ctx.save(); ctx.translate(n - 104, n - 120); ctx.rotate(Math.PI);
     ctx.fillText('ZZoMb1E  /  FIELD NOTES', 0, 0); ctx.restore();
     ctx.font = '17px monospace';
@@ -118,7 +119,7 @@ function buildHardware(renderer) {
   boardFace.rotation.x = -Math.PI / 2;
   // Visible FR-4 layers along the edge.
   for (const y of [-.044, -.018, .011]) {
-    const layer = box([4.565, .006, 4.565], new THREE.MeshStandardMaterial({ color: '#576245', roughness: .65 }), [0, y, 0], .05);
+    const layer = box([4.603, .006, 4.603], new THREE.MeshStandardMaterial({ color: '#576245', roughness: .65 }), [0, y, 0], .09);
     layer.castShadow = false;
   }
   // Mounting rings and countersunk steel screws.
@@ -181,8 +182,44 @@ function buildHardware(renderer) {
   const led = new THREE.MeshPhysicalMaterial({ color: '#78dba6', emissive: '#45c688', emissiveIntensity: .85, roughness: .22, clearcoat: 1 });
   box([.085, .07, .07], led, [1.96, .10, 1.27], .018);
   box([.075, .055, .064], ceramic, [1.96, .093, 1.45], .012);
-  return { assembly, packageGroup, lidGroup };
+  // Plated-through vias, a shrouded debug header, inductors and a shielded port.
+  const vias = new THREE.InstancedMesh(new THREE.RingGeometry(.014, .027, 10), gold, 72);
+  const viaPose = new THREE.Object3D(); viaPose.rotation.x = -Math.PI / 2;
+  let viaIndex = 0;
+  for (const sign of [-1, 1]) for (let i = 0; i < 18; i++) {
+    for (const swapped of [false, true]) {
+      const u = (i - 8.5) * .205;
+      viaPose.position.set(swapped ? sign * 1.90 : u, .067, swapped ? u : sign * 1.90);
+      viaPose.updateMatrix(); vias.setMatrixAt(viaIndex++, viaPose.matrix);
+    }
+  }
+  board.add(vias);
+  box([1.00, .11, .28], black, [.65, .12, -2.12], .02);
+  const headerPins = [];
+  for (let i = 0; i < 8; i++) for (const row of [-1, 1]) headerPins.push({ x: .26 + i * .11, y: .245, z: -2.12 + row * .072, angle: 0, size: [.029, .19, .029] });
+  instances(headerPins, gold);
+  const port = new THREE.Group(); board.add(port); port.position.set(-.92, .21, -2.16);
+  box([.82, .30, .54], nickel, [0, 0, 0], .055, port);
+  box([.69, .20, .014], black, [0, 0, -.274], .025, port);
+  box([.50, .045, .019], black, [0, -.025, -.285], .008, port);
+  for (let i = 0; i < 8; i++) box([.025, .008, .014], gold, [(i - 3.5) * .051, -.005, -.297], .001, port);
+  for (const x of [-1.24, 1.24]) {
+    box([.27, .15, .28], black, [x, .15, 1.24], .025);
+    const coil = new THREE.TorusGeometry(.081, .014, 7, 24);
+    for (let i = 0; i < 4; i++) {
+      const winding = add(coil, new THREE.MeshStandardMaterial({ color: '#b57a4e', metalness: .93, roughness: .31 }), [x, .239 + i * .009, 1.24]);
+      winding.rotation.x = -Math.PI / 2;
+    }
+  }
+  return { assembly, update: t => { packageGroup.position.y = .31 + t * .40; lidGroup.position.y = .42 + t * 1.18; } };
 }
+
+const studies = {
+  board: { build: buildHardware, number: '001', title: 'UNDER THE SURFACE.', ko: '기판', en: 'Board', detailKo: '적층 기판 · 도금 비아 · 디버그 헤더', detailEn: 'Layered PCB · plated vias · debug header', camera: [5.4, 7.3, 6.6], target: [0, .22, 0], floor: -.28 },
+  memory: { build: buildMemory, number: '002', title: 'EVERY BIT MATTERS.', ko: '메모리', en: 'Memory', detailKo: '메모리 IC · 금도금 접점 · 분리형 방열판', detailEn: 'Memory ICs · gold contacts · heat spreader', camera: [3.0, 6.4, 6.7], target: [0, .40, 0], floor: -.28 },
+  firmware: { build: buildFirmware, number: '003', title: 'SMALL CHIP. DEEP SECRETS.', ko: '펌웨어', en: 'Firmware', detailKo: 'SPI 플래시 · 실리콘 다이 · 골드 본딩 와이어', detailEn: 'SPI flash · silicon die · gold bond wires', camera: [4.6, 6.1, 5.8], target: [0, .40, 0], floor: -.28 },
+  nas: { build: buildNAS, number: '004', title: 'BEYOND THE ENCLOSURE.', ko: 'NAS', en: 'NAS', detailKo: '4베이 NAS · 드라이브 캐디 · 알루미늄 섀시', detailEn: '4-bay NAS · drive caddies · aluminium chassis', camera: [6.8, 5.0, 8.3], target: [0, 1.12, .24], floor: -.27 },
+};
 
 export async function mountHardware(host) {
   const stage = host.querySelector('[data-three-stage]');
@@ -191,6 +228,11 @@ export async function mountHardware(host) {
   const motionButton = host.querySelector('[data-motion]');
   const resetButton = host.querySelector('[data-reset]');
   const status = host.querySelector('[data-three-status]');
+  const modelPicker = host.querySelector('[data-model-picker]');
+  const modelButtons = [...host.querySelectorAll('[data-model]')];
+  const modelTitle = host.querySelector('[data-model-title]');
+  const modelDetail = host.querySelector('[data-model-detail]');
+  const modelNumber = host.querySelector('[data-model-number]');
   const ko = document.documentElement.lang === 'ko';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const compact = matchMedia('(max-width: 700px)').matches;
@@ -217,13 +259,16 @@ export async function mountHardware(host) {
   controls.rotateSpeed = .48; controls.update(); controls.saveState();
   // Let vertical touch gestures scroll the blog; touch rotation is not required.
   renderer.domElement.style.touchAction = 'pan-y';
-  const model = buildHardware(renderer); scene.add(model.assembly);
+  let model = buildHardware(renderer), selected = 'board', switching = false;
+  const models = new Map([['board', model]]); scene.add(model.assembly);
+  host.dataset.model = selected;
   const key = new THREE.DirectionalLight('#fff0d9', 3.3); key.position.set(-3, 6, 3);
   key.castShadow = true; key.shadow.mapSize.set(compact ? 1024 : 2048, compact ? 1024 : 2048);
   Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: .1, far: 16 });
   key.shadow.normalBias = .025; key.shadow.bias = -.0002; key.shadow.radius = 3; scene.add(key);
   const rim = new THREE.DirectionalLight('#a3e6d0', 2.4); rim.position.set(3, 3, -5); scene.add(rim);
   const fill = new THREE.DirectionalLight('#d0dfff', .8); fill.position.set(-5, 2, -2); scene.add(fill);
+  const faceLight = new THREE.DirectionalLight('#dde7e0', 0); faceLight.position.set(4, 3, 6); scene.add(faceLight);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ color: '#000000', opacity: .33 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = -.28; floor.receiveShadow = true; scene.add(floor);
   let exploded = false, explosion = 0, motion = !reduced.matches && !compact;
@@ -240,14 +285,15 @@ export async function mountHardware(host) {
     if (now - lastFrame < 1000 / 30 && !dirty) { frame = requestAnimationFrame(tick); return; }
     lastFrame = now;
     explosion = reduced.matches ? target : THREE.MathUtils.damp(explosion, target, 9, Math.max(dt, 1 / 30));
-    model.packageGroup.position.y = .31 + explosion * .40;
-    model.lidGroup.position.y = .42 + explosion * 1.18;
+    model.update(explosion);
     if (motion) { phase += dt; model.assembly.rotation.y = Math.sin(phase * .32) * .12; }
     renderer.render(scene, camera); dirty = false;
     // DOM-only diagnostics used by the smoke test, not a background timer.
     host.dataset.renderCalls = String(renderer.info.render.calls);
     host.dataset.triangles = String(renderer.info.render.triangles);
     host.dataset.frames = String(++renderedFrames);
+    host.dataset.geometries = String(renderer.info.memory.geometries);
+    host.dataset.textures = String(renderer.info.memory.textures);
     if (motion || transitioning) frame = requestAnimationFrame(tick);
   }
   function resize() {
@@ -266,13 +312,53 @@ export async function mountHardware(host) {
     });
     environmentTarget.dispose(); renderer.dispose(); renderer.domElement.remove(); throw error;
   }
-  renderer.render(scene, camera); host.dataset.state = 'ready'; controlsElement.hidden = false;
+  renderer.render(scene, camera); host.dataset.state = 'ready'; controlsElement.hidden = false; modelPicker.hidden = false;
   host.querySelector('[data-load-three]').hidden = true;
   status.textContent = ko ? '3D 모델 준비 완료. 아래 버튼으로 구조와 회전을 조절할 수 있습니다.' : '3D model ready. Use the buttons to inspect its structure and rotation.';
-  const onExplode = () => { exploded = !exploded; explodeButton.setAttribute('aria-pressed', String(exploded)); status.textContent = ko ? (exploded ? '칩 구조를 펼쳤습니다.' : '칩을 조립했습니다.') : (exploded ? 'Exploded view.' : 'Assembled view.'); invalidate(); };
+  const onExplode = () => { exploded = !exploded; explodeButton.setAttribute('aria-pressed', String(exploded)); status.textContent = ko ? (exploded ? '모델 구조를 펼쳤습니다.' : '모델을 조립했습니다.') : (exploded ? 'Exploded view.' : 'Assembled view.'); invalidate(); };
   const onMotion = () => { setMotion(!motion); invalidate(); };
   const onReset = () => { controls.reset(); exploded = false; explodeButton.setAttribute('aria-pressed', 'false'); model.assembly.rotation.y = 0; phase = 0; setMotion(false); invalidate(); };
   const onStart = () => { setMotion(false); };
+  async function onSelect(event) {
+    const button = event.target.closest('[data-model]'), next = button?.dataset.model;
+    if (!next || next === selected || switching || !studies[next]) return;
+    switching = true; modelPicker.setAttribute('aria-busy', 'true');
+    const previous = model, previousKey = selected;
+    const spec = studies[next];
+    try {
+      if (!models.has(next)) models.set(next, spec.build(renderer));
+      model = models.get(next); scene.remove(previous.assembly); scene.add(model.assembly);
+      selected = next; exploded = false; explosion = 0; phase = 0; setMotion(false);
+      model.assembly.rotation.y = 0; model.update(0);
+      camera.position.set(...spec.camera); controls.target.set(...spec.target); controls.update(); controls.saveState();
+      floor.position.y = spec.floor;
+      faceLight.intensity = next === 'nas' ? 1.7 : 0;
+      await renderer.compileAsync(scene, camera);
+      if (destroyed) return;
+      modelButtons.forEach(el => el.setAttribute('aria-pressed', String(el.dataset.model === next)));
+      explodeButton.setAttribute('aria-pressed', 'false');
+      modelTitle.textContent = spec.title; modelDetail.textContent = ko ? spec.detailKo : spec.detailEn;
+      modelNumber.textContent = 'FIELD OBJECT / ' + spec.number;
+      host.dataset.model = next;
+      status.textContent = ko ? `${spec.ko} 모델을 선택했습니다.` : `${spec.en} model selected.`;
+      invalidate();
+    } catch (error) {
+      scene.remove(model.assembly); scene.add(previous.assembly); model = previous; selected = previousKey;
+      const oldSpec = studies[previousKey]; camera.position.set(...oldSpec.camera); controls.target.set(...oldSpec.target); controls.update(); controls.saveState();
+      floor.position.y = oldSpec.floor; model.update(0); explodeButton.setAttribute('aria-pressed', 'false');
+      faceLight.intensity = previousKey === 'nas' ? 1.7 : 0;
+      status.textContent = ko ? '모델을 불러오지 못했습니다. 다시 선택해 주세요.' : 'Could not load this model. Please try again.';
+      invalidate();
+    } finally { switching = false; modelPicker.removeAttribute('aria-busy'); }
+  }
+  const onPickerKey = (event) => {
+    const i = modelButtons.indexOf(document.activeElement);
+    if (i < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? modelButtons.length - 1 : (i + (event.key === 'ArrowRight' ? 1 : -1) + modelButtons.length) % modelButtons.length;
+    modelButtons[next].focus();
+  };
+  modelPicker.addEventListener('click', onSelect); modelPicker.addEventListener('keydown', onPickerKey);
   const onVisibility = () => { if (document.hidden) { cancelAnimationFrame(frame); frame = 0; } else { lastTime = 0; invalidate(); } };
   const onReduced = () => { if (reduced.matches) setMotion(false); invalidate(); };
   const intersection = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; if (!visible) { cancelAnimationFrame(frame); frame = 0; } else { lastTime = 0; invalidate(); } });
@@ -284,16 +370,18 @@ export async function mountHardware(host) {
   explodeButton.addEventListener('click', onExplode); motionButton.addEventListener('click', onMotion); resetButton.addEventListener('click', onReset);
   document.addEventListener('visibilitychange', onVisibility); reduced.addEventListener('change', onReduced);
   renderer.domElement.addEventListener('webglcontextlost', (event) => {
-    event.preventDefault(); contextLost = true; setMotion(false); host.dataset.state = 'fallback'; controlsElement.hidden = true;
+    event.preventDefault(); contextLost = true; setMotion(false); host.dataset.state = 'fallback'; controlsElement.hidden = true; modelPicker.hidden = true;
     status.textContent = ko ? '그래픽 연결이 중단되어 미리보기를 표시합니다.' : 'Graphics context lost; showing a preview.';
     cancelAnimationFrame(frame); frame = 0;
   });
-  renderer.domElement.addEventListener('webglcontextrestored', () => { contextLost = false; host.dataset.state = 'ready'; controlsElement.hidden = false; invalidate(); });
+  renderer.domElement.addEventListener('webglcontextrestored', () => { contextLost = false; host.dataset.state = 'ready'; controlsElement.hidden = false; modelPicker.hidden = false; invalidate(); });
   window.addEventListener('pagehide', (event) => {
     if (event.persisted) return;
     destroyed = true; cancelAnimationFrame(frame); resizeObserver.disconnect(); intersection.disconnect(); controls.dispose();
     document.removeEventListener('visibilitychange', onVisibility); reduced.removeEventListener('change', onReduced);
     const geometries = new Set(), materials = new Set(), textures = new Set();
+    // Include cached inactive studies in disposal; only one is rendered at a time.
+    models.forEach(({ assembly }) => { if (!assembly.parent) scene.add(assembly); });
     scene.traverse((object) => {
       if (object.geometry) geometries.add(object.geometry);
       for (const mat of Array.isArray(object.material) ? object.material : object.material ? [object.material] : []) materials.add(mat);

@@ -35,6 +35,34 @@ try {
   check('exploded view toggles', await page.locator('[data-explode]').getAttribute('aria-pressed') === 'true');
   check('exploded view changes actual rendered model', !assembledImage.equals(await page.locator('[data-three-stage]').screenshot()));
   await page.screenshot({ path: path.join(captureDir, 'exploded.png') });
+  report.models = {};
+  const canvasImage = () => page.locator('[data-three-stage] canvas').evaluate(canvas => canvas.toDataURL());
+  const seenModels = new Set();
+  for (const id of ['board', 'memory', 'firmware', 'nas']) {
+    await page.locator(`button[data-model="${id}"]`).click();
+    await page.waitForSelector(`[data-hardware][data-model="${id}"]`);
+    await page.locator('[data-reset]').click();
+    await page.waitForTimeout(250);
+    const assembled = await canvasImage();
+    check(`${id}: distinct rendered geometry`, !seenModels.has(assembled)); seenModels.add(assembled);
+    check(`${id}: exactly one selected model`, await page.locator('[data-model][aria-pressed="true"]').count() === 1);
+    const stats = await page.locator('[data-hardware]').evaluate(el => ({ calls: +el.dataset.renderCalls, triangles: +el.dataset.triangles, geometries: +el.dataset.geometries, textures: +el.dataset.textures }));
+    report.models[id] = stats;
+    check(`${id}: bounded scene complexity`, stats.calls < 400 && stats.triangles < 130000);
+    await page.locator('[data-three-stage]').screenshot({ path: path.join(captureDir, `${id}.png`) });
+    await page.locator('[data-explode]').click(); await page.waitForTimeout(250);
+    check(`${id}: exploded geometry changes`, assembled !== await canvasImage());
+    await page.locator('[data-three-stage]').screenshot({ path: path.join(captureDir, `${id}-exploded.png`) });
+  }
+  const cachedMemory = await page.locator('[data-hardware]').evaluate(el => [el.dataset.geometries, el.dataset.textures].join('/'));
+  for (let round = 0; round < 3; round++) for (const id of ['memory', 'firmware', 'board', 'nas']) {
+    await page.locator(`button[data-model="${id}"]`).click(); await page.waitForSelector(`[data-hardware][data-model="${id}"]`);
+  }
+  await page.waitForTimeout(200);
+  check('repeated switching reuses GPU resources', cachedMemory === await page.locator('[data-hardware]').evaluate(el => [el.dataset.geometries, el.dataset.textures].join('/')));
+  await page.locator('button[data-model="nas"]').focus(); await page.keyboard.press('Home');
+  check('model picker supports keyboard navigation', await page.locator('button[data-model="board"]').evaluate(el => el === document.activeElement));
+  await page.keyboard.press('Enter'); await page.waitForSelector('[data-hardware][data-model="board"]');
   await page.locator('[data-reset]').click();
   check('reset assembles model', await page.locator('[data-explode]').getAttribute('aria-pressed') === 'false');
   const canvasBounds = await page.locator('[data-three-stage] canvas').boundingBox();
@@ -66,6 +94,10 @@ try {
   await page.locator('.language-switch a[lang="en"]').click();
   await page.waitForSelector('[data-state="ready"]', { timeout: 90000 });
   check('English controls translated', await page.locator('[data-explode]').textContent() === 'Explode');
+  await page.locator('button[data-model="firmware"]').click();
+  await page.waitForSelector('[data-hardware][data-model="firmware"]');
+  check('English model descriptions translated', (await page.locator('[data-model-detail]').textContent()).includes('silicon die'));
+  check('English model picker labels translated', (await page.locator('button[data-model="memory"]').textContent()).includes('Memory'));
   await page.goto(origin + '/ko/categories/');
   check('category pages intact', await page.locator('.category-card').count() === 8);
   check('3D bundle absent on category pages', await page.evaluate(() => !performance.getEntriesByType('resource').some((r) => r.name.includes('hero3d.js'))));
@@ -77,6 +109,12 @@ try {
   await mobile.screenshot({ path: path.join(captureDir, 'mobile.png') });
   await mobile.locator('[data-explode]').click();
   check('mobile explode button works', await mobile.locator('[data-explode]').getAttribute('aria-pressed') === 'true');
+  for (const id of ['memory', 'firmware', 'nas']) {
+    await mobile.locator(`button[data-model="${id}"]`).click(); await mobile.waitForSelector(`[data-hardware][data-model="${id}"]`);
+    await mobile.locator('[data-explode]').click(); await mobile.waitForTimeout(200);
+    check(`mobile ${id}: controls and layout work`, await mobile.locator('[data-explode]').getAttribute('aria-pressed') === 'true' && await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  }
+  await mobile.locator('[data-three-stage]').screenshot({ path: path.join(captureDir, 'mobile-nas.png') });
   const fallback = await browser.newPage({ viewport: { width: 900, height: 900 } });
   await fallback.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;
@@ -85,6 +123,7 @@ try {
   await fallback.goto(origin + '/ko/');
   await fallback.waitForSelector('[data-state="fallback"]');
   check('WebGL failure preserves posts', await fallback.locator('.post-card').count() === 79);
+  check('WebGL fallback hides model picker', !await fallback.locator('[data-model-picker]').isVisible());
   if (!capturePoster) check('fallback poster loads', await fallback.locator('.hardware-poster').evaluate((img) => img.complete && img.naturalWidth > 0));
   const saver = await browser.newPage();
   await saver.addInitScript(() => { Object.defineProperty(navigator, 'connection', { value: { saveData: true } }); });

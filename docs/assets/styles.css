@@ -198,6 +198,20 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .hardware-controls button { padding: 6px 9px; min-height: 34px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); background: transparent; font-size: 10px; white-space: nowrap; cursor: pointer; }
 .hardware-controls button:hover, .hardware-controls button[aria-pressed="true"] { background: var(--surface-soft); border-color: var(--accent); color: var(--accent); }
 .hardware-controls button:focus-visible { outline-color: var(--accent); }
+.hardware-models { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.hardware-models button { display: flex; align-items: center; gap: 8px; min-height: 47px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); background: transparent; font-size: 11px; cursor: pointer; transition: border-color .2s, background .2s, color .2s; }
+.hardware-model-index { font: 9px/1 var(--mono); opacity: .55; }
+.hardware-model-dot { width: 4px; height: 4px; flex-shrink: 0; border-radius: 50%; margin-left: auto; background: currentColor; opacity: 0; }
+.hardware-models button:hover { color: var(--text); background: var(--surface-soft); }
+.hardware-models button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--surface); }
+.hardware-models button[aria-pressed="true"] .hardware-model-dot { opacity: 1; }
+.hardware-models[aria-busy="true"] { cursor: progress; }
+.hardware-models[aria-busy="true"] button { cursor: progress; }
+.hardware-caption { align-items: flex-start; padding-top: 17px; }
+.hardware-description { flex: 1 1 255px; }
+.hardware-caption .hardware-detail { color: var(--text); font-size: 10px; margin-top: 6px; line-height: 1.6; }
+.hardware-caption [data-three-hint] { font-size: 10px; margin-top: 3px; }
+.hardware-controls { flex-shrink: 0; padding-top: 2px; }
 @media (max-width: 1000px) {
   .hero-grid { gap: 28px; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
   .hero-hardware h1 { font-size: 46px; }
@@ -217,6 +231,9 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   .hardware-controls button { min-height: 40px; padding: 8px 12px; }
 }
 @media (max-width: 420px) {
+  .hardware-models { gap: 5px; }
+  .hardware-models button { padding: 10px 8px; gap: 5px; font-size: 10px; }
+  .hardware-model-index { font-size: 8px; }
   .hero-hardware h1 { font-size: 40px; }
   .hardware-overline { top: 17px; left: 17px; right: 17px; font-size: 8px; }
   .hardware-side-label { left: 17px; bottom: 17px; font-size: 7px; }

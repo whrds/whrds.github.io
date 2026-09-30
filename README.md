@@ -36,8 +36,13 @@ Run `npm run build` before committing. GitHub Pages publishes the generated `doc
 
 ## Interactive hardware hero
 
-The homepage has an original procedural Three.js hardware model in `frontend/hero3d.js`.
-It is a visual study, not a schematic of a real processor. No remote model or CDN is needed.
+The homepage has four original procedural Three.js hardware studies: a detailed PCB,
+a memory module, an SPI firmware chip and a four-bay NAS. Select a study with the
+numbered buttons; each has its own exploded view. Arrow keys move between model buttons.
+`frontend/hero3d.js` owns the renderer and board; `frontend/hardware-models.js` builds
+the other studies. Models are created on first selection, cached and disposed on exit.
+Only the active model is rendered. These are illustrations, not schematics or exact
+specifications of real products. No remote model or CDN is needed.
 `npm run build` bundles the scene with esbuild and includes the Three.js license.
 Only the homepage loads the 3D bundle. Rendering pauses offscreen and in hidden tabs;
 auto-rotation defaults off on mobile and with reduced-motion preferences. Data Saver
@@ -58,4 +63,3 @@ Rebuild after regenerating the poster. Temporary QA screenshots are saved outsid
 ## GitHub Pages
 
 Use the repository name `whrds.github.io`. In **Settings → Pages → Build and deployment**, choose **Deploy from a branch**, then select **main** and **/docs**.
-
