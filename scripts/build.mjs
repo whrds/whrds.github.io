@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import matter from 'gray-matter';
 import MarkdownIt from 'markdown-it';
+import { build as bundle } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
 const contentDir = path.join(root, 'content');
@@ -153,8 +154,10 @@ function categoryLinks(lang, posts) {
 
 function homePage(lang, posts) {
   const t = copy[lang];
-  const body = `<section class="hero"><div class="shell"><p class="eyebrow">${t.eyebrow}</p><h1>${t.headline}</h1><p class="hero-copy">${t.intro}</p><div class="hero-meta">${topics[lang].map((x) => `<span class="pill">${x}</span>`).join('')}</div></div></section>
-  <div class="shell content-grid"><section><div class="section-head"><h2>${t.latest}</h2><span>${posts.length} ${t.articles}</span></div><div class="post-list">${postCards(lang, posts)}</div></section>
+  const ko = lang === 'ko';
+  const body = `<section class="hero hero-hardware"><div class="shell hero-grid"><div class="hero-editorial"><p class="eyebrow">${t.eyebrow}</p><h1>${t.headline}</h1><p class="hero-copy">${t.intro}</p><div class="hero-meta">${topics[lang].map((x) => `<span class="pill">${x}</span>`).join('')}</div><div class="hero-actions"><a class="hero-primary" href="#notes">${ko ? '기록 살펴보기' : 'Explore the notes'} <span aria-hidden="true">↗</span></a><a class="hero-secondary" href="/${lang}/categories/">${t.allCategories} <span aria-hidden="true">→</span></a></div><p class="hero-footnote">ZZoMb1E <span aria-hidden="true">/</span> BREAK THINGS. UNDERSTAND MORE.</p></div>
+  <figure class="hardware" data-hardware data-state="poster" aria-label="${ko ? '금속 칩과 회로기판을 표현한 인터랙티브 3D 모델' : 'Interactive 3D model of a metal chip and circuit board'}"><div class="hardware-stage" data-three-stage><img class="hardware-poster" src="/assets/hardware-poster.png" alt="${ko ? '녹색 회로기판 위의 ZZoMb1E 금속 칩' : 'ZZoMb1E metal chip on a green circuit board'}" width="1000" height="1000" fetchpriority="high"><div class="hardware-overline" aria-hidden="true"><span>FIELD OBJECT / 001</span><span class="hardware-live">REAL-TIME 3D</span></div><div class="hardware-side-label" aria-hidden="true">SILICON · COPPER · CURIOSITY</div><button class="hardware-load" data-load-three type="button">${ko ? '3D 모델 보기' : 'View in 3D'}</button></div><figcaption class="hardware-caption"><div><strong>UNDER THE SURFACE.</strong><p data-three-hint>${ko ? '드래그해서 다른 각도로 살펴보세요.' : 'Drag to inspect from another angle.'}</p></div><div class="hardware-controls" data-three-controls hidden><button type="button" data-explode aria-pressed="false">${ko ? '구조 펼치기' : 'Explode'}</button><button type="button" data-motion aria-pressed="false">${ko ? '자동 회전' : 'Auto-rotate'}</button><button type="button" data-reset>${ko ? '초기화' : 'Reset'}</button></div></figcaption><span class="sr-only" data-three-status role="status" aria-live="polite"></span></figure></div></section>
+  <div class="shell content-grid" id="notes"><section><div class="section-head"><h2>${t.latest}</h2><span>${posts.length} ${t.articles}</span></div><div class="post-list">${postCards(lang, posts)}</div></section>
   <aside class="sidebar"><div class="sidebar-section"><p class="sidebar-label">Profile</p><div class="profile-card"><strong>${t.profileTitle}</strong><ul>${t.profile.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></div><div class="sidebar-section"><p class="sidebar-label">${t.categories}</p><nav class="category-list">${categoryLinks(lang, posts)}</nav><a class="all-categories" href="/${lang}/categories/">${t.allCategories} →</a></div></aside></div>`;
   return layout({ lang, description: t.siteDescription, route: `/${lang}/`, alternate: `/${lang === 'ko' ? 'en' : 'ko'}/`, body });
 }
@@ -202,6 +205,8 @@ async function build() {
   await fs.rm(outDir, { recursive: true, force: true });
   await fs.mkdir(outDir, { recursive: true });
   await fs.cp(path.join(root, 'static'), path.join(outDir, 'assets'), { recursive: true });
+  await bundle({ entryPoints: [path.join(root, 'frontend/hero3d.js')], outfile: path.join(outDir, 'assets/hero3d.js'), bundle: true, minify: true, format: 'esm', target: ['es2022'], legalComments: 'eof' });
+  await fs.copyFile(path.join(root, 'node_modules/three/LICENSE'), path.join(outDir, 'assets/three-LICENSE.txt'));
   const all = [...await readContent('ko'), ...await readContent('en')];
   const translations = new Map(all.map((item) => [`${item.lang}:${item.data.translation_key}`, item]));
   for (const lang of ['ko', 'en']) {
@@ -232,4 +237,3 @@ async function build() {
 }
 
 await build();
-
