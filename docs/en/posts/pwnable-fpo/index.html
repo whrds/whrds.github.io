@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-fpo/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-fpo/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-fpo/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] FPO · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Frame Pointer Overflow (brief explanation) Modulating sfp. As a result, it is a technique for modulating IP registers. Overflow of at least 1 byte in the sfp area must be possible. A function other than main() is required. this"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-fpo/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=577415a6e51a">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] FPO","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ Frame Pointer Overflow (brief explanation) Modulating sfp. As a result, it is a technique for modulating IP registers. Overflow of at least 1 byte in the sfp area must be possible. A function other than main() is required. this","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-fpo/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] FPO</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Frame Pointer Overflow (brief explanation) Modulating sfp. As a result, it is a technique for modulating IP registers. Overflow of at least 1 byte in the sfp area must be possible. A function other than main() is required. this</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong></p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] FPO</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Frame Pointer Overflow (brief explanation) Modulating sfp. As a result, it is a technique for modulating IP registers. Overflow of at least 1 byte in the sfp area must be possible. A function other than main() is required. this</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>2 min read</span></div></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong></p>
 <h4>Frame Pointer Overflow (briefly explained)</h4>
 <p>Modulating sfp is a technique that modifies the IP register.</p>
 <ul>
@@ -61,5 +61,5 @@ ret
 <p>If you enter shellcode in buf before the first epilog step and modify sfp with the previous address value, the shellcode is executed in the second epilog step.</p>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-fpo/" hreflang="ko">Read this post in Korean →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=57d1329ec205" defer></script>
+  <script src="/assets/app.js?v=577415a6e51a" defer></script>
 </body></html>

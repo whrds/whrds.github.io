@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-nx-bit/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-nx-bit/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-nx-bit/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] NX bit · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ BOF 하면서 포스팅했어야 하는데 순서가 좀 틀렸네요;; No eXecute bit의 약자로 스택 영역에 실행권한을 부여하지 않는 것이다. 비교를 위해 같은 c파일을 2가지 방법으로 컴파일 했다. non_ex 파일은 NX bit가 비활성화 된 상태이"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-nx-bit/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=577415a6e51a">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] NX bit","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ BOF 하면서 포스팅했어야 하는데 순서가 좀 틀렸네요;; No eXecute bit의 약자로 스택 영역에 실행권한을 부여하지 않는 것이다. 비교를 위해 같은 c파일을 2가지 방법으로 컴파일 했다. non_ex 파일은 NX bit가 비활성화 된 상태이","datePublished":"2023-10-22","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-nx-bit/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] NX bit</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ BOF 하면서 포스팅했어야 하는데 순서가 좀 틀렸네요;; No eXecute bit의 약자로 스택 영역에 실행권한을 부여하지 않는 것이다. 비교를 위해 같은 c파일을 2가지 방법으로 컴파일 했다. non_ex 파일은 NX bit가 비활성화 된 상태이</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-10-22">2023년 10월 22일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] NX bit</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ BOF 하면서 포스팅했어야 하는데 순서가 좀 틀렸네요;; No eXecute bit의 약자로 스택 영역에 실행권한을 부여하지 않는 것이다. 비교를 위해 같은 c파일을 2가지 방법으로 컴파일 했다. non_ex 파일은 NX bit가 비활성화 된 상태이</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-10-22">2023년 10월 22일</time><span>·</span><span>1 분 읽기</span></div></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
 <p>BOF 하면서 포스팅했어야 하는데 순서가 좀 틀렸네요;;</p>
 <p>No eXecute bit의 약자로 스택 영역에 실행권한을 부여하지 않는 것이다.</p>
 <p><img src="/assets/images/tistory/tistory-14caa6c4e322/001.png" alt=""></p>
@@ -48,5 +48,5 @@
 <p>방해되는 요소들을 예방할 수 있다.</p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-nx-bit/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=57d1329ec205" defer></script>
+  <script src="/assets/app.js?v=577415a6e51a" defer></script>
 </body></html>

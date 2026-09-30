@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/asus-firmware-anayzle-3/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/asus-firmware-anayzle-3/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/asus-firmware-anayzle-3/">
   <meta property="og:type" content="article"><meta property="og:title" content="[ASUS] FIRMWARE ANAYZLE #3 · whrds.log"><meta property="og:description" content="IPTIME을 계속해서 분석 시도해보다가 해당 모델을 대상으로는 장비를 구비하지 않고는 혹은 기존 장비를 뜯어보지 않으면 진전을 하지 못할 것 같아 TARGET을 변경하여 시도해보았다. 이번에는 제발 에뮬레이팅을 편하게 하고 싶어 FIRMAE를 포함한 에뮬레이팅 도구들을 사용하며 리스트를 정리하면서 TARGET 선정하고자"><meta property="og:url" content="https://whrds.github.io/ko/posts/asus-firmware-anayzle-3/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=577415a6e51a">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[ASUS] FIRMWARE ANAYZLE #3","description":"IPTIME을 계속해서 분석 시도해보다가 해당 모델을 대상으로는 장비를 구비하지 않고는 혹은 기존 장비를 뜯어보지 않으면 진전을 하지 못할 것 같아 TARGET을 변경하여 시도해보았다. 이번에는 제발 에뮬레이팅을 편하게 하고 싶어 FIRMAE를 포함한 에뮬레이팅 도구들을 사용하며 리스트를 정리하면서 TARGET 선정하고자","datePublished":"2025-06-23","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/asus-firmware-anayzle-3/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[ASUS] FIRMWARE ANAYZLE #3</h1><p class="article-description">IPTIME을 계속해서 분석 시도해보다가 해당 모델을 대상으로는 장비를 구비하지 않고는 혹은 기존 장비를 뜯어보지 않으면 진전을 하지 못할 것 같아 TARGET을 변경하여 시도해보았다. 이번에는 제발 에뮬레이팅을 편하게 하고 싶어 FIRMAE를 포함한 에뮬레이팅 도구들을 사용하며 리스트를 정리하면서 TARGET 선정하고자</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-06-23">2025년 6월 23일</time><span>·</span><span>3 분 읽기</span></div></header><div class="prose"><p>IPTIME을 계속해서 분석 시도해보다가 해당 모델을 대상으로는 장비를 구비하지 않고는 혹은 기존 장비를 뜯어보지 않으면 진전을 하지 못할 것 같아 TARGET을 변경하여 시도해보았다.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[ASUS] FIRMWARE ANAYZLE #3</h1><p class="article-description">IPTIME을 계속해서 분석 시도해보다가 해당 모델을 대상으로는 장비를 구비하지 않고는 혹은 기존 장비를 뜯어보지 않으면 진전을 하지 못할 것 같아 TARGET을 변경하여 시도해보았다. 이번에는 제발 에뮬레이팅을 편하게 하고 싶어 FIRMAE를 포함한 에뮬레이팅 도구들을 사용하며 리스트를 정리하면서 TARGET 선정하고자</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-06-23">2025년 6월 23일</time><span>·</span><span>3 분 읽기</span></div></div></header><div class="prose"><p>IPTIME을 계속해서 분석 시도해보다가 해당 모델을 대상으로는 장비를 구비하지 않고는 혹은 기존 장비를 뜯어보지 않으면 진전을 하지 못할 것 같아 TARGET을 변경하여 시도해보았다.</p>
 <p><img src="/assets/images/tistory/tistory-7789b9c0fa08/001.png" alt=""></p>
 <p>이번에는 제발 에뮬레이팅을 편하게 하고 싶어 FIRMAE를 포함한 에뮬레이팅 도구들을 사용하며 리스트를 정리하면서 TARGET 선정하고자 하였다. 하지만 놀랍게도 내 환경에서는 성공한 적이 없다…</p>
 <p>결국 적당한 장비 하나를 선정하여 직접 에뮬레이팅 하고 분석해보기로 하였다.</p>
@@ -173,5 +173,5 @@ arm-linux-gnueabi-gcc -shared -fPIC -o libnvram_fake.so fake_nvram.c
 <p>    3-1. 취약점 제보 경험</p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/asus-firmware-anayzle-3/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=57d1329ec205" defer></script>
+  <script src="/assets/app.js?v=577415a6e51a" defer></script>
 </body></html>

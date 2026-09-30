@@ -1,13 +1,12 @@
 ---
 title: "About"
-description: "Exploring and documenting security and systems."
+description: "Experiences in system hacking, IoT security, and AI-assisted research."
 translation_key: "about"
 page: true
 ---
 
-I explore the boundaries of security and systems.
+My research has focused on system hacking and IoT security. I am also exploring how to bring rapidly evolving AI tools into the research process.
 
-My interests include vulnerability research, reverse engineering, fuzzing, and firmware analysis. I care about turning complex problems into reproducible processes and explaining the knowledge gained along the way with clarity.
+This blog is a place to record the experiences, lessons, and trial and error that come with that work.
 
-The articles here are personal research and learning notes, written within what can be shared publicly.
-
+I plan to experiment with different ways of writing, from posts I write myself to AI-assisted and fully AI-generated posts.

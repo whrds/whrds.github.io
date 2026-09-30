@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/firmware-extract-binary-from-cramfs/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/firmware-extract-binary-from-cramfs/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/firmware-extract-binary-from-cramfs/">
   <meta property="og:type" content="article"><meta property="og:title" content="[FIRMWARE] EXTRACT BINARY FROM CRAMFS · whrds.log"><meta property="og:description" content="펌웨어를 분석하는 과정에서 온라인 상에서 구할 수가 없고, uart 같은 방법으로 셸 접근이 막혀 있는 상황이면은 칩에서 직접 펌웨어 추출을 시도하게 된다. 근데 이 과정에서 일반적으로는 펌웨어가 정상적으로 잘 추출 되겠지만, 진짜 드물게 제대로 추출되지 않는 상황이 발생한다. 비전공자도 이해하기 쉽게 한 가지 비유로 설"><meta property="og:url" content="https://whrds.github.io/ko/posts/firmware-extract-binary-from-cramfs/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=577415a6e51a">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[FIRMWARE] EXTRACT BINARY FROM CRAMFS","description":"펌웨어를 분석하는 과정에서 온라인 상에서 구할 수가 없고, uart 같은 방법으로 셸 접근이 막혀 있는 상황이면은 칩에서 직접 펌웨어 추출을 시도하게 된다. 근데 이 과정에서 일반적으로는 펌웨어가 정상적으로 잘 추출 되겠지만, 진짜 드물게 제대로 추출되지 않는 상황이 발생한다. 비전공자도 이해하기 쉽게 한 가지 비유로 설","datePublished":"2025-08-23","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/firmware-extract-binary-from-cramfs/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[FIRMWARE] EXTRACT BINARY FROM CRAMFS</h1><p class="article-description">펌웨어를 분석하는 과정에서 온라인 상에서 구할 수가 없고, uart 같은 방법으로 셸 접근이 막혀 있는 상황이면은 칩에서 직접 펌웨어 추출을 시도하게 된다. 근데 이 과정에서 일반적으로는 펌웨어가 정상적으로 잘 추출 되겠지만, 진짜 드물게 제대로 추출되지 않는 상황이 발생한다. 비전공자도 이해하기 쉽게 한 가지 비유로 설</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-08-23">2025년 8월 23일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p>펌웨어를 분석하는 과정에서 온라인 상에서 구할 수가 없고, uart 같은 방법으로 셸 접근이 막혀 있는 상황이면은 칩에서 직접 펌웨어 추출을 시도하게 된다.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[FIRMWARE] EXTRACT BINARY FROM CRAMFS</h1><p class="article-description">펌웨어를 분석하는 과정에서 온라인 상에서 구할 수가 없고, uart 같은 방법으로 셸 접근이 막혀 있는 상황이면은 칩에서 직접 펌웨어 추출을 시도하게 된다. 근데 이 과정에서 일반적으로는 펌웨어가 정상적으로 잘 추출 되겠지만, 진짜 드물게 제대로 추출되지 않는 상황이 발생한다. 비전공자도 이해하기 쉽게 한 가지 비유로 설</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-08-23">2025년 8월 23일</time><span>·</span><span>2 분 읽기</span></div></div></header><div class="prose"><p>펌웨어를 분석하는 과정에서 온라인 상에서 구할 수가 없고, uart 같은 방법으로 셸 접근이 막혀 있는 상황이면은 칩에서 직접 펌웨어 추출을 시도하게 된다.</p>
 <p>근데 이 과정에서 일반적으로는 펌웨어가 정상적으로 잘 추출 되겠지만, 진짜 드물게 제대로 추출되지 않는 상황이 발생한다.</p>
 <p>비전공자도 이해하기 쉽게 한 가지 비유로 설명하자면,</p>
 <p>잘 쌓여있는 단단한 하나의 블록 탑이 있다. 근데 이거를 옮기는 과정에서 중간에 위치한 블록이 빠지거나 방향이 흐트려 진 상황이다.</p>
@@ -94,5 +94,5 @@
 <p>코드 작성 귀찮으면 그냥 AI 한테 물어봐도 잘 알려주니까~ 올려두진 않겠다.</p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/firmware-extract-binary-from-cramfs/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=57d1329ec205" defer></script>
+  <script src="/assets/app.js?v=577415a6e51a" defer></script>
 </body></html>

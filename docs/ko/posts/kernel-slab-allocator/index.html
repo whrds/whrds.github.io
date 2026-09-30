@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/kernel-slab-allocator/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-slab-allocator/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-slab-allocator/">
   <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Slab Allocator · whrds.log"><meta property="og:description" content="※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 "><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-slab-allocator/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=577415a6e51a">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Slab Allocator","description":"※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 ","datePublished":"2024-11-14","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-slab-allocator/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Slab Allocator</h1><p class="article-description">※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 </p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-11-14">2024년 11월 14일</time><span>·</span><span>3 분 읽기</span></div></header><div class="prose"><p><strong>※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다.</strong> </p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Slab Allocator</h1><p class="article-description">※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 </p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-11-14">2024년 11월 14일</time><span>·</span><span>3 분 읽기</span></div></div></header><div class="prose"><p><strong>※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다.</strong> </p>
 <p><strong>※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.</strong></p>
 <p><strong>※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.)</strong></p>
 <p>User 영역에서 malloc, free 등의 함수에 의한 메모리 할당은 ptmalloc에서 관리를 수행한다.</p>
@@ -267,5 +267,5 @@
 <p><a href="http://jeongzero.oopy.io">jeongzero.oopy.io</a>](<a href="https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4">https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4</a>)</p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-slab-allocator/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=57d1329ec205" defer></script>
+  <script src="/assets/app.js?v=577415a6e51a" defer></script>
 </body></html>

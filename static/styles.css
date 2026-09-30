@@ -442,3 +442,25 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   .prose { font-size: 16px; }
   .prose pre { padding: 17px; font-size: 13px; }
 }
+
+/* Small ZZoMb1E mascot. CSS-only movement pauses offscreen or by user choice. */
+.mascot { width: 112px; flex: 0 0 auto; margin: -4px 0 12px; }
+.mascot-stage { position: relative; aspect-ratio: 1; }
+.mascot-art { display: block; width: 100%; height: auto; position: relative; z-index: 1; user-select: none; -webkit-user-drag: none; transform-origin: 50% 80%; animation: zzombie-float 4.6s ease-in-out infinite; animation-play-state: paused; }
+.mascot-shadow { position: absolute; width: 58%; height: 8%; left: 21%; bottom: 2%; border-radius: 50%; background: #00000035; filter: blur(4px); animation: zzombie-shadow 4.6s ease-in-out infinite; animation-play-state: paused; }
+.mascot[data-animate="on"] .mascot-art, .mascot[data-animate="on"] .mascot-shadow { animation-play-state: running; }
+.mascot-toggle { position: absolute; right: -4px; bottom: 1px; z-index: 2; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); font: 10px/1 var(--mono); cursor: pointer; }
+.mascot-toggle:hover { border-color: var(--accent); color: var(--text); }
+.mascot-toggle[aria-pressed="true"] { color: var(--accent); }
+.about-heading { display: flex; align-items: center; gap: 35px; }
+.article-heading-copy { min-width: 0; }
+.about-heading .article-heading-copy { flex: 1; }
+.mascot--about { width: 148px; margin: 0 7px 0 0; }
+@keyframes zzombie-float { 0%, 100% { transform: translate3d(0, 0, 0) rotate(-2deg); } 50% { transform: translate3d(0, -6px, 0) rotate(2deg); } }
+@keyframes zzombie-shadow { 0%, 100% { transform: scale(1); opacity: .8; } 50% { transform: scale(.85); opacity: .5; } }
+@media (max-width: 520px) {
+  .about-heading { gap: 15px; align-items: flex-start; }
+  .mascot--about { width: 104px; margin-top: 27px; margin-right: 0; }
+  .about-heading .article-description { font-size: 14px; }
+  .mascot-toggle { width: 32px; height: 32px; }
+}

@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-fsop/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-fsop/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-fsop/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE]FSOP · whrds.log"><meta property="og:description" content="FSOPFile Stream Oriented Programming This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.file stream structure"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-fsop/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=577415a6e51a">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE]FSOP","description":"FSOPFile Stream Oriented Programming This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.file stream structure","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-fsop/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]FSOP</h1><p class="article-description">FSOPFile Stream Oriented Programming This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.file stream structure</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>3 min read</span></div></header><div class="prose"><h3>FSOP</h3>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]FSOP</h1><p class="article-description">FSOPFile Stream Oriented Programming This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.file stream structure</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>3 min read</span></div></div></header><div class="prose"><h3>FSOP</h3>
 <p>File Stream Oriented Programming</p>
 <p>This is an attack technique that executes malicious code by manipulating the internal fields of the file stream in libc, the standard library of C. In libc, file streams are managed by the FILE structure, and the fields of this structure abstract file input/output operations.</p>
 <ul>
@@ -349,5 +349,5 @@ p.interactive()
 <p><img src="/assets/images/tistory/tistory-8af5082e9c5d/001.png" alt=""></p>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-fsop/" hreflang="ko">Read this post in Korean →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=57d1329ec205" defer></script>
+  <script src="/assets/app.js?v=577415a6e51a" defer></script>
 </body></html>

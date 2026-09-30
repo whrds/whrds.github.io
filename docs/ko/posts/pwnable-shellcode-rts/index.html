@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-shellcode-rts/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-shellcode-rts/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-shellcode-rts/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Shellcode &amp; RTS · whrds.log"><meta property="og:description" content="Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-shellcode-rts/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=577415a6e51a">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Shellcode & RTS","description":"Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면","datePublished":"2023-10-22","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-shellcode-rts/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Shellcode &amp; RTS</h1><p class="article-description">Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-10-22">2023년 10월 22일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><h4>Shellcode</h4>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Shellcode &amp; RTS</h1><p class="article-description">Shellcode 시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다. 바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다. pwntools의 기능중에 shellcraft.sh라는 기능이 있다. 셸코드를 생성해주는 고마운 기능인데 해당 함수를 이용하면</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-10-22">2023년 10월 22일</time><span>·</span><span>1 분 읽기</span></div></div></header><div class="prose"><h4>Shellcode</h4>
 <p>시스템 해킹의 목적 중 하나인 Shell을 취득하기 위한 코드조각이다.</p>
 <p>바이트코드로 구성되어 있으며 스택 영역에 실행권한이 있는 상태(NX-BIT 비활성화)에서 사용이 가능하다.</p>
 <p>pwntools의 기능중에 shellcraft.sh라는 기능이 있다.</p>
@@ -149,5 +149,5 @@ p.interactive()
 <p><img src="/assets/images/tistory/tistory-4706b08f72f8/002.png" alt=""></p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-shellcode-rts/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=57d1329ec205" defer></script>
+  <script src="/assets/app.js?v=577415a6e51a" defer></script>
 </body></html>

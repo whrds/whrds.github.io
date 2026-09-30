@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-calling-convention/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-calling-convention/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-calling-convention/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Calling Convention · whrds.log"><meta property="og:description" content="Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. ("><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-calling-convention/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=577415a6e51a">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Calling Convention","description":"Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. (","datePublished":"2023-09-18","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-calling-convention/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Calling Convention</h1><p class="article-description">Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. (</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-18">2023년 9월 18일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p>Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, </p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Calling Convention</h1><p class="article-description">Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. (</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-18">2023년 9월 18일</time><span>·</span><span>1 분 읽기</span></div></div></header><div class="prose"><p>Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, </p>
 <p>앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다.</p>
 <p>리눅스의 <strong>함수 호출 규약</strong>은 크게 2종류로 나뉜다. (2개만 있다는 것이 아니라 이 2종류가 기본이 된다는 것이다.)</p>
 <p>x86환경에서는 레지스터를 사용하지 않고 Stack만을 이용하여 인자를 전달하는 cdecl 방식이 있다.</p>
@@ -88,5 +88,5 @@ int main(){
 <p>인자는 총 7개이기 때문에 마지막 인자는 stack에 들어있는 것을 알 수 있다.</p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-calling-convention/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=57d1329ec205" defer></script>
+  <script src="/assets/app.js?v=577415a6e51a" defer></script>
 </body></html>

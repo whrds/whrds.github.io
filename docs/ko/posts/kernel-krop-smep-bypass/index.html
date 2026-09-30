@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/kernel-krop-smep-bypass/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-krop-smep-bypass/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-krop-smep-bypass/">
   <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] KROP_(SMEP bypass) · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 유저 영역에서 ROP는 NX-BIT 보호 기법을 우회하기 위해서 사용했었다. 커널 영역에서의 ROP 역시 SMEP라는 보호기법을 우회하기 위해서 사용하는 기법이다. ROP를 수행하기 위해서는 &#039;코드 조각&#039;이라고 불리는 gadget을 찾아야 한다. 이"><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-krop-smep-bypass/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=577415a6e51a">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] KROP_(SMEP bypass)","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 유저 영역에서 ROP는 NX-BIT 보호 기법을 우회하기 위해서 사용했었다. 커널 영역에서의 ROP 역시 SMEP라는 보호기법을 우회하기 위해서 사용하는 기법이다. ROP를 수행하기 위해서는 '코드 조각'이라고 불리는 gadget을 찾아야 한다. 이","datePublished":"2024-06-28","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-krop-smep-bypass/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[KERNEL] KROP_(SMEP bypass)</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 유저 영역에서 ROP는 NX-BIT 보호 기법을 우회하기 위해서 사용했었다. 커널 영역에서의 ROP 역시 SMEP라는 보호기법을 우회하기 위해서 사용하는 기법이다. ROP를 수행하기 위해서는 &#039;코드 조각&#039;이라고 불리는 gadget을 찾아야 한다. 이</p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-06-28">2024년 6월 28일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong></p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[KERNEL] KROP_(SMEP bypass)</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 유저 영역에서 ROP는 NX-BIT 보호 기법을 우회하기 위해서 사용했었다. 커널 영역에서의 ROP 역시 SMEP라는 보호기법을 우회하기 위해서 사용하는 기법이다. ROP를 수행하기 위해서는 &#039;코드 조각&#039;이라고 불리는 gadget을 찾아야 한다. 이</p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-06-28">2024년 6월 28일</time><span>·</span><span>1 분 읽기</span></div></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong></p>
 <p>유저 영역에서 ROP는 NX-BIT 보호 기법을 우회하기 위해서 사용했었다. 커널 영역에서의 ROP 역시 SMEP라는 보호기법을 우회하기 위해서 사용하는 기법이다.</p>
 <p>ROP를 수행하기 위해서는 '코드 조각’이라고 불리는 gadget을 찾아야 한다. 이를 위해 ROPgadget 이라는 툴을 사용해왔다. 이 툴의 경우 바이너리를 인자로 필요로 하고 있다. 하지만 지금까지 해온 커널 영역을 다루는 것은 .cgio 파일을 이용해서 실행 및 접속하는 것이다. 때문에 우리는 먼저 커널 바이너리를 추출해야 한다.</p>
 <pre><code>#!/bin/sh
@@ -204,5 +204,5 @@ qemu-system-x86_64 \
 <p><img src="/assets/images/tistory/tistory-cd4ac779c5dc/003.png" alt=""></p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-krop-smep-bypass/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=57d1329ec205" defer></script>
+  <script src="/assets/app.js?v=577415a6e51a" defer></script>
 </body></html>

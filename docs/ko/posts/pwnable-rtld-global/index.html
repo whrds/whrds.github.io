@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-rtld-global/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-rtld-global/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-rtld-global/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] rtld global · whrds.log"><meta property="og:description" content="rtld global프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.실행이 종료되는 지점에서 참조된다.return에 의해 종료될 때 확인이 가능하다. 간단한 실습 예제이다.#include int main(){ return 0; }바이너리 __stack부터 확인해보면 main함수 호츨을 "><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-rtld-global/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=57d1329ec205">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=577415a6e51a">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] rtld global","description":"rtld global프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.실행이 종료되는 지점에서 참조된다.return에 의해 종료될 때 확인이 가능하다. 간단한 실습 예제이다.#include int main(){ return 0; }바이너리 __stack부터 확인해보면 main함수 호츨을 ","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-rtld-global/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] rtld global</h1><p class="article-description">rtld global프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.실행이 종료되는 지점에서 참조된다.return에 의해 종료될 때 확인이 가능하다. 간단한 실습 예제이다.#include int main(){ return 0; }바이너리 __stack부터 확인해보면 main함수 호츨을 </p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><h3>rtld global</h3>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] rtld global</h1><p class="article-description">rtld global프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.실행이 종료되는 지점에서 참조된다.return에 의해 종료될 때 확인이 가능하다. 간단한 실습 예제이다.#include int main(){ return 0; }바이너리 __stack부터 확인해보면 main함수 호츨을 </p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></div></header><div class="prose"><h3>rtld global</h3>
 <p>프로그램이 실행되고 프로세스로 등록될 때, 코드와 변수들을 관리하기 위한 구조체이다.</p>
 <p>실행이 종료되는 지점에서 참조된다.</p>
 <p>return에 의해 종료될 때 확인이 가능하다.</p>
@@ -178,5 +178,5 @@ p.interactive()
 <p><img src="/assets/images/tistory/tistory-6887f7a3f117/012.png" alt=""></p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-rtld-global/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=57d1329ec205" defer></script>
+  <script src="/assets/app.js?v=577415a6e51a" defer></script>
 </body></html>
