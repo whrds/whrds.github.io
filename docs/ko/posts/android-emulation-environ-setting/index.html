@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="ko" data-theme="light"><head>
+<html lang="ko" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>[Android] Emulation - Environ Setting · whrds.log</title><meta name="description" content="계속해서 공부하면서 지식의 폭을 넓혀보고자 이쪽도 한번 공부해보고자 한다.(공부하고 싶은게 너무 많은데...) 휴대폰 루팅하는 것에 대해서는 천천히 공부 및 실습을 해보고 나서 다뤄볼 예정이다.이번 게시글에서는 Android Studio를 통해 에뮬레이팅하여 shell 및 burp suite 붙이는 방법에 대해 다루겠다.">
-  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/android-emulation-environ-setting/">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/android-emulation-environ-setting/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/android-emulation-environ-setting/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/android-emulation-environ-setting/">
   <meta property="og:type" content="article"><meta property="og:title" content="[Android] Emulation - Environ Setting · whrds.log"><meta property="og:description" content="계속해서 공부하면서 지식의 폭을 넓혀보고자 이쪽도 한번 공부해보고자 한다.(공부하고 싶은게 너무 많은데...) 휴대폰 루팅하는 것에 대해서는 천천히 공부 및 실습을 해보고 나서 다뤄볼 예정이다.이번 게시글에서는 Android Studio를 통해 에뮬레이팅하여 shell 및 burp suite 붙이는 방법에 대해 다루겠다."><meta property="og:url" content="https://whrds.github.io/ko/posts/android-emulation-environ-setting/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
-  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[Android] Emulation - Environ Setting","description":"계속해서 공부하면서 지식의 폭을 넓혀보고자 이쪽도 한번 공부해보고자 한다.(공부하고 싶은게 너무 많은데...) 휴대폰 루팅하는 것에 대해서는 천천히 공부 및 실습을 해보고 나서 다뤄볼 예정이다.이번 게시글에서는 Android Studio를 통해 에뮬레이팅하여 shell 및 burp suite 붙이는 방법에 대해 다루겠다.","datePublished":"2026-01-07","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/android-emulation-environ-setting/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">본문으로 건너뛰기</a>
@@ -22,7 +22,7 @@
         <a href="#" class="active" lang="ko" aria-current="true">KO</a>
         <a href="/en/posts/android-emulation-environ-setting/" class="" lang="en">EN</a>
       </div>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
   <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[Android] Emulation - Environ Setting</h1><p class="article-description">계속해서 공부하면서 지식의 폭을 넓혀보고자 이쪽도 한번 공부해보고자 한다.(공부하고 싶은게 너무 많은데...) 휴대폰 루팅하는 것에 대해서는 천천히 공부 및 실습을 해보고 나서 다뤄볼 예정이다.이번 게시글에서는 Android Studio를 통해 에뮬레이팅하여 shell 및 burp suite 붙이는 방법에 대해 다루겠다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/android/">STUDY / Android</a><span>·</span><time datetime="2026-01-07">2026년 1월 7일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p>계속해서 공부하면서 지식의 폭을 넓혀보고자 이쪽도 한번 공부해보고자 한다.</p>
@@ -84,6 +84,6 @@ brew install apktool
 <p><img src="/assets/images/tistory/tistory-8e958806759e/012.png" alt=""></p>
 <p>이제 루팅 공부하고 1-Day, CTF 문제들을 기반으로 공부를 진행해볼 예정이다!</p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/android-emulation-environ-setting/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
   <script src="/assets/app.js" defer></script>
 </body></html>

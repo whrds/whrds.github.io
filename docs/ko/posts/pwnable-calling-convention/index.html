@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="ko" data-theme="light"><head>
+<html lang="ko" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>[PWNABLE] Calling Convention · whrds.log</title><meta name="description" content="Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. (">
-  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-calling-convention/">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-calling-convention/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-calling-convention/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-calling-convention/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Calling Convention · whrds.log"><meta property="og:description" content="Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. ("><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-calling-convention/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
-  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Calling Convention","description":"Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. (","datePublished":"2023-09-18","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-calling-convention/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">본문으로 건너뛰기</a>
@@ -22,7 +22,7 @@
         <a href="#" class="active" lang="ko" aria-current="true">KO</a>
         <a href="/en/posts/pwnable-calling-convention/" class="" lang="en">EN</a>
       </div>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
   <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Calling Convention</h1><p class="article-description">Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. (</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-18">2023년 9월 18일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p>Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, </p>
@@ -87,6 +87,6 @@ int main(){
 <p><img src="/assets/images/tistory/tistory-7be1b58a1192/007.png" alt=""></p>
 <p>인자는 총 7개이기 때문에 마지막 인자는 stack에 들어있는 것을 알 수 있다.</p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-calling-convention/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
   <script src="/assets/app.js" defer></script>
 </body></html>

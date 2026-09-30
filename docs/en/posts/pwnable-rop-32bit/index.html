@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en" data-theme="light"><head>
+<html lang="en" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>[PWNABLE] ROP 32bit · whrds.log</title><meta name="description" content="※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ For ROP, we’ve never mentioned some time before. Return-Oriented Programming is a method to bypass ASLR, which is one of the attacks to perform by reconfiguring functions using gadget. ROP 32">
-  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-rop-32bit/">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-rop-32bit/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-rop-32bit/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-rop-32bit/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] ROP 32bit · whrds.log"><meta property="og:description" content="※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ For ROP, we’ve never mentioned some time before. Return-Oriented Programming is a method to bypass ASLR, which is one of the attacks to perform by reconfiguring functions using gadget. ROP 32"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-rop-32bit/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
-  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] ROP 32bit","description":"※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ For ROP, we’ve never mentioned some time before. Return-Oriented Programming is a method to bypass ASLR, which is one of the attacks to perform by reconfiguring functions using gadget. ROP 32","datePublished":"2023-12-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-rop-32bit/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -22,7 +22,7 @@
         <a href="/ko/posts/pwnable-rop-32bit/" class="" lang="ko">KO</a>
         <a href="#" class="active" lang="en" aria-current="true">EN</a>
       </div>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
   <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] ROP 32bit</h1><p class="article-description">※ Please tell us if there is a wrong part. We will fix it after confirmation. ※ For ROP, we’ve never mentioned some time before. Return-Oriented Programming is a method to bypass ASLR, which is one of the attacks to perform by reconfiguring functions using gadget. ROP 32</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-12-01">Dec 1, 2023</time><span>·</span><span>3 min read</span></div></header><div class="prose"><p>**※ Please tell us if there is a wrong part. We will fix it after confirmation. *****</p>
@@ -177,6 +177,6 @@ p.sendafter(b'Whrd', payload)
 p.interactive()
 </code></pre>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-rop-32bit/" hreflang="ko">Read this post in Korean →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
   <script src="/assets/app.js" defer></script>
 </body></html>

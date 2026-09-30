@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en" data-theme="light"><head>
+<html lang="en" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>[PWNABLE] FSB · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ FSB stands for Format String Bug, and as the name suggests, it is a vulnerability that occurs due to incorrect use of format specifier. You may have used printf() a lot to print variables, as shown below. printf(&quot;%d&quot;,num1); It is better to use it in this way.">
-  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-fsb/">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-fsb/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-fsb/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-fsb/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] FSB · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ FSB stands for Format String Bug, and as the name suggests, it is a vulnerability that occurs due to incorrect use of format specifier. You may have used printf() a lot to print variables, as shown below. printf(&quot;%d&quot;,num1); It is better to use it in this way."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-fsb/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
-  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] FSB","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ FSB stands for Format String Bug, and as the name suggests, it is a vulnerability that occurs due to incorrect use of format specifier. You may have used printf() a lot to print variables, as shown below. printf(\"%d\",num1); It is better to use it in this way.","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-fsb/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -22,7 +22,7 @@
         <a href="/ko/posts/pwnable-fsb/" class="" lang="ko">KO</a>
         <a href="#" class="active" lang="en" aria-current="true">EN</a>
       </div>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
   <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] FSB</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ FSB stands for Format String Bug, and as the name suggests, it is a vulnerability that occurs due to incorrect use of format specifier. You may have used printf() a lot to print variables, as shown below. printf(&quot;%d&quot;,num1); It is better to use it in this way.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>7 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
@@ -271,6 +271,6 @@ p.interactive()
 <p>At this time, it must be run in python2, not python3.</p>
 <p><img src="/assets/images/tistory/tistory-b0994a81b2cb/007.png" alt=""></p>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-fsb/" hreflang="ko">Read this post in Korean →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
   <script src="/assets/app.js" defer></script>
 </body></html>

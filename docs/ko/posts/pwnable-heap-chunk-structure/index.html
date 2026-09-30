@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="ko" data-theme="light"><head>
+<html lang="ko" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>[PWNABLE] Heap Chunk Structure · whrds.log</title><meta name="description" content="Memorry Allocator : 한정된 메모리 자원을 각 프로세스에 효율적으로 배분하는 작업을 한다.- 실행중에 메모리를 동적으로 할당 및 해제한다.- 구현에 따라 사용된 알고리즘의 종류가 달라진다 - ptmalloc2은 ubuntu에서 사용한다 ptmalloc2의 특징으로는 해제된 메모리에 대한 데이터를 지우지 않고">
-  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-heap-chunk-structure/">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-heap-chunk-structure/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-heap-chunk-structure/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-heap-chunk-structure/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Heap Chunk Structure · whrds.log"><meta property="og:description" content="Memorry Allocator : 한정된 메모리 자원을 각 프로세스에 효율적으로 배분하는 작업을 한다.- 실행중에 메모리를 동적으로 할당 및 해제한다.- 구현에 따라 사용된 알고리즘의 종류가 달라진다 - ptmalloc2은 ubuntu에서 사용한다 ptmalloc2의 특징으로는 해제된 메모리에 대한 데이터를 지우지 않고"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-heap-chunk-structure/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
-  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Heap Chunk Structure","description":"Memorry Allocator : 한정된 메모리 자원을 각 프로세스에 효율적으로 배분하는 작업을 한다.- 실행중에 메모리를 동적으로 할당 및 해제한다.- 구현에 따라 사용된 알고리즘의 종류가 달라진다 - ptmalloc2은 ubuntu에서 사용한다 ptmalloc2의 특징으로는 해제된 메모리에 대한 데이터를 지우지 않고","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-heap-chunk-structure/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">본문으로 건너뛰기</a>
@@ -22,7 +22,7 @@
         <a href="#" class="active" lang="ko" aria-current="true">KO</a>
         <a href="/en/posts/pwnable-heap-chunk-structure/" class="" lang="en">EN</a>
       </div>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
   <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Heap Chunk Structure</h1><p class="article-description">Memorry Allocator : 한정된 메모리 자원을 각 프로세스에 효율적으로 배분하는 작업을 한다.- 실행중에 메모리를 동적으로 할당 및 해제한다.- 구현에 따라 사용된 알고리즘의 종류가 달라진다 - ptmalloc2은 ubuntu에서 사용한다 ptmalloc2의 특징으로는 해제된 메모리에 대한 데이터를 지우지 않고</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>1 분 읽기</span></div></header><div class="prose"><p>Memorry Allocator </p>
@@ -80,6 +80,6 @@ ptmalloc의 병합대상이기 때문에 smallbin이 들어있는 인접한 두�
 <p>때문에 레이스 컨디션을 고려할 필요가 없으며 bin보다 먼저 사용되기 때문에 병목 현상을 완화시킨다.<br>
 그리고 하나의 tcache에는 같은 크기의 청크들만 보관되게 된다.</p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-heap-chunk-structure/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
   <script src="/assets/app.js" defer></script>
 </body></html>

@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en" data-theme="light"><head>
+<html lang="en" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>[ASUS] FIRMWARE ANAYZLE #3 · whrds.log</title><meta name="description" content="While continuing to analyze IPTIME, I felt that I would not be able to make progress for that model without acquiring equipment or disassembling the existing equipment, so I tried changing the TARGET. This time, I want to make emulation easier. I will use emulating tools, including FIRMAE, and organize the list to select a target.">
-  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/asus-firmware-anayzle-3/">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/asus-firmware-anayzle-3/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/asus-firmware-anayzle-3/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/asus-firmware-anayzle-3/">
   <meta property="og:type" content="article"><meta property="og:title" content="[ASUS] FIRMWARE ANAYZLE #3 · whrds.log"><meta property="og:description" content="While continuing to analyze IPTIME, I felt that I would not be able to make progress for that model without acquiring equipment or disassembling the existing equipment, so I tried changing the TARGET. This time, I want to make emulation easier. I will use emulating tools, including FIRMAE, and organize the list to select a target."><meta property="og:url" content="https://whrds.github.io/en/posts/asus-firmware-anayzle-3/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
-  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[ASUS] FIRMWARE ANAYZLE #3","description":"While continuing to analyze IPTIME, I felt that I would not be able to make progress for that model without acquiring equipment or disassembling the existing equipment, so I tried changing the TARGET. This time, I want to make emulation easier. I will use emulating tools, including FIRMAE, and organize the list to select a target.","datePublished":"2025-06-23","inLanguage":"en","url":"https://whrds.github.io/en/posts/asus-firmware-anayzle-3/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -22,7 +22,7 @@
         <a href="/ko/posts/asus-firmware-anayzle-3/" class="" lang="ko">KO</a>
         <a href="#" class="active" lang="en" aria-current="true">EN</a>
       </div>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
   <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[ASUS] FIRMWARE ANAYZLE #3</h1><p class="article-description">While continuing to analyze IPTIME, I felt that I would not be able to make progress for that model without acquiring equipment or disassembling the existing equipment, so I tried changing the TARGET. This time, I want to make emulation easier. I will use emulating tools, including FIRMAE, and organize the list to select a target.</p><div class="article-meta"><a class="post-category" href="/en/categories/firmware/">STUDY / Firmware Analysis</a><span>·</span><time datetime="2025-06-23">Jun 23, 2025</time><span>·</span><span>5 min read</span></div></header><div class="prose"><p>While continuing to analyze IPTIME, I felt that I would not be able to make progress for that model without acquiring equipment or disassembling the existing equipment, so I tried changing the TARGET.</p>
@@ -171,6 +171,6 @@ arm-linux-gnueabi-gcc -shared -fPIC -o libnvram_fake.so fake_nvram.c
 <p>3. Vulnerability Analysis</p>
 <p>    3-1. Vulnerability reporting experience</p>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/asus-firmware-anayzle-3/" hreflang="ko">Read this post in Korean →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
   <script src="/assets/app.js" defer></script>
 </body></html>

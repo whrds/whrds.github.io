@@ -2,14 +2,15 @@
   const root = document.documentElement;
   let savedTheme;
   try { savedTheme = localStorage.getItem('theme'); } catch {}
-  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const initialTheme = savedTheme || (systemDark ? 'dark' : 'light');
+  const initialTheme = savedTheme === 'light' ? 'light' : 'dark';
 
   const applyTheme = (theme) => {
     root.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#101215' : '#edf0f3');
     const button = document.querySelector('[data-theme-toggle]');
     if (button) {
-      button.setAttribute('aria-label', theme === 'dark' ? 'Use light theme' : 'Use dark theme');
+      const ko = root.lang === 'ko';
+      button.setAttribute('aria-label', ko ? (theme === 'dark' ? '밝은 테마로 전환' : '어두운 테마로 전환') : (theme === 'dark' ? 'Use light theme' : 'Use dark theme'));
       button.textContent = theme === 'dark' ? '☀' : '◐';
     }
   };

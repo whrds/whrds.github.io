@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="ko" data-theme="light"><head>
+<html lang="ko" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>[IPTIME] FIRMWARE ANALYZE #2 · whrds.log</title><meta name="description" content="#1에 이어서 작성을 해보겠다. QEMU이제 추출한 파일들을 이용하여 분석해보겠다.KERNEL IMG는 일단 정적 분석을 메인으로 하고, ROOTFS을 에뮬레이팅하고 분석하는 것을 다음 과제로 선정했다. 집안의 WIFI 설정 혹은 어릴 때 마인크래프트 서버를 열기 위해서 아래와 같은 창이 뜨는 페이지를 접속해 보았을 것이">
-  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/ko/posts/iptime-firmware-analyze-2/">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/iptime-firmware-analyze-2/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/iptime-firmware-analyze-2/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/iptime-firmware-analyze-2/">
   <meta property="og:type" content="article"><meta property="og:title" content="[IPTIME] FIRMWARE ANALYZE #2 · whrds.log"><meta property="og:description" content="#1에 이어서 작성을 해보겠다. QEMU이제 추출한 파일들을 이용하여 분석해보겠다.KERNEL IMG는 일단 정적 분석을 메인으로 하고, ROOTFS을 에뮬레이팅하고 분석하는 것을 다음 과제로 선정했다. 집안의 WIFI 설정 혹은 어릴 때 마인크래프트 서버를 열기 위해서 아래와 같은 창이 뜨는 페이지를 접속해 보았을 것이"><meta property="og:url" content="https://whrds.github.io/ko/posts/iptime-firmware-analyze-2/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
-  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[IPTIME] FIRMWARE ANALYZE #2","description":"#1에 이어서 작성을 해보겠다. QEMU이제 추출한 파일들을 이용하여 분석해보겠다.KERNEL IMG는 일단 정적 분석을 메인으로 하고, ROOTFS을 에뮬레이팅하고 분석하는 것을 다음 과제로 선정했다. 집안의 WIFI 설정 혹은 어릴 때 마인크래프트 서버를 열기 위해서 아래와 같은 창이 뜨는 페이지를 접속해 보았을 것이","datePublished":"2025-02-13","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/iptime-firmware-analyze-2/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">본문으로 건너뛰기</a>
@@ -22,7 +22,7 @@
         <a href="#" class="active" lang="ko" aria-current="true">KO</a>
         <a href="/en/posts/iptime-firmware-analyze-2/" class="" lang="en">EN</a>
       </div>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
   <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[IPTIME] FIRMWARE ANALYZE #2</h1><p class="article-description">#1에 이어서 작성을 해보겠다. QEMU이제 추출한 파일들을 이용하여 분석해보겠다.KERNEL IMG는 일단 정적 분석을 메인으로 하고, ROOTFS을 에뮬레이팅하고 분석하는 것을 다음 과제로 선정했다. 집안의 WIFI 설정 혹은 어릴 때 마인크래프트 서버를 열기 위해서 아래와 같은 창이 뜨는 페이지를 접속해 보았을 것이</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-02-13">2025년 2월 13일</time><span>·</span><span>2 분 읽기</span></div></header><div class="prose"><p>#1에 이어서 작성을 해보겠다.</p>
@@ -260,6 +260,6 @@ Auth /main /home/fuzzing/firm/iptime/again/squashfs-root/etc/httpd.passwd
 <p>근데 직접적인 입력을 받는 부분은 아니지만 방법은 있을 것 같다…</p>
 <p>정확한 분석과 실제로 터지는지 확인을 위해서는 결국 에뮬레이팅 혹은 내 라우터를 뜯어봐야 한다…   이걸 위해서는 이제 다른 서비들의 동작 순서를 알아내고 동작하게 하는 삽질을 할 시간…</p>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/iptime-firmware-analyze-2/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
   <script src="/assets/app.js" defer></script>
 </body></html>

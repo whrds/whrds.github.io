@@ -102,7 +102,7 @@ function header(lang, alternate, active = 'notes') {
         <a href="${lang === 'ko' ? '#' : otherUrl}" class="${lang === 'ko' ? 'active' : ''}" lang="ko"${lang === 'ko' ? ' aria-current="true"' : ''}>KO</a>
         <a href="${lang === 'en' ? '#' : otherUrl}" class="${lang === 'en' ? 'active' : ''}" lang="en"${lang === 'en' ? ' aria-current="true"' : ''}>EN</a>
       </div>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="${lang === 'ko' ? '밝은 테마로 전환' : 'Use light theme'}">☀</button>
     </div>
   </div></header>`;
 }
@@ -115,29 +115,29 @@ function layout({ lang, title, description, route, alternate, body, active = 'no
   const altRoute = alternate || `/${altLang}/`;
   const jsonLd = type === 'article' ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'BlogPosting', headline: title, description, datePublished: date, inLanguage: lang, url: canonical, author: { '@type': 'Person', name: 'whrds' } })}</script>` : '';
   return `<!doctype html>
-<html lang="${lang}" data-theme="light"><head>
+<html lang="${lang}" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${pageTitle}</title><meta name="description" content="${escapeHtml(description || t.siteDescription)}">
-  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="${canonical}">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="${canonical}">
   <link rel="alternate" hreflang="${lang}" href="${canonical}"><link rel="alternate" hreflang="${altLang}" href="${absolute(altRoute)}">
   <meta property="og:type" content="${type}"><meta property="og:title" content="${pageTitle}"><meta property="og:description" content="${escapeHtml(description || t.siteDescription)}"><meta property="og:url" content="${canonical}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
-  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   ${jsonLd}
 </head><body>
   <a class="skip-link" href="#main">${lang === 'ko' ? '본문으로 건너뛰기' : 'Skip to content'}</a>
   ${header(lang, altRoute, active)}
   <main id="main">${body}</main>
-  <footer class="site-footer"><div class="shell footer-inner"><span>© ${new Date().getUTCFullYear()} whrds</span><span>${t.footer}</span><a href="/${lang}/feed.xml">RSS</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© ${new Date().getUTCFullYear()} whrds.log</span></span><span>${t.footer}</span><a href="/${lang}/feed.xml">RSS ↗</a></div></footer>
   <script src="/assets/app.js" defer></script>
 </body></html>`;
 }
 
 function postCards(lang, posts) {
   const t = copy[lang];
-  return posts.map((post) => {
+  return posts.map((post, index) => {
     const extraTags = (post.data.tags || []).filter((tag) => tag !== post.data.category);
-    return `<article class="post-card">
+    return `<article class="post-card"><span class="post-index" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span>
       <div class="post-card-top"><a class="post-category" href="${categoryRoute(lang, post.data.category)}">${escapeHtml(categoryLabel(lang, post.data.category))}</a><span><time datetime="${escapeHtml(post.data.date)}">${formatDate(post.data.date, lang)}</time> · ${readingTime(post.body, lang)} ${t.minRead}</span></div>
       <h3><a href="${routeFor(post)}">${escapeHtml(post.data.title)}</a></h3><p>${escapeHtml(post.data.description)}</p>
       ${extraTags.length ? `<div class="tags">${extraTags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</div>` : ''}
@@ -155,7 +155,7 @@ function categoryLinks(lang, posts) {
 function homePage(lang, posts) {
   const t = copy[lang];
   const ko = lang === 'ko';
-  const body = `<section class="hero hero-hardware"><div class="shell hero-grid"><div class="hero-editorial"><p class="eyebrow">${t.eyebrow}</p><h1>${t.headline}</h1><p class="hero-copy">${t.intro}</p><div class="hero-meta">${topics[lang].map((x) => `<span class="pill">${x}</span>`).join('')}</div><div class="hero-actions"><a class="hero-primary" href="#notes">${ko ? '기록 살펴보기' : 'Explore the notes'} <span aria-hidden="true">↗</span></a><a class="hero-secondary" href="/${lang}/categories/">${t.allCategories} <span aria-hidden="true">→</span></a></div><p class="hero-footnote">ZZoMb1E <span aria-hidden="true">/</span> BREAK THINGS. UNDERSTAND MORE.</p></div>
+  const body = `<section class="hero hero-hardware"><div class="shell hero-topline" aria-hidden="true"><span>FIELD NOTES / ZZoMb1E</span><span>REVERSE ENGINEERING &amp; SYSTEMS</span></div><div class="shell hero-grid"><div class="hero-editorial"><p class="eyebrow">${t.eyebrow}</p><h1>${t.headline}</h1><p class="hero-copy">${t.intro}</p><div class="hero-meta">${topics[lang].map((x) => `<span class="pill">${x}</span>`).join('')}</div><div class="hero-actions"><a class="hero-primary" href="#notes">${ko ? '기록 살펴보기' : 'Explore the notes'} <span aria-hidden="true">↗</span></a><a class="hero-secondary" href="/${lang}/categories/">${t.allCategories} <span aria-hidden="true">→</span></a></div><p class="hero-footnote">ZZoMb1E <span aria-hidden="true">/</span> BREAK THINGS. UNDERSTAND MORE.</p></div>
   <figure class="hardware" data-hardware data-state="poster" aria-label="${ko ? '기판, 메모리, 펌웨어, NAS 인터랙티브 3D 컬렉션' : 'Interactive hardware collection: board, memory, firmware and NAS'}">
     <div class="hardware-stage" data-three-stage>
       <img class="hardware-poster" src="/assets/hardware-poster.png" alt="${ko ? '녹색 회로기판 위의 ZZoMb1E 금속 칩' : 'ZZoMb1E metal chip on a green circuit board'}" width="1000" height="1000" fetchpriority="high">
@@ -170,9 +170,9 @@ function homePage(lang, posts) {
       <div class="hardware-description"><strong data-model-title>UNDER THE SURFACE.</strong><p class="hardware-detail" data-model-detail>${ko ? '적층 기판 · 도금 비아 · 디버그 헤더' : 'Layered PCB · plated vias · debug header'}</p><p data-three-hint>${ko ? '드래그해서 다른 각도로 살펴보세요.' : 'Drag to inspect from another angle.'}</p></div>
       <div class="hardware-controls" data-three-controls hidden><button type="button" data-explode aria-pressed="false">${ko ? '구조 펼치기' : 'Explode'}</button><button type="button" data-motion aria-pressed="false">${ko ? '자동 회전' : 'Auto-rotate'}</button><button type="button" data-reset>${ko ? '초기화' : 'Reset'}</button></div>
     </figcaption><span class="sr-only" data-three-status role="status" aria-live="polite"></span>
-  </figure></div></section>
+  </figure></div><div class="shell archive-ledger"><div><strong>${String(posts.length).padStart(2, '0')}</strong><span>${ko ? '개의 기록' : 'FIELD NOTES'}</span></div><div><strong>${String(categoriesFor(posts).length).padStart(2, '0')}</strong><span>${ko ? '개 카테고리' : 'CATEGORIES'}</span></div><div><strong>KO / EN</strong><span>${ko ? '두 언어로 기록' : 'TWO LANGUAGES'}</span></div><p>OBSERVE. VERIFY. DOCUMENT.</p></div></section>
   <div class="shell content-grid" id="notes"><section><div class="section-head"><h2>${t.latest}</h2><span>${posts.length} ${t.articles}</span></div><div class="post-list">${postCards(lang, posts)}</div></section>
-  <aside class="sidebar"><div class="sidebar-section"><p class="sidebar-label">Profile</p><div class="profile-card"><strong>${t.profileTitle}</strong><ul>${t.profile.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></div><div class="sidebar-section"><p class="sidebar-label">${t.categories}</p><nav class="category-list">${categoryLinks(lang, posts)}</nav><a class="all-categories" href="/${lang}/categories/">${t.allCategories} →</a></div></aside></div>`;
+  <aside class="sidebar"><div class="sidebar-section"><p class="sidebar-label">${ko ? '연구자 프로필' : 'RESEARCHER PROFILE'}</p><div class="profile-card"><div class="profile-monogram" aria-hidden="true">Z_</div><strong>${t.profileTitle}</strong><p class="profile-caption">SECURITY RESEARCHER / FIELD NOTES</p><ul>${t.profile.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></div><div class="sidebar-section"><p class="sidebar-label">${t.categories}</p><nav class="category-list">${categoryLinks(lang, posts)}</nav><a class="all-categories" href="/${lang}/categories/">${t.allCategories} →</a></div></aside></div>`;
   return layout({ lang, description: t.siteDescription, route: `/${lang}/`, alternate: `/${lang === 'ko' ? 'en' : 'ko'}/`, body });
 }
 

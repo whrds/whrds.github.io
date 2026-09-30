@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en" data-theme="light"><head>
+<html lang="en" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>[AArch64] Buffer OverFlow (Practice) · whrds.log</title><meta name="description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ While studying aarch64 technique, a college classmate created a problem. It is a Buffer OverFlow problem named [Exploitable]. The symbol is deleted.. (Oh, it&#039;s annoying... But static is not applied...) to main()">
-  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow-practice/">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow-practice/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow-practice/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/aarch64-buffer-overflow-practice/">
   <meta property="og:type" content="article"><meta property="og:title" content="[AArch64] Buffer OverFlow (Practice) · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ While studying aarch64 technique, a college classmate created a problem. It is a Buffer OverFlow problem named [Exploitable]. The symbol is deleted.. (Oh, it&#039;s annoying... But static is not applied...) to main()"><meta property="og:url" content="https://whrds.github.io/en/posts/aarch64-buffer-overflow-practice/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
-  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[AArch64] Buffer OverFlow (Practice)","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ While studying aarch64 technique, a college classmate created a problem. It is a Buffer OverFlow problem named [Exploitable]. The symbol is deleted.. (Oh, it's annoying... But static is not applied...) to main()","datePublished":"2024-05-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/aarch64-buffer-overflow-practice/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -22,7 +22,7 @@
         <a href="/ko/posts/aarch64-buffer-overflow-practice/" class="" lang="ko">KO</a>
         <a href="#" class="active" lang="en" aria-current="true">EN</a>
       </div>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
   <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[AArch64] Buffer OverFlow (Practice)</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ While studying aarch64 technique, a college classmate created a problem. It is a Buffer OverFlow problem named [Exploitable]. The symbol is deleted.. (Oh, it&#039;s annoying... But static is not applied...) to main()</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-aarch64/">STUDY / PWNABLE_AArch64</a><span>·</span><time datetime="2024-05-01">May 1, 2024</time><span>·</span><span>2 min read</span></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong></p>
@@ -78,6 +78,6 @@ p.interactive()
 <p>](<a href="https://blog.kakaocdn.net/dna/bV6S14/btsG3tnmYfg/AAAAAAAAAAAAAAAAAAAAAI-s461KpxfspdkapSiGTS3atLDJ6NDOXd8oiTSqzxPr/Exploitable?credential=yqXZFxpELC7KVnFOS48ylbz2pIh7yKj8&amp;expires=1790780399&amp;allow_ip=&amp;allow_referer=&amp;signature=aLIIripn%2FRu39F%2BDa4zAWFcuGZc%3D&amp;attach=1&amp;knm=tfile.dat">https://blog.kakaocdn.net/dna/bV6S14/btsG3tnmYfg/AAAAAAAAAAAAAAAAAAAAAI-s461KpxfspdkapSiGTS3atLDJ6NDOXd8oiTSqzxPr/Exploitable?credential=yqXZFxpELC7KVnFOS48ylbz2pIh7yKj8&amp;expires=1790780399&amp;allow_ip=&amp;allow_referer=&amp;signature=aLIIripn%2FRu39F%2BDa4zAWFcuGZc%3D&amp;attach=1&amp;knm=tfile.dat</a>)</p>
 <p>I am uploading the file after receiving permission to share it.</p>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/aarch64-buffer-overflow-practice/" hreflang="ko">Read this post in Korean →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
   <script src="/assets/app.js" defer></script>
 </body></html>

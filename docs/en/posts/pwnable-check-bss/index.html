@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en" data-theme="light"><head>
+<html lang="en" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>[PWNABLE] Check .bss · whrds.log</title><meta name="description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ When discussing memory structure, I explained that the bss segment is the area where uninitialized variables are stored. Since we will be covering various techniques in the future, this segment is important. To find the location of the bss segment, you can use the readelf command. reade">
-  <meta name="theme-color" content="#f7f7f3"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-check-bss/">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/pwnable-check-bss/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-check-bss/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-check-bss/">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Check .bss · whrds.log"><meta property="og:description" content="※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ When discussing memory structure, I explained that the bss segment is the area where uninitialized variables are stored. Since we will be covering various techniques in the future, this segment is important. To find the location of the bss segment, you can use the readelf command. reade"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-check-bss/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css">
-  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;else if(matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.dataset.theme='dark'}catch(e){}</script>
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Check .bss","description":"※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ When discussing memory structure, I explained that the bss segment is the area where uninitialized variables are stored. Since we will be covering various techniques in the future, this segment is important. To find the location of the bss segment, you can use the readelf command. reade","datePublished":"2023-11-07","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-check-bss/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -22,7 +22,7 @@
         <a href="/ko/posts/pwnable-check-bss/" class="" lang="ko">KO</a>
         <a href="#" class="active" lang="en" aria-current="true">EN</a>
       </div>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="Use dark theme">◐</button>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
   <main id="main"><article class="article-wrap"><header class="article-header"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Check .bss</h1><p class="article-description">※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections. ※ When discussing memory structure, I explained that the bss segment is the area where uninitialized variables are stored. Since we will be covering various techniques in the future, this segment is important. To find the location of the bss segment, you can use the readelf command. reade</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-11-07">Nov 7, 2023</time><span>·</span><span>1 min read</span></div></header><div class="prose"><p><strong>※ If there are any incorrect parts, please let me know. I will check and make the necessary corrections.</strong> <strong>※</strong> </p>
@@ -40,6 +40,6 @@
 <p><img src="/assets/images/tistory/tistory-3e7f3a390222/003.png" alt=""></p>
 <p>The reason why readability is important is that if you place a string such as “/bin/sh” in this area and use it, it can be used for attacks.</p>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-check-bss/" hreflang="ko">Read this post in Korean →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span>© 2026 whrds</span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
   <script src="/assets/app.js" defer></script>
 </body></html>
