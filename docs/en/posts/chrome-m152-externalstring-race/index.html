@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString race and sandbox boundary research</h1><p class="article-description">Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>23 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> race I investigated in Chrome M152.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString race and sandbox boundary research</h1><p class="article-description">Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>25 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> race I investigated in Chrome M152.</p>
 <p>The final exploit successfully read the <code>hosts</code> file. [5] This post follows the research direction that led to that result and the assumptions I needed to revisit along the way.</p>
 <p>The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?</p>
 <p>Observing a race once and explaining its significance inside a browser turned out to be different tasks. A problem observed in d8 could appear differently in Chrome. Results obtained under a debugger also needed to be distinguished from results obtained without that intervention. Even deciding whether a result represented an intermediate observation or completion of the whole experiment required care.</p>
@@ -123,7 +123,7 @@
 <p><img src="/assets/research/chrome-m152-externalstring-race/06-external-reference.svg" alt="Conceptual relationship between a string object, handle, EPT entry, native resource, and character buffer"></p>
 <p><em>Figure 2. The H, h, E, R, and B relationship. Table state must remain consistent with resource lifetime. This is not a reproduction of the target build’s memory layout.</em></p>
 <h2>3. The lifetime inconsistency under investigation</h2>
-<p>The investigation began with the <code>ExternalString::DisposeResource</code> cleanup path. The retained analysis identifies a double-fetch in that path as the central cause. [3]</p>
+<p>The investigation began with the <code>ExternalString::DisposeResource</code> cleanup path. The retained analysis identifies a double-fetch in that path as the central cause. [3] The public fix names issue <code>532204454</code> and describes inconsistent EPT state during resource disposal. [8]</p>
 <p>A double-fetch reads shared state at different times. Reading twice is not inherently a vulnerability. The important question is whether the state can change between those reads while the code continues to assume that the earlier and later operations concern the same target.</p>
 <p>Resource cleanup has at least two meanings: ending the actual object’s lifetime, and ensuring that references to that object are no longer treated as valid. If those responsibilities become inconsistent, an object may be gone while a path to it remains.</p>
 <p>That inconsistency was the focus here. The key question was whether <strong>the object being cleaned up and the reference regarded as cleaned up still represented the same target</strong>.</p>
@@ -142,7 +142,53 @@
 <p>Checking only at the beginning of a use is insufficient. A safe ownership model requires the <strong>whole use interval to fall within the resource’s lifetime</strong>. A reference may still resolve as an address while temporal memory safety has already failed.</p>
 <h3>3.2 Atomic reads and consistent operations</h3>
 <p>An individual atomic read and a multi-operation cleanup that preserves one target’s identity are different guarantees. Atomicity can prevent observing a partially mixed value; it does not make two reads at different times carry the same meaning.</p>
-<p>A double-fetch therefore needs more than a count of loads. The important question is whether the target established earlier remains the target of the later operation. Here that question is expressed as a source-level invariant rather than a list of concrete accesses and execution ordering.</p>
+<p>A double-fetch therefore needs more than a count of loads. The important question is whether the target established earlier remains the target of the later operation.</p>
+<h3>3.3 What the actual cleanup function does</h3>
+<p>Here is a source excerpt from <code>src/objects/string-inl.h</code> at public fix revision <code>7d1fb25</code>. The <code>// ...</code> markers indicate omitted statements. This is neither the full function nor its pre-fix implementation. [9]</p>
+<pre><code class="language-cpp">DisallowGarbageCollection no_gc;
+// ...
+Address value = resource_.exchange(isolate, kNullAddress);
+// ...
+resource-&gt;Dispose();
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Code element</th>
+<th>Intended role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DisallowGarbageCollection</code></td>
+<td>A debug assertion scope documenting where GC must not occur; it is not a synchronization lock. [11]</td>
+</tr>
+<tr>
+<td><code>resource_.exchange(...)</code></td>
+<td>Obtains the selected EPT entry’s old value while clearing that entry. [10]</td>
+</tr>
+<tr>
+<td><code>reinterpret_cast</code></td>
+<td>Expresses the address as a resource pointer without checking liveness.</td>
+</tr>
+<tr>
+<td>Null check</td>
+<td>Skips a call when no resource is present; non-null does not mean alive.</td>
+</tr>
+<tr>
+<td><code>Unaccount</code></td>
+<td>An external-memory accounting callback with an empty default implementation; subclass behavior is distinct from disposal. [12]</td>
+</tr>
+<tr>
+<td><code>Dispose()</code></td>
+<td>Calls the resource’s cleanup implementation; see the API contract in section 2.1.</td>
+</tr>
+</tbody>
+</table>
+<p>The function must keep reference cleanup consistent with disposal of the same resource. Casting and null checks do not themselves establish that lifetime contract.</p>
+<h3>3.4 Source facts and the cause interpretation</h3>
+<p>The public fix identifies a consistency failure rather than a missing cast or null check. The resource selected for disposal and the resulting EPT state must agree. Separate reference operations could fail to preserve that agreement; the fix binds them to an exchange on one target. [8]</p>
+<p>An explanation of UAF should therefore identify which object’s lifetime ends and whether a reference can still treat it as valid. That is source-level lifetime analysis. Browser outcomes remain separate observations, reported in section 11.</p>
 <h2>4. The protection assumption behind the bypass research</h2>
 <p>This raises the obvious question: how can a boundary problem exist when an EPT is present?</p>
 <p>The direction investigated was whether <strong>a mismatch between an indirect reference and its target’s lifetime could undermine native memory safety outside the sandbox</strong>. A reference following an allowed route and its target remaining valid are different guarantees.</p>
@@ -381,7 +427,7 @@
 <p>I recorded two dimensions: <strong>what was established at the engine’s memory boundary</strong>, and <strong>which later behavior completed in that environment</strong>. The earlier native-memory observations and the final file read belong in the same account, but they are separate verdicts.</p>
 <p>The filename alone does not establish privilege escalation. It also does not prove access to every arbitrary file or the same outcome in another browser’s default configuration. The confirmed result is a completed <code>hosts</code> file read.</p>
 <h2>12. The invariant that matters for remediation</h2>
-<p>The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] Here I describe that review in terms of resource lifetime. The linked patch and its release coverage were not directly verified during this edit, so this post does not identify a specific fixed shipping version.</p>
+<p>The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] For this expansion, I directly checked the linked public commit and source at that revision. [8–10] That verifies the source change, not its coverage across shipping Chrome versions or execution of a fixed binary.</p>
 <p>The defensive question is whether the target established at the start remains the same target through cleanup. If shared state can change in between, the assumption that reading it again preserves the earlier meaning needs scrutiny.</p>
 <p>It is also necessary to consider what other users can observe while cleanup is underway. A well-formed reference does not make a use safe if its target is being destroyed or has already ended its lifetime.</p>
 <p>The effect of a patch requires more than a plausible source-level intention. A comparison of identified pre-fix and post-fix builds under the same regression conditions is needed. That comparison is not supplied by the retained patch review.</p>
@@ -440,6 +486,11 @@ Retire(key):
 </tbody>
 </table>
 <p>These are proposed defensive review and regression properties, not claims that five new tests were executed. They translate the lifetime concern in the records into properties an implementation should establish.</p>
+<h3>12.3 What the public fix is intended to guarantee</h3>
+<p>The change binds resource extraction and clearing to the same EPT entry. It removes the separate cleanup operation that resolves the reference again. This is the central difference established by the commit description. [8]</p>
+<p>The member-level exchange delegates to the EPT exchange. The entry implementation uses a compare-and-exchange loop to install a new payload, return the previous pointer value, and preserve the existing GC mark. This describes the sandbox branch at the fix revision. [10]</p>
+<p>The exchanged state is the <strong>EPT entry’s payload</strong>. It does not mean that every heap handle is erased or every external reference is invalidated together. Nor is this a direct call to JavaScript’s <code>Atomics.exchange</code>. [10]</p>
+<p>The fix links one entry’s reference state to disposal of the resource obtained from it. It does not establish a solution to every lifetime error or verification that the target browser contains the fix.</p>
 <h2>13. Closing thoughts</h2>
 <p>The question that kept returning was: does this reference still point to the same object, and is that object still alive?</p>
 <p>The investigation began with double-fetch and UAF. Moving into the browser required examining ownership, object identity, control-flow protections, and the effects of observation tools. Evidence at one stage did not substitute for the conclusion at the next.</p>
@@ -456,6 +507,11 @@ Retire(key):
 <li>The author’s subsequent research confirmation that the final exploit successfully read the <code>hosts</code> file. No additional execution log was verified and the PoC was not rerun during this edit.</li>
 <li><a href="https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h">V8 public API header — v8-primitive.h</a>. Public contracts and default disposal from main, retrieved on 1 October 2026, used as structural background. This does not identify the target M152 build’s source revision.</li>
 <li><a href="https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h">V8 — external-pointer-table.h</a>. EPT design documentation from main, retrieved on 1 October 2026. Background for type and temporal safety, not proof of the target build or patch coverage.</li>
+<li><a href="https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03">V8 fix commit — 7d1fb25</a>. External-string disposal fix naming issue <code>532204454</code>. Its description and changes were checked directly; this does not verify public access to the issue body or coverage in a shipping Chrome version.</li>
+<li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h">V8 — string-inl.h at the fix revision</a>. Source for the cleanup excerpt and role analysis. Omission markers were added editorially.</li>
+<li>V8’s <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h">external-pointer-inl.h</a> and <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h">external-pointer-table-inl.h</a> at the fix revision. Sources for exchange delegation, EPT payload behavior, and GC mark preservation. This revision was not established as identical to the recorded target M152 binary.</li>
+<li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/common/assert-scope.h">V8 — assert-scope.h at the fix revision</a>. Confirms the debug-only assertion scope behind <code>DisallowGarbageCollection</code>; its name does not establish synchronization in a release build.</li>
+<li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h">V8 — v8-primitive.h at the fix revision</a>. Source for the <code>Unaccount</code> callback contract and empty default implementation.</li>
 </ol>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/chrome-m152-externalstring-race/" hreflang="ko">Read this post in Korean →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>

@@ -83,7 +83,7 @@ Observing `H` does not automatically prove that `R` is alive. Retained contents 
 
 ## 3. The lifetime inconsistency under investigation
 
-The investigation began with the `ExternalString::DisposeResource` cleanup path. The retained analysis identifies a double-fetch in that path as the central cause. [3]
+The investigation began with the `ExternalString::DisposeResource` cleanup path. The retained analysis identifies a double-fetch in that path as the central cause. [3] The public fix names issue `532204454` and describes inconsistent EPT state during resource disposal. [8]
 
 A double-fetch reads shared state at different times. Reading twice is not inherently a vulnerability. The important question is whether the state can change between those reads while the code continues to assume that the earlier and later operations concern the same target.
 
@@ -117,7 +117,36 @@ Checking only at the beginning of a use is insufficient. A safe ownership model 
 
 An individual atomic read and a multi-operation cleanup that preserves one target's identity are different guarantees. Atomicity can prevent observing a partially mixed value; it does not make two reads at different times carry the same meaning.
 
-A double-fetch therefore needs more than a count of loads. The important question is whether the target established earlier remains the target of the later operation. Here that question is expressed as a source-level invariant rather than a list of concrete accesses and execution ordering.
+A double-fetch therefore needs more than a count of loads. The important question is whether the target established earlier remains the target of the later operation.
+
+### 3.3 What the actual cleanup function does
+
+Here is a source excerpt from `src/objects/string-inl.h` at public fix revision `7d1fb25`. The `// ...` markers indicate omitted statements. This is neither the full function nor its pre-fix implementation. [9]
+
+```cpp
+DisallowGarbageCollection no_gc;
+// ...
+Address value = resource_.exchange(isolate, kNullAddress);
+// ...
+resource->Dispose();
+```
+
+| Code element | Intended role |
+|---|---|
+| `DisallowGarbageCollection` | A debug assertion scope documenting where GC must not occur; it is not a synchronization lock. [11] |
+| `resource_.exchange(...)` | Obtains the selected EPT entry's old value while clearing that entry. [10] |
+| `reinterpret_cast` | Expresses the address as a resource pointer without checking liveness. |
+| Null check | Skips a call when no resource is present; non-null does not mean alive. |
+| `Unaccount` | An external-memory accounting callback with an empty default implementation; subclass behavior is distinct from disposal. [12] |
+| `Dispose()` | Calls the resource's cleanup implementation; see the API contract in section 2.1. |
+
+The function must keep reference cleanup consistent with disposal of the same resource. Casting and null checks do not themselves establish that lifetime contract.
+
+### 3.4 Source facts and the cause interpretation
+
+The public fix identifies a consistency failure rather than a missing cast or null check. The resource selected for disposal and the resulting EPT state must agree. Separate reference operations could fail to preserve that agreement; the fix binds them to an exchange on one target. [8]
+
+An explanation of UAF should therefore identify which object's lifetime ends and whether a reference can still treat it as valid. That is source-level lifetime analysis. Browser outcomes remain separate observations, reported in section 11.
 
 ## 4. The protection assumption behind the bypass research
 
@@ -299,7 +328,7 @@ The filename alone does not establish privilege escalation. It also does not pro
 
 ## 12. The invariant that matters for remediation
 
-The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] Here I describe that review in terms of resource lifetime. The linked patch and its release coverage were not directly verified during this edit, so this post does not identify a specific fixed shipping version.
+The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] For this expansion, I directly checked the linked public commit and source at that revision. [8–10] That verifies the source change, not its coverage across shipping Chrome versions or execution of a fixed binary.
 
 The defensive question is whether the target established at the start remains the same target through cleanup. If shared state can change in between, the assumption that reading it again preserves the earlier meaning needs scrutiny.
 
@@ -349,6 +378,16 @@ An engine can use a different synchronization design. The review question is how
 
 These are proposed defensive review and regression properties, not claims that five new tests were executed. They translate the lifetime concern in the records into properties an implementation should establish.
 
+### 12.3 What the public fix is intended to guarantee
+
+The change binds resource extraction and clearing to the same EPT entry. It removes the separate cleanup operation that resolves the reference again. This is the central difference established by the commit description. [8]
+
+The member-level exchange delegates to the EPT exchange. The entry implementation uses a compare-and-exchange loop to install a new payload, return the previous pointer value, and preserve the existing GC mark. This describes the sandbox branch at the fix revision. [10]
+
+The exchanged state is the **EPT entry's payload**. It does not mean that every heap handle is erased or every external reference is invalidated together. Nor is this a direct call to JavaScript's `Atomics.exchange`. [10]
+
+The fix links one entry's reference state to disposal of the resource obtained from it. It does not establish a solution to every lifetime error or verification that the target browser contains the fix.
+
 ## 13. Closing thoughts
 
 The question that kept returning was: does this reference still point to the same object, and is that object still alive?
@@ -372,3 +411,8 @@ Research records need the same precision. A line saying “it worked” is less 
 5. The author's subsequent research confirmation that the final exploit successfully read the `hosts` file. No additional execution log was verified and the PoC was not rerun during this edit.
 6. [V8 public API header — v8-primitive.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h). Public contracts and default disposal from main, retrieved on 1 October 2026, used as structural background. This does not identify the target M152 build's source revision.
 7. [V8 — external-pointer-table.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h). EPT design documentation from main, retrieved on 1 October 2026. Background for type and temporal safety, not proof of the target build or patch coverage.
+8. [V8 fix commit — 7d1fb25](https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03). External-string disposal fix naming issue `532204454`. Its description and changes were checked directly; this does not verify public access to the issue body or coverage in a shipping Chrome version.
+9. [V8 — string-inl.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h). Source for the cleanup excerpt and role analysis. Omission markers were added editorially.
+10. V8's [external-pointer-inl.h](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h) and [external-pointer-table-inl.h](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h) at the fix revision. Sources for exchange delegation, EPT payload behavior, and GC mark preservation. This revision was not established as identical to the recorded target M152 binary.
+11. [V8 — assert-scope.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/common/assert-scope.h). Confirms the debug-only assertion scope behind `DisallowGarbageCollection`; its name does not establish synchronization in a release build.
+12. [V8 — v8-primitive.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h). Source for the `Unaccount` callback contract and empty default implementation.
