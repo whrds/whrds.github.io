@@ -50,6 +50,16 @@ The public-source relationship checked here is `Chrome VERSION → Chromium DEPS
 
 The patch functions reproduced in this post come from fix revision `7d1fb25`. The recorded target revision and the fix revision have distinct roles; these records do not establish coverage in M153 or another shipping version.
 
+### 1.2 Execution conditions and what the result means
+
+Reading this research requires fixing **the target, the assumed starting capability, and OS execution privileges** together. The target is the M152 build identified in section 1.1. The starting assumption is that memory inside the V8 Sandbox can already be corrupted. The external-string lifetime issue asks whether native memory outside that boundary remains protected under that assumption.
+
+V8's memory boundary and Chrome's OS process boundary have different responsibilities. The former concerns the relationship between sandbox state and external memory; the latter restricts files and OS resources available to a process. Stating the assumed internal corruption also separates the starting capability from any claim of newly acquired file-access privileges. [1, 2]
+
+The reported **local tests used Linux x86-64 with the process sandbox disabled**. Elevated privileges in the local checkpoint were also granted before execution. Completed file I/O in that context is interpreted within the process's existing privileges. Remote executions have separate records; the local configuration is not attributed to every remote run. [3, 16]
+
+Keeping these conditions explicit allows the lifetime analysis in section 3 and the `hosts` read in section 11 to be evaluated together. The former concerns engine reference and object-lifetime relationships; the latter is a completion result from a particular execution. Binary provenance and build options require the records described alongside the identifiers in section 1.1.
+
 ## 2. ExternalString and external resources
 
 It is easy to picture a JavaScript string as an object whose character data all lives inside the JavaScript heap. `ExternalString` instead connects a string representation to external resources. That means the state visible to V8 and the state maintained by native resource owners must be considered together.
@@ -170,15 +180,15 @@ The function must keep reference cleanup consistent with disposal of the same re
 
 ### 3.4 Source facts and the cause interpretation
 
-The public fix identifies a consistency failure rather than a missing cast or null check. The resource selected for disposal and the resulting EPT state must agree. Separate reference operations could fail to preserve that agreement; the fix binds them to an exchange on one target. [8]
+The first invariant used to connect the fix with observations is that **the disposed resource must be the previous target of the EPT entry whose pointer was cleared**. If the lifetime of `R` ends, the entry `E` updated by that cleanup must have referred to that same `R`. Reference updates and disposal concerning different targets can leave an access path treating an ended object as valid. [8]
 
-An explanation of UAF should therefore identify which object's lifetime ends and whether a reference can still treat it as valid. That is source-level lifetime analysis. Browser outcomes remain separate observations, reported in section 11.
+**The contract failure on the cause side** is that separate reference operations could fail to preserve this target agreement. Atomic individual reads still require a guarantee that the beginning and end of the operation concern the same target. Stronger memory ordering alone does not establish target identity. This is why the cause is not attributed to casting syntax, a missing null check, or the mere presence of `Unaccount`.
 
-The causal criterion is **whether the disposed resource is the previous pointer from the selected EPT entry**. When reference interpretation and reference-state modification are separate operations, atomic individual reads still require a separate guarantee that both operations concern the same target. Stronger memory ordering alone does not create target identity.
+**The fix's response** is to use the exchange result from the selected entry as the disposal target. The fixed sandbox path selects an entry by handle and exchanges its payload. A successful CAS binds replacement with the new payload and determination of the immediately preceding payload in **one atomic operation**. Treating them as an independent determination of an old value followed by a separate write loses this relationship. [10]
 
-The fixed sandbox path first exchanges the selected entry's pointer value and saves the previous address in local `value`. Casting and callbacks then use the resource represented by that local value. This data flow binds **entry selection → that entry's previous value → disposal of that resource**. The heap member's handle, the existence of an EPT slot, and the pointer stored in its payload are distinct states. This function changes the payload's pointer value. [9, 10]
+The previous address returned by the entry function propagates through the delegation layers into `DisposeResource`'s local `value`. Casting and callbacks use the resource represented by that local value. Read together, code flows A–C show **the selected entry's exchange result leading to disposal of that same resource**. The heap member's handle, the existence of an EPT slot, and the payload's pointer value are distinct states; the sandbox exchange updates the selected payload. [9, 10]
 
-The cause is therefore not the mere use of a C++ pointer cast or the presence of `Unaccount`. The central contract is agreement between the selected resource and reference state throughout cleanup. Callback ownership and accounting contracts need their own review on top of that relationship.
+**The part requiring execution evidence** is how this source relationship corresponds to the error in the recorded binary. Patch source supports the cause interpretation, but does not establish every subsequent browser outcome or replace regression validation of a fixed binary. Execution review must establish which object's lifetime ended and whether a reference treating that object as valid was used. That question leads into the research progression in section 5 and the final result in section 11.
 
 ### 3.5 Inputs, branches, and effects of cleanup
 
@@ -242,17 +252,39 @@ These are analytical distinctions. The focus here was external-object lifetime a
 
 ## 5. The questions that guided the investigation
 
-Looking back through the notes, the research was not simply one program becoming progressively longer. It involved checking whether an earlier assumption remained valid in the next environment, then separating the changes when it did not.
-
-I first examined the consistency of the cleanup target to distinguish a source-level lifetime cause candidate from a generic crash. Execution observations then needed to connect use after release with external memory errors.
-
-Moving to Chrome required reviewing ownership, caching, and allocation differences rather than generalizing the standalone d8 result. Intermediate errors and their later effects also needed separate evidence: a crash alone does not establish control. Comparing repeated runs required consistent run units, environments, and observation methods to avoid merging unrelated experiments into one rate.
+When reading the preserved notes and later summaries, the useful connection is **which judgment an observation supported, and what needed to be checked next**. The following account connects review questions retained in source analysis, d8 tests, browser progress records, and completion summaries. Records from different conditions are not combined into a single execution transcript. [3, 16]
 
 ![Research questions grouped by cause, observation, browser context, and interpretation](/assets/research/chrome-m152-externalstring-race/04-research.svg)
 
 *Figure 4. A map of research questions. It does not show executable exploit steps or their dependencies.*
 
-When looking only at the final result, unsuccessful experiments can seem incidental. In practice, understanding which assumptions failed is necessary to explain the result. Similar-looking symptoms repeatedly had to be separated.
+### 5.1 From a source-level cause candidate to execution observations
+
+The starting hypothesis was that an external resource's lifetime could end while an EPT reference remained valid. The target-agreement invariant in section 3.4 supplies a criterion for examining that hypothesis. It explains why the review needed to go beyond a crash location and examine the relationship between the disposed object and a reference treating it as valid.
+
+The early d8 records contain UAF observations. They provided grounds for comparing the source-level lifetime possibility with execution evidence. Because the verdict in those tests was UAF observation, the next question was not a final file-read success rate: it was **whether the same lifetime relationship fails in the browser**. Section 6 covers the counts and environmental differences. [3]
+
+### 5.2 From d8 outcomes to browser object lifetime
+
+Different observation counts on the shared host and in the separate d8 test signaled that execution conditions mattered. Rather than attributing the difference to one of several changed conditions, the review needed to compare the event being counted and the observation interventions. The difference alone did not establish the vulnerability's presence or absence.
+
+A browser adds page and Worker lifetimes, string-retention paths, caches, and native allocations. Moving the d8 interpretation into that environment therefore expanded the questions. Alongside **whether a similar symptom appeared**, it became necessary to ask **whether the resource involved was the very object whose lifetime had ended**. The later ownership and consumer-path review addresses that question. [3]
+
+### 5.3 Separate surviving data from a live object
+
+Surviving string data did not support the assumption that the resource object remained alive. `resource_` concerns the resource object, while `resource_data_` concerns character data. Section 7.3's field types and API contracts supply the basis for separating data-retention contracts from object ownership. [17]
+
+If another owner retains the object, disappearance of some references does not establish the end of its lifetime. Conversely, data or address values surviving disposal do not establish that the object remains alive. Experiments that did not establish the expected lifetime ending, or whose later consumer did not use the expected target, required revisiting the original explanation. [3]
+
+The resulting review criterion was to treat **address changes, visible character data, disposal, and actual use as separate observations**. The next judgment needed object identity and a lifetime interval in which a value could be interpreted, rather than merely a value at a location. Section 7 makes that criterion concrete for reference counts and caches.
+
+### 5.4 From intermediate effects to a final completion verdict
+
+The browser records continue into review of external native-memory effects and subsequent behavior. Native-memory errors, observations at indirect calls, and completed file I/O remained separate verdicts. Section 8's separation of CFI call relationships from liveness, and section 9's separation of debugger intervention from execution outcomes, supply conditions for those verdicts. [3]
+
+The technical revision's evidence map also retains early remote results in which the final goal was not completed. They provide a failure baseline against treating an intermediate observation as final success. Later completion summaries and subsequent confirmation of the `hosts` read added a different supported outcome: **there are cases completing the final file read**. The exact overall trial count and a general success rate remain separate from that result. [5, 16]
+
+The research connection therefore does not simply attach a file read to the name UAF. It fixes the source-level target, reviews lifetime relationships in execution, checks browser object identity, and distinguishes what completion records establish. Section 11 presents the final result's evidence; section 12 examines the patch implementation addressing the same cause.
 
 ## 6. Moving from d8 to the browser
 
@@ -414,7 +446,7 @@ For initial d8 observations, the numerator counts trials meeting the defined UAF
 
 For a group containing multiple trials, count groups meeting their completion rule against all groups using the same policy and environment.
 
-`11/150` measures the first row. A rate for another row requires records for that execution unit. A sample restricted to trials satisfying an intermediate condition also has a different denominator from the full set. No failures in that conditional sample does not establish no failures across all trials.
+`11/150` measures the initial d8 trial observations. A rate for another execution unit requires records for that unit. A sample restricted to trials satisfying an intermediate condition also has a different denominator from the full set. No failures in that conditional sample does not establish no failures across all trials.
 
 The material contains measurements from different experiments and calculations based on models. I do not multiply those observation rates into an overall success rate. Races, object lifetimes, observation interventions, and execution conditions may be correlated; a product without evidence of independence and matching conditions is not a measured rate.
 
@@ -425,6 +457,16 @@ The exact final-campaign denominator remains unspecified in this material. Compl
 According to the author's subsequent confirmation, **this research received Daybreak approval.** [18] This research status is recorded alongside the successful `hosts` file read through the final exploit.
 
 Approval concerns an external review process; the file read concerns a particular execution. Approval does not supply a final-trial count or a build-specific repeatability rate. Details of the approval's scope, reward, or publication terms are not separately established here.
+
+### 11.4 Evidence connecting the cause analysis with the final result
+
+The first part is patch source at a fixed revision. It establishes the contract that the disposed resource agrees with the exchanged entry's previous target, and shows the fixed code's data flow maintaining that relationship. Early d8 aggregates separately record UAF observations under their own execution conditions. **Source supplies a criterion for interpreting the cause; execution observations supply material for comparing that criterion with actual behavior.** [3, 8–10]
+
+Browser progress records extend that comparison to ownership, caches, consumer paths, and external native-memory effects. The judgment concerns which object-lifetime issue explains the engine observations and later browser outcomes. Recasting an engine observation rate as a browser result, or combining intermediate results from different experiments into one completed execution, would lose that connection. [3, 16]
+
+The final part comprises local checkpoints, later completion summaries, and the author's confirmed successful `hosts` read. These concern final outcomes, interpreted within section 1.2's execution conditions and section 11.1's privilege scope. In particular, the local-test configuration, remote completion summaries, and final file-read confirmation retain their individual provenance. [3, 5]
+
+The preserved material does not contain every raw execution log. This connection organizes research records and subsequent confirmation; it does not claim that every stage was revalidated in one execution while writing the post. `EVIDENCE-MAP.md` points to report sections and checkpoints supporting individual claims. A matching ZIP manifest concerns file integrity, while Daybreak approval concerns review status. Neither supplies missing trial counts or raw execution records. [5, 16, 18]
 
 ## 12. The invariant that matters for remediation
 
