@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="1040" viewBox="0 0 680 1040" role="img" aria-labelledby="title-reference desc-reference">
+<title id="title-reference">External string reference and lifetime contracts</title>
+<desc id="desc-reference">Conceptual relationships, not a byte layout. A V8 heap string holds a handle resolved through an external pointer table to a native resource. The resource provides a character buffer. Table validity, resource lifetime, and ownership for the whole use must agree.</desc>
+<defs><marker id="ref-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10" fill="#a8dfc7"/></marker></defs>
+<rect width="680" height="1040" rx="20" fill="#13171b"/><g font-family="DejaVu Sans,Arial,sans-serif">
+<text x="32" y="44" font-size="16" fill="#adbbc6" font-weight="600" text-anchor="start">ZZoMb1E   /   RESEARCH NOTES</text>
+<text x="32" y="99" font-size="34" fill="#ecf1f4" font-weight="600" text-anchor="start">External references</text>
+<text x="32" y="136" font-size="24" fill="#adbbc6" font-weight="500" text-anchor="start">Conceptual model · not a byte layout</text>
+<rect x="32" y="169" width="616" height="236" rx="16" fill="#171d22" stroke="#52616c" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="56" y="208" font-size="23" fill="#adbbc6" font-weight="600" text-anchor="start">V8 SANDBOX</text>
+<rect x="56" y="236" width="568" height="135" rx="16" fill="#1c2228" stroke="#a8dfc7" stroke-width="1.5"/>
+<text x="82" y="278" font-size="28" fill="#a8dfc7" font-weight="600" text-anchor="start">H  String object</text>
+<text x="82" y="328" font-size="25" fill="#ecf1f4" font-weight="500" text-anchor="start">h  External-reference handle</text>
+<path d="M190 373 V516" fill="none" stroke="#a8dfc7" stroke-width="2.5" marker-end="url(#ref-arrow)"/>
+<text x="212" y="451" font-size="24" fill="#a8dfc7" font-weight="500" text-anchor="start">Resolve the reference</text>
+<text x="212" y="487" font-size="23" fill="#adbbc6" font-weight="500" text-anchor="start">across the heap boundary</text>
+<rect x="32" y="522" width="616" height="284" rx="16" fill="#171d22" stroke="#52616c" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="56" y="563" font-size="23" fill="#adbbc6" font-weight="600" text-anchor="start">NATIVE MEMORY</text>
+<rect x="56" y="590" width="244" height="135" rx="16" fill="#1c2228" stroke="#a8dfc7" stroke-width="1.5"/>
+<text x="78" y="629" font-size="27" fill="#a8dfc7" font-weight="600" text-anchor="start">E  EPT entry</text>
+<text x="78" y="670" font-size="24" fill="#ecf1f4" font-weight="500" text-anchor="start">Type + validity</text>
+<text x="78" y="706" font-size="23" fill="#adbbc6" font-weight="500" text-anchor="start">Table-managed</text>
+<path d="M302 656 H356" fill="none" stroke="#a8dfc7" stroke-width="2.5" marker-end="url(#ref-arrow)"/>
+<rect x="364" y="590" width="260" height="135" rx="16" fill="#1c2228" stroke="#a8dfc7" stroke-width="1.5"/>
+<text x="386" y="629" font-size="27" fill="#a8dfc7" font-weight="600" text-anchor="start">R  Resource</text>
+<text x="386" y="670" font-size="24" fill="#ecf1f4" font-weight="500" text-anchor="start">Ownership</text>
+<text x="386" y="706" font-size="23" fill="#adbbc6" font-weight="500" text-anchor="start">Native lifetime</text>
+<path d="M494 727 V754" fill="none" stroke="#a8dfc7" stroke-width="2.5" marker-end="url(#ref-arrow)"/>
+<text x="474" y="783" font-size="24" fill="#ecf1f4" font-weight="500" text-anchor="middle">B  Character buffer</text>
+<rect x="32" y="838" width="616" height="165" rx="16" fill="#1c2228" stroke="#a8dfc7" stroke-width="1.5"/>
+<text x="56" y="877" font-size="24" fill="#a8dfc7" font-weight="600" text-anchor="start">LIFETIME CONTRACT</text>
+<text x="56" y="918" font-size="24" fill="#ecf1f4" font-weight="500" text-anchor="start">A valid entry must resolve to a live target.</text>
+<text x="56" y="959" font-size="24" fill="#ecf1f4" font-weight="500" text-anchor="start">Ownership must cover the whole use.</text>
+</g></svg>

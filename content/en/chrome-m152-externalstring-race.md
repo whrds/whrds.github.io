@@ -53,6 +53,34 @@ This led to two separate questions: whether the **reference path is permitted**,
 
 The V8 Sandbox also needs to be distinguished from Chrome's process sandbox. The latter uses OS facilities to restrict process access to resources. [2] An out-of-sandbox memory error in V8 does not, by itself, establish escape from the browser's process sandbox or a kernel privilege escalation.
 
+### 2.1 Lifetime contracts in the public API
+
+The public header separates character access through `data()` and `length()` from resource cleanup. Its default cleanup includes the following excerpt from the resource base class. [6]
+
+```cpp
+virtual void Dispose() { delete this; }
+```
+
+Subclasses may override disposal. Immutable character data and a live resource object are different conditions: surviving bytes do not make a call through a destroyed resource valid. [6]
+
+### 2.2 Separate the string, resource, and character buffer
+
+I will use the following symbols to describe the relationship. They are analytical labels, not actual fields or a byte-level layout.
+
+| Symbol | Meaning | State to distinguish |
+|---|---|---|
+| H | String object in the V8 heap | Liveness tracked by the engine |
+| h | Handle representing an external reference | Which external target it references |
+| E | External pointer table entry | Whether the reference resolves to a valid target |
+| R | Native resource object | Resource ownership and lifetime |
+| B | Character buffer supplied by the resource | Validity of data access |
+
+Observing `H` does not automatically prove that `R` is alive. Retained contents in `B` do not prove that `R` survives either. These observations concern different states. Without that distinction, apparently normal character data can hide a resource-lifetime problem.
+
+![Conceptual relationship between a string object, handle, EPT entry, native resource, and character buffer](/assets/research/chrome-m152-externalstring-race/06-external-reference.svg)
+
+*Figure 2. The H, h, E, R, and B relationship. Table state must remain consistent with resource lifetime. This is not a reproduction of the target build's memory layout.*
+
 ## 3. The lifetime inconsistency under investigation
 
 The investigation began with the `ExternalString::DisposeResource` cleanup path. The retained analysis identifies a double-fetch in that path as the central cause. [3]
@@ -67,7 +95,29 @@ A later use of a retained reference can lead to a use-after-free, or UAF. But re
 
 ![Object and reference states after normal cleanup and after a lifetime inconsistency](/assets/research/chrome-m152-externalstring-race/02-lifetime.svg)
 
-*Figure 2. Normal cleanup keeps object lifetime and reference validity consistent. A lifetime error can leave a reference to an object whose lifetime has ended.*
+*Figure 3. Normal cleanup keeps object lifetime and reference validity consistent. A lifetime error can leave a reference to an object whose lifetime has ended.*
+
+### 3.1 Express the conditions for safe use
+
+The relationship can be represented by an analytical predicate. This is a model of conditions that must hold together, not V8 implementation code.
+
+```text
+SafeUse(h, R, t) =
+    ResolvesTo(h, R, t)
+    AND ExpectedKind(R)
+    AND Alive(R, t)
+    AND HeldForThisUse(R, t)
+```
+
+Resolution to `R`, the expected kind, liveness, and ownership covering the current use are distinct conditions. Satisfying some does not establish the others.
+
+Checking only at the beginning of a use is insufficient. A safe ownership model requires the **whole use interval to fall within the resource's lifetime**. A reference may still resolve as an address while temporal memory safety has already failed.
+
+### 3.2 Atomic reads and consistent operations
+
+An individual atomic read and a multi-operation cleanup that preserves one target's identity are different guarantees. Atomicity can prevent observing a partially mixed value; it does not make two reads at different times carry the same meaning.
+
+A double-fetch therefore needs more than a count of loads. The important question is whether the target established earlier remains the target of the later operation. Here that question is expressed as a source-level invariant rather than a list of concrete accesses and execution ordering.
 
 ## 4. The protection assumption behind the bypass research
 
@@ -75,13 +125,26 @@ This raises the obvious question: how can a boundary problem exist when an EPT i
 
 The direction investigated was whether **a mismatch between an indirect reference and its target's lifetime could undermine native memory safety outside the sandbox**. A reference following an allowed route and its target remaining valid are different guarantees.
 
-An address-book entry provides a rough analogy. Being registered in an address book does not guarantee that the same person still owns that contact information. Similarly, a reference that was valid when established does not remain safe merely because it once passed through a legitimate path. Real engines add ownership and concurrency, making the situation more complex than the analogy.
+EPT design includes temporal safety as well as type checks. The official source describes table management that keeps valid entries tied to live objects. Its `Verify()` and `ManagedResource` explanations likewise emphasize agreement between table state and resource lifetime. [7]
+
+The research question is consequently whether cleanup can break the consistency needed to sustain that guarantee. Verifying that indirection and type checks exist does not finish the lifetime analysis.
 
 The analysis therefore asked what a check actually guaranteed and what had to remain true independently. A reference can have the expected form or category while its target's lifetime has ended. An object can also be alive without being the same object that the current operation was supposed to use.
 
 That is the high-level meaning of the bypass investigated here: a failure to preserve lifetime and identity consistency between sandboxed state and an external object. The values, timing, object combinations, and later control-flow operations needed to turn that into a working chain are outside this public account.
 
 The same distinction matters defensively. Introducing indirection is only part of the design. The guarantees about the referenced target must continue to hold while it is being cleaned up.
+
+### 4.1 Spatial and temporal safety
+
+| Property | Question | Meaning in this analysis |
+|---|---|---|
+| Type consistency | Is this the expected kind of target? | Constrains reference interpretation |
+| Spatial safety | Is access within the permitted object's bounds? | Location and extent of an access |
+| Temporal safety | Is the object alive when it is used? | Relationship between release and use |
+| Identity consistency | Is this the same object established earlier? | Agreement across a multi-operation task |
+
+These are analytical distinctions. The focus here was external-object lifetime and identity. Spatial or type faults cannot be added to the findings without separate observations.
 
 ## 5. The questions that guided the investigation
 
@@ -97,7 +160,7 @@ Looking back through the notes, the research was not simply one program becoming
 
 ![Research questions grouped by cause, observation, browser context, and interpretation](/assets/research/chrome-m152-externalstring-race/04-research.svg)
 
-*Figure 3. A map of research questions. It does not show executable exploit steps or their dependencies.*
+*Figure 4. A map of research questions. It does not show executable exploit steps or their dependencies.*
 
 When looking only at the final result, unsuccessful experiments can seem incidental. In practice, understanding which assumptions failed is necessary to explain the result. Similar-looking symptoms repeatedly had to be separated.
 
@@ -130,6 +193,18 @@ The retained research includes experiments that rejected hypotheses. If the expe
 
 This applies beyond exploitation. In ordinary native debugging, “the value changed” and “this destructor ran and released the object” are different claims. Directly observed events should be distinguished from interpretations based on surrounding evidence.
 
+### 7.1 Read reference counts within an ownership contract
+
+A positive reference count does not, by itself, explain a safe use. The object's identity must be established, and acquiring ownership must be synchronized correctly with retirement. Attempting to inspect a count through an already destroyed object may itself be unsafe.
+
+I therefore treated `object identity → ownership acquisition → use interval → ownership release` as an analytical contract, rather than reading only `address → field value`. This describes review dimensions, not an executable reproduction sequence.
+
+### 7.2 Caching and ownership are different states
+
+A cache retains a value. Whether that value owns a resource or only observes one whose lifetime another owner guarantees requires separate inspection. Retaining a numeric address does not create a new owner.
+
+When browser results differed from d8, the existence of a cache alone did not establish the cause. It was necessary to distinguish paths that retain an object from paths that merely retain a reference value. Otherwise, a resource that was not destroyed and one that was destroyed while bytes remained could be misclassified as the same outcome.
+
 ## 8. Separating CFI from memory safety
 
 Control-flow protections were another distinct concern when studying later effects in Chrome. Control Flow Integrity, or CFI, constrains operations such as indirect calls to permitted control-flow conditions. The exact coverage must be checked for the build being examined. [4]
@@ -147,9 +222,17 @@ The reverse mistake is assuming that a control-flow check also resolves every li
 
 ![Reference path, lifetime, control flow, and OS privileges as separate review dimensions](/assets/research/chrome-m152-externalstring-race/05-guarantees.svg)
 
-*Figure 4. Distinct properties covered by different protections. This is not an inventory of all checks or bypass routes in a particular build.*
+*Figure 5. Distinct properties covered by different protections. This is not an inventory of all checks or bypass routes in a particular build.*
 
 For that reason, this post does not collapse those properties into a claim that every protection was bypassed. The original notes include research into later effects; this public account focuses on the guarantees examined and the meaning of the recorded results.
+
+### 8.1 Checked types and object liveness
+
+Clang distinguishes schemes such as `cfi-vcall` for virtual calls and `cfi-icall` for indirect function calls. Coverage depends on the build and the entity being checked. [4]
+
+An allowed call-type relationship and a continuously live object are different propositions. Conversely, a run stopped by a CFI check cannot count as completion of the behavior after that check.
+
+This public record does not include an inventory of every check in the target build. It therefore does not assign a particular check to each call or infer that all CFI protection was defeated from the completed file read. Lifetime findings and later completion remain distinct claims.
 
 ## 9. Observation tools were part of the environment
 
@@ -173,7 +256,7 @@ The demonstration compares three ways of representing the lifetime of the same a
 
 <!--DEMO-->
 
-[Open the conceptual demonstration separately](m152-lifetime-demo.html#en)
+[Open the conceptual demonstration separately](/assets/research/chrome-m152-externalstring-race/m152-lifetime-demo.html#en)
 
 The important feature is not the warning color. It is whether **object liveness and reference validity continue to describe a consistent relationship**. In a real investigation, that relationship must be supported by observations rather than assumed.
 
@@ -189,7 +272,7 @@ The wording needs to remain precise. The original PoC was not rerun while prepar
 
 ![Separate evidence requirements for symptoms, causes, outcomes, and rates](/assets/research/chrome-m152-externalstring-race/03-evidence.svg)
 
-*Figure 5. One crash cannot establish a cause, a final outcome, and a repeated-run success rate. Each claim requires different evidence.*
+*Figure 6. One crash cannot establish a cause, a final outcome, and a repeated-run success rate. Each claim requires different evidence.*
 
 | Claim | Available record | Supported scope |
 |---|---|---|
@@ -206,6 +289,14 @@ For the same reason, I did not preserve the original “100%” wording. Complet
 
 The final output obtained at elevated privilege needs its own qualification. That local checkpoint came from an environment with privileges already granted. It records completion of the defined action, not acquisition of new OS privileges through the vulnerability.
 
+### 11.1 What the hosts file read establishes
+
+The final run successfully read `hosts`. It establishes completion of the later file-read behavior in that test environment. [5] The OS judges file access against process privileges and applicable policies, so the execution environment is part of the result's interpretation.
+
+I recorded two dimensions: **what was established at the engine's memory boundary**, and **which later behavior completed in that environment**. The earlier native-memory observations and the final file read belong in the same account, but they are separate verdicts.
+
+The filename alone does not establish privilege escalation. It also does not prove access to every arbitrary file or the same outcome in another browser's default configuration. The confirmed result is a completed `hosts` file read.
+
 ## 12. The invariant that matters for remediation
 
 The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] Here I describe that review in terms of resource lifetime. The linked patch and its release coverage were not directly verified during this edit, so this post does not identify a specific fixed shipping version.
@@ -215,6 +306,48 @@ The defensive question is whether the target established at the start remains th
 It is also necessary to consider what other users can observe while cleanup is underway. A well-formed reference does not make a use safe if its target is being destroyed or has already ended its lifetime.
 
 The effect of a patch requires more than a plausible source-level intention. A comparison of identified pre-fix and post-fix builds under the same regression conditions is needed. That comparison is not supplied by the retained patch review.
+
+### 12.1 Defensive pseudocode that preserves ownership
+
+The lifetime contract can be illustrated by a **generic resource registry with locking and leases**. This is a design model, not a V8 patch or an actual engine class. A lease keeps the resource alive until its use finishes.
+
+```text
+AcquireForUse(key):
+    with registry_lock:
+        record = registry.lookup(key)
+        if record is absent or record.state != LIVE:
+            return no_lease
+        lease = record.acquire_lease()
+        return lease
+
+Retire(key):
+    with registry_lock:
+        record = registry.detach(key)
+        if record is absent:
+            return
+        record.state = RETIRING
+    record.wait_until_no_leases()
+    record.destroy_resource()
+    record.state = RETIRED
+```
+
+Three properties matter. Checking liveness and acquiring a lease share one synchronization scope. Retirement blocks new acquisition through the registered reference. Existing leases finish before the resource belonging to that same `record` is destroyed.
+
+The model assumes the record itself remains stable until retirement completes, with correctly synchronized lease acquisition, release, and waiting. Waiting while holding a lock needed by a lease holder can deadlock, so changing registry state and waiting for users are separate regions.
+
+An engine can use a different synchronization design. The review question is how it guarantees **no new uses, completion of existing uses, and cleanup of one consistent target**, rather than whether this exact pseudocode is copied into it.
+
+### 12.2 Properties for regression verification
+
+| Property | Expected state |
+|---|---|
+| An outstanding lease | Resource destruction has not completed |
+| Retirement begins | New lease acquisition is rejected |
+| Cleanup target selection | The same object is processed through completion |
+| Retirement completes | No remaining valid reference can use the ended resource |
+| Duplicate retirement request | The same resource is not destroyed twice |
+
+These are proposed defensive review and regression properties, not claims that five new tests were executed. They translate the lifetime concern in the records into properties an implementation should establish.
 
 ## 13. Closing thoughts
 
@@ -237,3 +370,5 @@ Research records need the same precision. A line saying “it worked” is less 
 3. The supplied research package: original blog draft, detailed report, initial d8 observations, browser progress records, final checkpoint, and lifetime-oriented patch review. These private records support the cases and measurements in this post. Operational code and detailed experimental material are not included in this public draft.
 4. [Clang — Control Flow Integrity](https://clang.llvm.org/docs/ControlFlowIntegrity.html). General background on CFI checks; it does not establish the configuration or results of the target Chrome build.
 5. The author's subsequent research confirmation that the final exploit successfully read the `hosts` file. No additional execution log was verified and the PoC was not rerun during this edit.
+6. [V8 public API header — v8-primitive.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h). Public contracts and default disposal from main, retrieved on 1 October 2026, used as structural background. This does not identify the target M152 build's source revision.
+7. [V8 — external-pointer-table.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h). EPT design documentation from main, retrieved on 1 October 2026. Background for type and temporal safety, not proof of the target build or patch coverage.
