@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString 레이스와 샌드박스 경계 연구</h1><p class="article-description">Chrome M152 ExternalString 레이스의 연구 방향과 객체 수명 문제를 정리하고, 최종 익스플로잇을 통한 hosts 파일 읽기 성공을 기록한다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">2026년 10월 1일</time><span>·</span><span>18 분 읽기</span></div></div></header><div class="prose"><p>이번에는 Chrome M152에서 분석했던 <code>ExternalString</code> 레이스를 정리해보겠다.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString 레이스와 샌드박스 경계 연구</h1><p class="article-description">Chrome M152 ExternalString 레이스의 연구 방향과 객체 수명 문제를 정리하고, 최종 익스플로잇을 통한 hosts 파일 읽기 성공을 기록한다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">2026년 10월 1일</time><span>·</span><span>22 분 읽기</span></div></div></header><div class="prose"><p>이번에는 Chrome M152에서 분석했던 <code>ExternalString</code> 레이스를 정리해보겠다.</p>
 <p>최종적으로는 익스플로잇을 통해 <code>hosts</code> 파일을 읽는 데 성공했다. [5] 이 글에서는 그 결과에 이르기까지 어떤 방향으로 연구했고, 중간에 어떤 가정을 다시 확인해야 했는지 함께 정리하고자 한다.</p>
 <p>처음 확인하려고 했던 것은 비교적 단순했다. V8 샌드박스 내부에서 발생한 메모리 손상이 외부 네이티브 객체의 수명 관리에 영향을 줄 수 있을까? 외부 포인터를 테이블로 관리하고 있는데, 그 테이블에 남은 참조와 실제 객체의 상태가 달라지면 어떻게 될까?</p>
 <p>막상 들어가 보니 레이스가 한 번 관측되는 것과 브라우저 안에서 그 의미를 설명하는 것은 별개의 일이었다. d8에서는 확인한 문제가 브라우저에서는 다른 모양으로 나타났고, 디버거로 들여다볼 때와 관측 도구 없이 실행할 때의 결과도 같지 않았다. 중간 단계를 확인한 것을 전체 과정의 성공으로 착각하지 않는 것부터 필요했다.</p>
@@ -68,6 +68,56 @@
 <p>여기서 출발 전제를 먼저 짚고 넘어가야 한다. 이 연구는 정상 JavaScript만으로 처음부터 모든 권한을 얻는 하나의 취약점을 설명하는 글이 아니다. <strong>이미 샌드박스 내부 메모리가 손상될 수 있는 상황에서도 외부 메모리까지 안전하게 격리되는가</strong>를 확인한 기록이다.</p>
 <p>전체 연구 패키지에는 선행 단계와 후속 과정이 함께 들어 있지만, 이번 글의 분석 대상은 외부 문자열 리소스의 수명 문제다. 앞부분에서 어떤 방식으로 내부 메모리에 접근할 수 있게 되었는지는 별개의 문제로 남겨두었다.</p>
 <p>이 전제를 빼면 독자는 “이 레이스 하나로 웹페이지에서 OS 권한까지 얻은 것인가?”라고 받아들일 수 있다. 실제로 확인한 범위를 설명하려면 무엇을 이미 할 수 있는 상태였는지부터 분리해야 한다.</p>
+<h3>1.1 대상 빌드와 출처를 고정하기</h3>
+<p>후속 기술 개정 자료는 대상을 버전 이름뿐 아니라 소스 리비전과 바이너리 지문으로 식별한다. 여기서는 공개 저장소에서 확인한 관계와 연구 자료에 보고된 값을 나누어 기록했다. [15, 16]</p>
+<table>
+<thead>
+<tr>
+<th>식별 항목</th>
+<th>값</th>
+<th>확인 근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chrome 버전</td>
+<td><code>152.0.7977.64</code></td>
+<td>아래 Chromium 리비전의 <code>chrome/VERSION</code></td>
+</tr>
+<tr>
+<td>Chromium 리비전</td>
+<td><code>506c834eccea</code></td>
+<td>해당 리비전의 VERSION과 DEPS를 직접 대조</td>
+</tr>
+<tr>
+<td>V8 버전</td>
+<td><code>15.2.124.18</code></td>
+<td>해당 V8 리비전의 <code>include/v8-version.h</code></td>
+</tr>
+<tr>
+<td>V8 리비전</td>
+<td><code>6aacaf6256a0</code></td>
+<td>Chromium DEPS의 <code>v8_revision</code> 값과 일치</td>
+</tr>
+<tr>
+<td>실행 플랫폼</td>
+<td>Linux x86-64</td>
+<td>기술 개정 자료에 보고된 환경</td>
+</tr>
+<tr>
+<td>로컬 프로세스 sandbox</td>
+<td>비활성화된 시험 문맥</td>
+<td>기술 개정 자료의 로컬 결과 설명</td>
+</tr>
+</tbody>
+</table>
+<p>축약하지 않은 식별값은 다음과 같다. Chrome 바이너리의 SHA-256은 <strong>연구 자료에 보고된 값</strong>이며, 이번 편집에서 해당 바이너리를 확보해 다시 계산한 결과는 아니다.</p>
+<pre><code class="language-text">Chromium revision: 506c834ecceaa943c5f41e6cfe7f68acb5c45346
+V8 revision:       6aacaf6256a069ee455142333b7d38cad1c8d6e0
+Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd0af
+</code></pre>
+<p>공개 소스로 확인한 연결은 <code>Chrome VERSION → Chromium DEPS → V8 VERSION</code>이다. 이 연결은 버전 표기의 정합성을 뒷받침한다. 실제 실행 파일이 바로 그 소스로 빌드됐는지, 어떤 빌드 옵션이 적용됐는지는 바이너리와 빌드 기록으로 별도 확인해야 한다.</p>
+<p>본문의 패치 함수는 수정 리비전 <code>7d1fb25</code>의 코드다. 기록상 대상 리비전과 수정 리비전을 구분해서 읽어야 하며, 이 자료만으로 M153이나 다른 배포 버전의 적용 상태를 판단하지 않는다.</p>
 <h2>2. ExternalString과 외부 리소스</h2>
 <p>문자열이라고 하면 JavaScript 힙 안에 문자 데이터까지 모두 들어 있다고 생각하기 쉽다. 하지만 <code>ExternalString</code>은 문자열 데이터를 외부 리소스와 연결해서 사용하는 표현이다. 따라서 문자열을 바라보는 V8 쪽 상태와 외부 리소스를 관리하는 네이티브 쪽 상태를 함께 생각해야 한다.</p>
 <p>이때 문제가 되는 것은 문자열의 내용만이 아니다. 해당 리소스를 누가 소유하는지, 언제 정리할 수 있는지, 마지막 사용자가 사라졌는지까지 맞아야 한다. 포인터가 가리키는 위치가 그럴듯하더라도, 그 위치에 있어야 할 객체의 수명이 끝났다면 더 이상 정상적인 참조가 아니다.</p>
@@ -235,6 +285,36 @@
 </table>
 <p>교환 이후 <code>value</code>는 지역 변수에 보관된다. 캐스팅은 이 값을 콜백 호출에 사용할 포인터 타입으로 표현하며, 별도의 객체 생성이나 생존 판정을 수행하지 않는다. 또한 <code>Unaccount</code>는 가상 콜백이므로 기본 구현이 비어 있다는 사실과 실제 하위 클래스의 동작은 구분해서 읽어야 한다. [9, 12]</p>
 <p>이 코드의 핵심은 테이블의 참조 상태를 바꾸는 연산과 리소스 객체의 정리 콜백을 함께 보는 것이다. 전자는 EPT 상태의 변화이고, 후자는 리소스 계약의 수행이다. 어느 한쪽의 코드만 보고 전체 수명 처리가 끝났다고 판단하기 어렵다.</p>
+<h3>3.6 대상 선택의 일관성과 사용 중 수명은 별개의 계약이다</h3>
+<p>수정 코드를 검토할 때는 두 질문을 나누어 보았다. 첫째는 정리 대상으로 선택한 항목과 반환받은 이전 리소스가 같은 연산에 묶이는가다. 둘째는 이미 리소스를 사용하는 다른 경로의 수명을 누가 보장하는가다. [8–10]</p>
+<table>
+<thead>
+<tr>
+<th>검토 계약</th>
+<th>코드에서 확인할 내용</th>
+<th>별도로 확인할 내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>대상 선택의 일관성</td>
+<td>선택한 EPT 항목의 교환 결과를 지역 변수로 받아 정리한다.</td>
+<td>객체를 보유한 다른 사용자의 소유권 계약</td>
+</tr>
+<tr>
+<td>참조 상태의 변경</td>
+<td>sandbox 경로는 정리 콜백 전에 해당 payload의 포인터 값을 비운다.</td>
+<td>다른 참조와 캐시의 유효 기간</td>
+</tr>
+<tr>
+<td>사용 중 수명 유지</td>
+<td>교환 함수 자체에는 lease 획득이나 기존 사용자 종료 대기가 없다.</td>
+<td>상위 계층이 사용과 정리를 어떻게 조정하는가</td>
+</tr>
+</tbody>
+</table>
+<p>CAS의 성공은 한 payload가 교체됐다는 사실을 정한다. 그 뒤의 가상 콜백까지 한 원자적 연산으로 감싸는 것은 아니다. 또한 반환된 이전 주소를 C++ 포인터로 표현하는 과정은 소유권 획득 연산이 아니다. 따라서 패치의 대상 일관성 보장과 전체 객체의 수명 계약을 같은 주장으로 합치지 않았다.</p>
+<p>이는 공개 패치가 부족하다는 판정이 아니다. 함수 하나가 직접 수행하는 작업과 호출자·리소스 구현이 함께 지켜야 하는 조건을 분리한 소스 검토다. 원자적 교환을 도입한 이유를 설명하려면 이 경계부터 정확히 잡아야 한다.</p>
 <h2>4. 우회가 겨냥한 보호 가정</h2>
 <p>그렇다면 “EPT가 있는데 어떻게 보호 경계를 넘어서는 문제가 생길 수 있었는가?”라는 질문이 남는다.</p>
 <p>이 연구에서 살펴본 방향은 <strong>외부 포인터를 간접 참조로 관리하더라도, 그 참조와 객체의 수명이 어긋나면 외부 네이티브 메모리의 안전성이 무너질 수 있는가</strong>였다. 참조가 허용된 경로를 거친다는 사실과 그 대상이 현재도 유효하다는 사실은 같은 보장이 아니다.</p>
@@ -359,6 +439,52 @@
 <h3>7.2 캐시와 소유권이 같은 상태는 아니다</h3>
 <p>캐시는 값을 보관하는 장소다. 보관된 값이 소유권을 가진 참조인지, 별도의 소유자가 수명을 보장하는 동안만 쓸 수 있는 관찰용 참조인지는 별도로 봐야 한다. 숫자로 된 주소가 남아 있다는 사실만으로 새 소유자가 생기지는 않는다.</p>
 <p>따라서 브라우저에서 결과가 d8과 달라졌을 때도, 캐시의 존재만 원인으로 지목하지 않았다. 어떤 경로가 실제로 객체를 유지하는지와 어떤 경로가 단지 참조 값을 보관하는지 구분해야 했다. 이 구분이 있어야 “해제가 안 됐다”와 “해제됐지만 값이 남아 있다”를 같은 결과로 묶지 않을 수 있다.</p>
+<h3>7.3 필드 타입과 API 계약으로 캐시를 읽기</h3>
+<p>대상 리비전의 <code>src/objects/string.h</code>와 <code>include/v8-primitive.h</code>를 대조하면 문자열 리소스 객체와 문자열 데이터 주소를 더 구체적으로 구분할 수 있다. [17]</p>
+<table>
+<thead>
+<tr>
+<th>소스 요소</th>
+<th>표현하는 대상 또는 계약</th>
+<th>수명 분석에서의 의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>UncachedExternalString::resource_</code></td>
+<td><code>kExternalStringResourceTag</code> 범위의 외부 리소스 멤버</td>
+<td>리소스 객체를 참조하는 경로</td>
+</tr>
+<tr>
+<td><code>ExternalString::resource_data_</code></td>
+<td><code>kExternalStringResourceDataTag</code> 범위의 외부 데이터 멤버</td>
+<td>리소스 객체의 참조와 다른 역할의 데이터 주소</td>
+</tr>
+<tr>
+<td><code>IsCacheable()</code></td>
+<td><code>data()</code> 반환값을 캐시할 수 있는지 알리는 가상 함수, 기본값은 true</td>
+<td>캐시 가능 여부가 리소스 소유권을 새로 만들지는 않음</td>
+</tr>
+<tr>
+<td><code>Lock()</code> / <code>Unlock()</code></td>
+<td>non-cacheable 리소스의 <code>data()</code> 값을 해당 구간에서 안정적으로 유지하는 계약</td>
+<td>API는 스레드 안전성과 중첩 호출 처리를 요구하며 기본 구현은 비어 있음</td>
+</tr>
+<tr>
+<td><code>Unaccount()</code></td>
+<td>외부 메모리 집계용 가상 콜백, 기본 구현은 비어 있음</td>
+<td>집계 상태와 실제 객체의 소멸은 구분</td>
+</tr>
+<tr>
+<td><code>Dispose()</code></td>
+<td>더 이상 필요하지 않은 리소스를 정리하는 가상 콜백, 기본 구현은 <code>delete this</code></td>
+<td>구체 하위 클래스가 어떤 메모리와 소유권을 정리하는지 확인</td>
+</tr>
+</tbody>
+</table>
+<p>태그가 다르다는 점은 두 멤버가 같은 의미의 포인터가 아니라는 사실을 보여 준다. 하지만 올바른 태그로 해석된다는 사실만으로 객체가 살아 있다는 결론을 얻을 수는 없다. 타입, 데이터의 안정성, 리소스의 생존은 서로 다른 속성이다.</p>
+<p><code>IsCacheable()</code>의 계약은 반환된 데이터 주소를 얼마나 오래 보관해도 되는지에 관한 것이다. 캐시할 수 없는 데이터는 현재 top-level task를 넘어 주소가 안정적이라고 기대하지 않으며, <code>Lock</code>과 <code>Unlock</code> 사이에는 안정적이어야 한다고 헤더가 설명한다. 기본 잠금 함수가 비어 있으므로 이름만으로 실제 mutex가 존재한다고 해석해서는 안 된다.</p>
+<p>같은 헤더는 외부 문자열 데이터가 immutable이어야 한다고 명시한다. 문자열 내용의 불변성과 그 내용을 담는 객체의 수명도 구분해야 한다. 내용이 바뀌지 않는다는 계약은 소유자가 해제된 뒤에도 주소를 계속 사용할 수 있다는 계약이 아니다.</p>
 <h2>8. CFI와 메모리 안전성을 구분한 이유</h2>
 <p>브라우저에서 후속 영향을 살펴볼 때는 제어 흐름 보호도 별도의 문제였다. CFI, 즉 Control Flow Integrity는 간접 호출 등이 허용된 제어 흐름 조건을 따르는지 제한하는 보호 기법이다. 대상 빌드의 구체적인 검사 범위는 따로 확인해야 한다. [4]</p>
 <p>여기서 쉽게 생기는 오해는 메모리의 어떤 값에 영향을 줬다는 것만으로 곧바로 임의 코드 실행을 얻었다고 보는 것이다. 수명 오류가 있다는 사실, 외부 메모리에 영향이 있다는 사실, 간접 호출에서 특정 결과가 나왔다는 사실, 마지막 동작까지 완료됐다는 사실은 모두 다르다.</p>
@@ -407,6 +533,46 @@
 <p>그래서 결과를 읽을 때는 원인을 설명하기 위한 실험과 반복 실행의 결과를 측정한 실험을 나누어 보았다. 전자는 “무엇이 일어나는가”를, 후자는 “정해진 조건에서 무엇이 얼마나 관측됐는가”를 설명한다.</p>
 <p>또한 하나의 실행 안에서도 레이스의 관측, 메모리 오류의 확인, 정해 둔 최종 동작의 완료는 서로 다른 판정이었다. 앞부분의 표시 하나만 보고 전체 실행을 성공으로 세면 후반부의 실패가 사라져 버린다.</p>
 <p>실패 기록을 남기는 이유도 여기에 있다. 마지막 출력이 없었다는 결과만 모으면 원인을 알 수 없고, 중간 결과만 모으면 완료 여부를 알 수 없다. 어떤 주장에 어떤 기록을 붙일 것인지 먼저 정리해야 했다.</p>
+<h3>9.1 증거가 답하는 질문을 먼저 분류하기</h3>
+<p>기술 개정 자료의 <code>EVIDENCE-MAP.md</code>는 주장마다 대응하는 보고서 절과 체크포인트를 정리한다. 이 지도는 근거를 찾는 데 도움이 되지만, 원시 실행 기록 자체를 대신하지는 않는다. [16]</p>
+<table>
+<thead>
+<tr>
+<th>근거 형태</th>
+<th>직접 답할 수 있는 질문</th>
+<th>추가로 필요한 근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>고정 리비전의 소스</td>
+<td>해당 함수가 어떤 상태와 계약을 다루는가</td>
+<td>실행한 바이너리와 소스의 연결</td>
+</tr>
+<tr>
+<td>디버거 중단점·강제 상태 변경</td>
+<td>중간 상태의 의미나 제한된 후속 동작이 무엇인가</td>
+<td>개입 없이 같은 결과가 발생하는 실행 기록</td>
+</tr>
+<tr>
+<td>실행 주체가 남긴 관측값</td>
+<td>해당 시행에서 어떤 상태를 확인했는가</td>
+<td>그 관측값의 판정 기준과 최종 출력</td>
+</tr>
+<tr>
+<td>파일 읽기 완료 기록</td>
+<td>정해진 환경에서 사전 정의한 최종 결과가 나왔는가</td>
+<td>반복 성능을 위한 전체 시행 수와 실패 기록</td>
+</tr>
+<tr>
+<td>패키지 SHA-256 manifest</td>
+<td>받은 파일이 manifest와 일치하는가</td>
+<td>실험 내용 자체의 사실 여부</td>
+</tr>
+</tbody>
+</table>
+<p>이번에 받은 기술 개정 ZIP은 manifest에 열거된 15개 파일의 SHA-256이 모두 일치했다. 이는 파일 무결성 검사 결과다. 보고된 실행 성과를 다시 실행해 검증했다는 뜻은 아니다. 특히 근거 지도에 이름이 있는 원본 보고서와 체크포인트가 모두 이 ZIP에 포함된 것은 아니므로, 파일 이름만으로 해당 로그를 직접 검수했다고 쓰지 않았다.</p>
+<p>원인을 설명하는 글에서는 소스와 관측이 같은 명제를 뒷받침하는지 확인해야 한다. 예를 들어 오류가 난 호출 위치는 증상 기록이고, 호출에 사용된 객체의 생존 여부는 별도의 원인 기록이다. 마지막 파일 내용의 출력 역시 앞의 원인 판정과 다른 결과 기록이다.</p>
 <h2>10. 객체 수명 개념 데모</h2>
 <p>아래 데모에서는 동일한 객체를 사용하는 상황을 세 가지로 비교해보겠다. 실제 Chrome이나 V8 취약점을 실행하는 PoC가 아니라, 객체와 참조의 상태를 미리 정해 둔 장면으로 보여주는 모형이다. 내부 타이머는 장면을 넘기는 용도로만 사용한다.</p>
 <ul>
@@ -472,6 +638,40 @@
 <p><code>hosts</code>는 이번 최종 실행에서 읽기에 성공한 파일이다. 이 결과가 말해주는 것은 해당 시험 환경에서 익스플로잇의 후속 파일 읽기 동작까지 완료됐다는 것이다. [5] OS는 실제 파일 접근을 프로세스의 권한과 적용된 정책에 따라 판단하므로, 파일 읽기 결과를 해석할 때는 그 실행 환경도 함께 봐야 한다.</p>
 <p>이 때문에 결과를 두 축으로 나누어 기록했다. <strong>엔진 내부의 메모리 경계에서 무엇이 확인됐는가</strong>와 <strong>그 실행 환경에서 어떤 후속 동작이 완료됐는가</strong>다. 앞의 외부 메모리 오류 기록과 뒤의 파일 읽기 완료를 함께 설명하되, 둘을 같은 판정으로 합치지는 않았다.</p>
 <p>파일 이름 자체가 권한 상승의 증거는 아니다. 또한 임의의 모든 파일을 읽을 수 있다거나, 기본 설정의 다른 브라우저에서도 같은 결과가 나온다는 주장까지 뒷받침하지는 않는다. 이번에 확정해 남기는 결과는 <code>hosts</code> 파일 읽기의 완료 사례다.</p>
+<h3>11.2 성공률에는 관측 사건과 실행 단위가 함께 필요하다</h3>
+<p>기술 개정 자료는 초기 d8 시험, 개별 렌더러 실행, 여러 시행을 포함하는 최종 실행 묶음을 나누어 읽도록 제안한다. 이 구분은 성공률의 분자와 분모가 같은 사건을 세는지 확인하기 위해 필요하다. [16]</p>
+<table>
+<thead>
+<tr>
+<th>측정 대상</th>
+<th>분자에 넣을 사건</th>
+<th>필요한 분모</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>초기 d8 오류 관측</td>
+<td>정의한 UAF 판정을 만족한 시행</td>
+<td>같은 조건으로 수행한 전체 d8 시행</td>
+</tr>
+<tr>
+<td>개별 브라우저 실행의 최종 완료</td>
+<td>사전 정의한 최종 결과까지 완료한 실행</td>
+<td>같은 종료 기준을 적용한 전체 개별 실행</td>
+</tr>
+<tr>
+<td>여러 시행을 포함한 실행 묶음</td>
+<td>정의한 완료 조건을 만족한 묶음</td>
+<td>같은 정책과 환경의 전체 묶음</td>
+</tr>
+</tbody>
+</table>
+<p><code>11/150</code>은 첫 행의 관측값이다. 이를 다른 행의 성공률로 바꾸려면 그 행에 해당하는 실행 기록이 필요하다. 또한 중간 조건을 만족한 표본만 추린 비율과 모든 시행을 기준으로 한 비율은 분모가 다르다. 조건부 표본에서 실패가 없었다는 사실은 전체 시행에서 실패가 없었다는 뜻이 아니다.</p>
+<p>자료에는 여러 실험의 수치와 계산 모형이 함께 등장하지만, 여기서는 서로 다른 실험의 관측 비율을 곱해 전체 성공률을 만들지 않았다. 레이스, 객체 수명, 관측 개입과 실행 환경은 상관될 수 있고, 독립성이나 같은 조건이라는 근거 없이 단순 곱을 실측값처럼 제시할 수 없다.</p>
+<p>최종 캠페인의 정확한 전체 분모는 이 자료에서도 확정되지 않는다. 따라서 파일 읽기의 완료 사례와 일반적인 반복 성공률을 구분해 기록한다.</p>
+<h3>11.3 승인 상태와 실행 결과를 별도로 기록하기</h3>
+<p>작성자의 후속 확인에 따르면 이번 연구는 <strong>Daybreak 승인을 받았다.</strong> [18] 최종 익스플로잇을 통한 <code>hosts</code> 파일 읽기 성공과 함께 연구 상태로 남긴다.</p>
+<p>승인 상태는 외부 검토 절차에 관한 정보이고, 파일 읽기는 특정 실행의 결과다. 두 항목을 함께 제시하되 승인 사실을 최종 시행 수나 빌드별 반복 성공률 대신 사용하지 않는다. 승인 범위·보상·공개 조건의 세부 사항은 이번 원고에서 별도로 확정하지 않았다.</p>
 <h2>12. 패치 관점에서 남는 불변식</h2>
 <p>보존한 패치 검토 메모는 “정리할 리소스를 얻은 항목과 무효화하는 항목의 일치”를 핵심 불변식으로 설명한다. [3] 이번 보강에서는 연결된 공개 수정 커밋과 그 리비전의 소스를 직접 확인했다. [8–10] 소스 변경은 확인했지만 Chrome 배포 버전별 적용 여부와 수정된 바이너리의 실행 결과는 확인하지 않았다.</p>
 <p>방어적으로 중요한 것은 작업의 앞부분에서 확인한 대상이 정리까지 같은 대상으로 유지되는가다. 중간에 공유 상태가 바뀔 수 있다면, 앞서 확인한 값을 뒤에서 다시 읽어도 같은 의미일 것이라는 가정부터 검토해야 한다.</p>
@@ -506,31 +706,39 @@ Retire(key):
 <tr>
 <th>속성</th>
 <th>기대하는 상태</th>
+<th>검토할 증거</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>사용권이 남아 있음</td>
 <td>실제 리소스 정리가 완료되지 않음</td>
+<td>소유권을 보유한 구간과 소멸 콜백의 관계</td>
 </tr>
 <tr>
 <td>정리 시작</td>
 <td>새 사용권 획득이 거부됨</td>
+<td>등록 상태와 사용권 획득의 동기화</td>
 </tr>
 <tr>
 <td>정리 대상 선택</td>
 <td>작업이 끝날 때까지 같은 객체를 처리함</td>
+<td>선택한 항목과 반환값·정리 대상의 일치</td>
 </tr>
 <tr>
 <td>정리 완료</td>
 <td>남은 유효 참조가 종료된 리소스를 사용하지 않음</td>
+<td>참조의 유효 기간과 리소스 종료 조건</td>
 </tr>
 <tr>
 <td>정리의 중복 요청</td>
 <td>같은 리소스가 두 번 정리되지 않음</td>
+<td>이미 비워진 항목과 콜백 횟수의 처리</td>
 </tr>
 </tbody>
 </table>
+<p>이 표의 사용권은 12.1절의 일반 설계 모형에 대한 용어다. 실제 V8 함수에 그런 lease 객체가 있다는 주장이 아니다. 특정 구현을 검토할 때는 해당 엔진의 소유권 방식으로 같은 속성을 표현해야 한다.</p>
+<p>고정 리비전의 EPT 교환 경로에서는 태그와 GC mark 보존도 함께 검토해야 한다. 포인터 값을 비운 뒤에도 entry payload가 그 구현의 형식과 mark 처리 계약을 지키는지 확인하는 문제다. <code>DCHECK</code>는 개발자가 기대한 불변식을 표현하지만, 그 존재만으로 release 빌드에 같은 검사가 들어 있다고 가정할 수는 없다. [10]</p>
 <p>이는 방어 설계와 회귀 검증의 관점에서 제안하는 기준이다. 이 다섯 항목의 시험을 새로 실행했다는 결과가 아니다. 기존 기록에서 얻은 수명 문제를 어떤 속성으로 확인해야 하는지 정리했다.</p>
 <h3>12.3 공개 패치가 보장하려는 것</h3>
 <p>이 수정은 개별 읽기를 더 강하게 만드는 데 그치지 않고, 리소스를 얻는 대상과 비우는 대상을 같은 EPT 항목으로 묶는다. 변경 후에는 별도로 참조를 다시 조회하여 정리하는 호출이 제거됐다. 이것이 커밋 설명에서 확인할 수 있는 핵심 차이다. [8]</p>
@@ -818,7 +1026,7 @@ Retire(key):
 <li><a href="https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md">Chromium — Sandbox</a>. OS 기반 프로세스 격리의 목적에 관한 공식 자료. 세부 설계 설명은 Windows 중심이다.</li>
 <li>첨부된 연구 패키지의 블로그 원문, 상세 연구보고서, 초기 d8 관측 메모, 브라우저 진행 기록, 최종 체크포인트 및 패치 수명 검토 메모. 본문의 사례와 수치는 이 비공개 기록을 기준으로 했다. 실행 코드와 상세 실험 자료는 이 공개용 원고에 포함하지 않았다.</li>
 <li><a href="https://clang.llvm.org/docs/ControlFlowIntegrity.html">Clang — Control Flow Integrity</a>. CFI 검사의 일반적인 의미에 관한 공식 자료. 대상 Chrome 빌드의 구성이나 우회 결과를 입증하는 자료는 아니다.</li>
-<li>작성자의 후속 연구 결과 확인. 최종 익스플로잇을 통한 <code>hosts</code> 파일 읽기 성공을 반영했다. 이번 원고 편집에서 추가 실행 로그를 검증하거나 PoC를 재실행한 것은 아니다.</li>
+<li>작성자의 후속 연구 결과 확인. 최종 익스플로잇을 통한 <code>hosts</code> 파일 읽기 성공을 반영했다. 기술 개정 자료의 <code>EVIDENCE-MAP.md</code>는 <code>RESEARCH_REPORT.md</code>와 <code>CHECKPOINT-issue532-jop-orw-v147.md</code>를 보존 근거로 지목한다. 이번에 받은 개정 ZIP에는 그 원본 실행 기록 전체가 포함되지 않으므로 추가 로그를 직접 검증하거나 PoC를 재실행한 결과로 기술하지 않았다.</li>
 <li><a href="https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h">V8 공개 API 헤더 — v8-primitive.h</a>. 2026년 10월 1일 조회한 main의 공개 API 계약과 기본 정리 구현을 구조 설명에 사용했다. 목표 M152 빌드와 동일한 소스 리비전이라는 뜻은 아니다.</li>
 <li><a href="https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h">V8 — external-pointer-table.h</a>. 2026년 10월 1일 조회한 main의 EPT 설계 설명. 타입·시간적 안전성의 설계 의도를 확인하는 배경 자료이며, 이 연구의 목표 빌드나 패치 적용 여부를 입증하지 않는다.</li>
 <li><a href="https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03">V8 수정 커밋 — 7d1fb25</a>. 이슈 <code>532204454</code>를 명시한 외부 문자열 정리 수정. 커밋 설명과 변경 내용을 직접 확인했다. 이슈 본문의 공개 상태나 특정 Chrome 배포 버전의 수정 여부까지 확인한 것은 아니다.</li>
@@ -828,6 +1036,10 @@ Retire(key):
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h">V8 — v8-primitive.h, 수정 리비전</a>. 해당 리비전의 <code>Unaccount</code> 콜백 계약과 기본 구현을 확인했다.</li>
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h">V8 — external-pointer.h, 수정 리비전</a>와 <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/LICENSE">원문 라이선스</a>. 클래스 안의 단일 태그 오버로드와 코드 재사용 조건을 확인했다.</li>
 <li><a href="https://eel.is/c++draft/atomics.types.operations">C++ working draft — atomic operations</a>. compare-and-exchange의 expected 인자 갱신과 weak CAS의 일시적 실패 가능성에 관한 일반적인 언어 계약을 확인했다.</li>
+<li>대상 소스의 <a href="https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/chrome/VERSION">Chromium VERSION</a>, <a href="https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/DEPS">Chromium DEPS</a>, <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-version.h">V8 버전 헤더</a>. 2026년 10월 1일 직접 대조해 버전과 리비전의 연결을 확인했다. 바이너리 해시나 실행 결과의 검증과는 구분했다.</li>
+<li>작성자가 제공한 <code>m152-blog-technical-revision.zip</code>의 <code>TECHNICAL-REVIEW.md</code>, <code>EVIDENCE-MAP.md</code>, <code>PUBLICATION-CHECKLIST.md</code>, <code>SOURCE-INDEX.md</code>. 대상 정보와 주장별 근거·수치 해석을 보강하는 편집 자료다. manifest의 15개 파일을 대조했으며, 이 무결성 검사를 실험 재현의 증거로 사용하지 않았다.</li>
+<li>대상 V8 리비전의 <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/src/objects/string.h">string.h</a> 및 <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-primitive.h">v8-primitive.h</a>. 리소스·데이터 멤버의 타입, 캐시 가능성, 잠금·정리 콜백 계약을 직접 확인했다.</li>
+<li>작성자의 후속 확인: Daybreak 승인 상태. 승인 통지 원문과 세부 조건을 이번 원고 편집에서 직접 검수한 것은 아니다.</li>
 </ol>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/chrome-m152-externalstring-race/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>

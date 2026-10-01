@@ -37,6 +37,31 @@ The full research package contains preceding and subsequent work. The subject he
 
 Without that distinction, a reader could reasonably wonder whether this race alone provided OS privileges from a webpage. Explaining the scope requires stating what capabilities were already assumed.
 
+### 1.1 Pinning the target build and its provenance
+
+The technical revision identifies the target by source revisions and a binary fingerprint as well as its version name. This account separates relationships checked in the public repositories from values reported by the research material. [15, 16]
+
+| Identifier | Value | Basis |
+|---|---|---|
+| Chrome version | `152.0.7977.64` | `chrome/VERSION` at the Chromium revision below |
+| Chromium revision | `506c834eccea` | VERSION and DEPS checked at that revision |
+| V8 version | `15.2.124.18` | `include/v8-version.h` at the V8 revision |
+| V8 revision | `6aacaf6256a0` | Matches `v8_revision` in Chromium DEPS |
+| Platform | Linux x86-64 | Environment reported in the technical revision |
+| Local process sandbox | Disabled in the test environment | Context reported for the local results |
+
+The full identifiers follow. The Chrome SHA-256 is **reported by the research material**; it was not independently recalculated from a binary during this edit.
+
+```text
+Chromium revision: 506c834ecceaa943c5f41e6cfe7f68acb5c45346
+V8 revision:       6aacaf6256a069ee455142333b7d38cad1c8d6e0
+Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd0af
+```
+
+The public-source relationship checked here is `Chrome VERSION → Chromium DEPS → V8 VERSION`. It supports consistency of the version identifiers. Establishing that the executed binary was built from those sources, with particular build options, requires the binary and build records separately.
+
+The patch functions reproduced in this post come from fix revision `7d1fb25`. The recorded target revision and the fix revision have distinct roles; these records do not establish coverage in M153 or another shipping version.
+
 ## 2. ExternalString and external resources
 
 It is easy to picture a JavaScript string as an object whose character data all lives inside the JavaScript heap. `ExternalString` instead connects a string representation to external resources. That means the state visible to V8 and the state maintained by native resource owners must be considered together.
@@ -176,6 +201,20 @@ After exchange, `value` remains in a local variable. The cast expresses it as th
 
 Table reference state and resource disposal must be read together. The former changes EPT state; the latter executes the resource contract. Reading only one side is insufficient to explain the complete lifetime operation.
 
+### 3.6 Target consistency and lifetime during use are separate contracts
+
+I read the fix against two questions: does the selected entry remain bound to the previous resource returned by the operation, and who preserves the lifetime of other users already accessing that resource? [8–10]
+
+| Contract | What the source establishes | What needs separate review |
+|---|---|---|
+| Consistent target selection | Cleanup uses the exchange result from the selected EPT entry. | Ownership held by other users of the resource |
+| Reference-state change | The sandbox path clears that payload's pointer value before disposal callbacks. | Validity periods of other references and caches |
+| Lifetime during outstanding use | Exchange itself does not acquire a lease or wait for existing users. | Coordination of use and disposal by surrounding code |
+
+A successful CAS establishes replacement of one payload. It does not make the later virtual callbacks part of the same atomic operation. Expressing the previous address as a C++ pointer is also not ownership acquisition. Target consistency and the whole object's lifetime contract therefore remain distinct claims.
+
+This is not a finding that the public patch is insufficient. It separates the work performed by this function from the conditions its callers and resource implementations must jointly preserve. That boundary is necessary to explain the purpose of the atomic exchange accurately.
+
 ## 4. The protection assumption behind the bypass research
 
 This raises the obvious question: how can a boundary problem exist when an EPT is present?
@@ -262,6 +301,25 @@ A cache retains a value. Whether that value owns a resource or only observes one
 
 When browser results differed from d8, the existence of a cache alone did not establish the cause. It was necessary to distinguish paths that retain an object from paths that merely retain a reference value. Otherwise, a resource that was not destroyed and one that was destroyed while bytes remained could be misclassified as the same outcome.
 
+### 7.3 Reading caches through types and API contracts
+
+The target revision's `src/objects/string.h` and `include/v8-primitive.h` make the resource object and string-data address more concrete. [17]
+
+| Source element | Target or contract | Lifetime significance |
+|---|---|---|
+| `UncachedExternalString::resource_` | External member using `kExternalStringResourceTag` | Reference path to the resource object |
+| `ExternalString::resource_data_` | External member using `kExternalStringResourceDataTag` | Data address with a role distinct from the resource-object reference |
+| `IsCacheable()` | Virtual declaration of whether `data()` may be cached; true by default | Cacheability does not create ownership of the resource |
+| `Lock()` / `Unlock()` | Keep non-cacheable `data()` stable within the protected interval | Thread safety and nested calls are required; base implementations are empty |
+| `Unaccount()` | Virtual accounting callback; empty base implementation | Accounting state differs from object destruction |
+| `Dispose()` | Virtual cleanup callback when the resource is no longer needed; defaults to `delete this` | Review which memory and ownership the subclass releases |
+
+The distinct tags show that the two members have different meanings. Correct tag interpretation does not establish liveness: type, data stability, and resource lifetime are separate properties.
+
+`IsCacheable()` governs whether a returned data address can be retained. The header says non-cacheable data is not expected to remain stable beyond the current top-level task, and requires stability between `Lock` and `Unlock`. Empty base lock methods also mean their names alone do not establish an actual mutex.
+
+The same header requires external string data to be immutable. Immutability of contents and lifetime of the object containing those contents are distinct contracts. Unchanging contents do not permit continued use of an address after its owner has been destroyed.
+
 ## 8. Separating CFI from memory safety
 
 Control-flow protections were another distinct concern when studying later effects in Chrome. Control Flow Integrity, or CFI, constrains operations such as indirect calls to permitted control-flow conditions. The exact coverage must be checked for the build being examined. [4]
@@ -302,6 +360,22 @@ I therefore read mechanism experiments separately from repeated-run measurements
 Even within one run, observing a race, confirming a memory error, and completing a predefined final action were separate verdicts. Counting a whole run as successful from one early marker would hide later failures.
 
 This is also why failure records matter. Recording only a missing final output does not explain the cause. Recording only intermediate progress does not establish completion. The evidence needed for each claim must be decided explicitly.
+
+### 9.1 Classifying the question each evidence item answers
+
+The technical revision's `EVIDENCE-MAP.md` associates claims with report sections and checkpoints. That map helps locate evidence; it does not replace the underlying execution records. [16]
+
+| Evidence form | Question it directly answers | Additional evidence needed |
+|---|---|---|
+| Source at a pinned revision | What state and contracts does the function handle? | Link between that source and the executed binary |
+| Breakpoint or forced debugger state | What does an intermediate state or a limited later operation mean? | Execution showing the outcome without that intervention |
+| Observation recorded by the executing component | What was observed in that trial? | Verdict criteria and final output |
+| Completed file-read record | Was the predefined outcome reached in the specified environment? | All trials and failures for a repeatability claim |
+| Package SHA-256 manifest | Do the received files match the manifest? | Truth of the experimental claims themselves |
+
+All 15 files listed in the supplied technical ZIP's manifest matched their SHA-256 digests. This is an integrity check, not a rerun of the reported experiment. The ZIP does not contain every original report and checkpoint named in its evidence map; naming a log must not be presented as directly auditing it.
+
+Source and observation should support the same proposition. A failing call location records a symptom; the lifetime of the object used by that call is a separate causal observation. Output of the final file contents is a third, outcome-oriented record.
 
 ## 10. A conceptual object-lifetime demonstration
 
@@ -354,6 +428,28 @@ I recorded two dimensions: **what was established at the engine's memory boundar
 
 The filename alone does not establish privilege escalation. It also does not prove access to every arbitrary file or the same outcome in another browser's default configuration. The confirmed result is a completed `hosts` file read.
 
+### 11.2 A rate needs both an observed event and an execution unit
+
+The technical revision distinguishes initial d8 trials, individual renderer executions, and final execution groups containing several trials. This determines whether the numerator and denominator count the same event. [16]
+
+| Measurement | Event counted in the numerator | Required denominator |
+|---|---|---|
+| Initial d8 error observation | Trial meeting the defined UAF verdict | All d8 trials under the same conditions |
+| Final completion of one browser execution | Execution reaching the predefined final outcome | All individual executions with the same stopping rule |
+| Group containing multiple trials | Group meeting its defined completion rule | All groups using the same policy and environment |
+
+`11/150` measures the first row. A rate for another row requires records for that execution unit. A sample restricted to trials satisfying an intermediate condition also has a different denominator from the full set. No failures in that conditional sample does not establish no failures across all trials.
+
+The material contains measurements from different experiments and calculations based on models. I do not multiply those observation rates into an overall success rate. Races, object lifetimes, observation interventions, and execution conditions may be correlated; a product without evidence of independence and matching conditions is not a measured rate.
+
+The exact final-campaign denominator remains unspecified in this material. Completed file reads and a general repeatability rate therefore remain separate claims.
+
+### 11.3 Recording approval status separately from execution outcomes
+
+According to the author's subsequent confirmation, **this research received Daybreak approval.** [18] This research status is recorded alongside the successful `hosts` file read through the final exploit.
+
+Approval concerns an external review process; the file read concerns a particular execution. Approval does not supply a final-trial count or a build-specific repeatability rate. Details of the approval's scope, reward, or publication terms are not separately established here.
+
 ## 12. The invariant that matters for remediation
 
 The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] For this expansion, I directly checked the linked public commit and source at that revision. [8–10] That verifies the source change, not its coverage across shipping Chrome versions or execution of a fixed binary.
@@ -396,13 +492,17 @@ An engine can use a different synchronization design. The review question is how
 
 ### 12.2 Properties for regression verification
 
-| Property | Expected state |
-|---|---|
-| An outstanding lease | Resource destruction has not completed |
-| Retirement begins | New lease acquisition is rejected |
-| Cleanup target selection | The same object is processed through completion |
-| Retirement completes | No remaining valid reference can use the ended resource |
-| Duplicate retirement request | The same resource is not destroyed twice |
+| Property | Expected state | Evidence to review |
+|---|---|---|
+| An outstanding lease | Resource destruction has not completed | Relationship between ownership intervals and destruction callbacks |
+| Retirement begins | New lease acquisition is rejected | Synchronization of registry state and ownership acquisition |
+| Cleanup target selection | The same object is processed through completion | Agreement of the selected entry, returned value, and disposal target |
+| Retirement completes | No remaining valid reference can use the ended resource | Reference validity periods and resource-ending conditions |
+| Duplicate retirement request | The same resource is not destroyed twice | Handling of an already cleared entry and callback count |
+
+Lease terminology belongs to the general design model in section 12.1. It does not claim that the V8 function contains such a lease object. Review the equivalent properties through the ownership model of the actual engine.
+
+The pinned EPT exchange path also calls for review of tags and GC mark preservation. Clearing a pointer must still respect that implementation's payload format and marking contract. `DCHECK` expresses a developer's expected invariant; its presence alone does not establish an equivalent release-build check. [10]
 
 These are proposed defensive review and regression properties, not claims that five new tests were executed. They translate the lifetime concern in the records into properties an implementation should establish.
 
@@ -638,7 +738,7 @@ Research records need the same precision. A line saying “it worked” is less 
 2. [Chromium — Sandbox](https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md). Official background on OS process isolation; the detailed design is Windows-oriented.
 3. The supplied research package: original blog draft, detailed report, initial d8 observations, browser progress records, final checkpoint, and lifetime-oriented patch review. These private records support the cases and measurements in this post. Operational code and detailed experimental material are not included in this public draft.
 4. [Clang — Control Flow Integrity](https://clang.llvm.org/docs/ControlFlowIntegrity.html). General background on CFI checks; it does not establish the configuration or results of the target Chrome build.
-5. The author's subsequent research confirmation that the final exploit successfully read the `hosts` file. No additional execution log was verified and the PoC was not rerun during this edit.
+5. The author's subsequent confirmation that the final exploit read `hosts`. The technical revision's `EVIDENCE-MAP.md` identifies `RESEARCH_REPORT.md` and `CHECKPOINT-issue532-jop-orw-v147.md` as retained evidence. The received revision ZIP does not contain all those original execution records; this edit does not represent direct verification of additional logs or a PoC rerun.
 6. [V8 public API header — v8-primitive.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h). Public contracts and default disposal from main, retrieved on 1 October 2026, used as structural background. This does not identify the target M152 build's source revision.
 7. [V8 — external-pointer-table.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h). EPT design documentation from main, retrieved on 1 October 2026. Background for type and temporal safety, not proof of the target build or patch coverage.
 8. [V8 fix commit — 7d1fb25](https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03). External-string disposal fix naming issue `532204454`. Its description and changes were checked directly; this does not verify public access to the issue body or coverage in a shipping Chrome version.
@@ -648,3 +748,7 @@ Research records need the same precision. A line saying “it worked” is less 
 12. [V8 — v8-primitive.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h). Source for the `Unaccount` callback contract and empty default implementation.
 13. [V8 — external-pointer.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h) and [original license](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/LICENSE). Sources for the in-class single-tag overload and code redistribution terms.
 14. [C++ working draft — atomic operations](https://eel.is/c++draft/atomics.types.operations). Background for expected-argument updates and spurious failure in weak compare-and-exchange.
+15. Target-source [Chromium VERSION](https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/chrome/VERSION), [Chromium DEPS](https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/DEPS), and [V8 version header](https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-version.h). Compared directly on 1 October 2026 to establish the relationship between versions and revisions, separately from binary fingerprints or execution outcomes.
+16. The author-supplied `m152-blog-technical-revision.zip`: `TECHNICAL-REVIEW.md`, `EVIDENCE-MAP.md`, `PUBLICATION-CHECKLIST.md`, and `SOURCE-INDEX.md`. Editorial evidence for target identifiers, provenance, and measurement interpretation. Its 15 manifest-listed files were checked for integrity; that check is not experiment reproduction.
+17. [string.h](https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/src/objects/string.h) and [v8-primitive.h](https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-primitive.h) at the target V8 revision. Sources checked for resource and data member types, cacheability, and lock/disposal callback contracts.
+18. The author's subsequent confirmation of Daybreak approval. The approval notice and its detailed terms were not independently audited during this edit.
