@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>[V8] Chrome M152 ExternalString race and sandbox boundary research · whrds.log</title><meta name="description" content="Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.">
+  <title>[V8] Chrome M152 ExternalString race and sandbox boundary research · whrds.log</title><meta name="description" content="The cause of Chrome M152&#039;s ExternalString double-fetch race, browser reproduction, reliability work, and the fix invariant.">
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/">
-  <meta property="og:type" content="article"><meta property="og:title" content="[V8] Chrome M152 ExternalString race and sandbox boundary research · whrds.log"><meta property="og:description" content="Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit."><meta property="og:url" content="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[V8] Chrome M152 ExternalString race and sandbox boundary research · whrds.log"><meta property="og:description" content="The cause of Chrome M152&#039;s ExternalString double-fetch race, browser reproduction, reliability work, and the fix invariant."><meta property="og:url" content="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=4891981d7f40">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[V8] Chrome M152 ExternalString race and sandbox boundary research","description":"Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.","datePublished":"2026-10-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/chrome-m152-externalstring-race/","author":{"@type":"Person","name":"whrds"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[V8] Chrome M152 ExternalString race and sandbox boundary research","description":"The cause of Chrome M152's ExternalString double-fetch race, browser reproduction, reliability work, and the fix invariant.","datePublished":"2026-10-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/chrome-m152-externalstring-race/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header"><div class="shell header-inner">
@@ -25,10 +25,10 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString race and sandbox boundary research</h1><p class="article-description">Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>45 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> race I investigated in Chrome M152.</p>
-<p>The final exploit successfully read the <code>hosts</code> file. [5] This post follows the research direction that led to that result and the assumptions I needed to revisit along the way.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString race and sandbox boundary research</h1><p class="article-description">The cause of Chrome M152&#039;s ExternalString double-fetch race, browser reproduction, reliability work, and the fix invariant.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>47 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> double-fetch race I investigated in Chrome M152.</p>
+<p>The public account omits build-specific addresses and the complete PoC, while retaining the cause, object-lifetime transitions, and the work used to stabilize repeated experiments. Final impact was validated by reading <code>/etc/hosts</code> in an authorized local environment. [5]</p>
 <p>The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?</p>
-<p>A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains <code>11/150</code> UAF observations; later review compared ownership and observation interventions. The preserved intensive research records span <strong>7–16 September 2026</strong>. This account follows local and remote outcomes alongside their experimental units. [19]</p>
+<p>A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains <code>11/150</code> UAF observations; later review compared ownership, allocator reuse, and observation interventions. The preserved intensive research records span <strong>7–16 September 2026</strong>. This account follows public local outcomes alongside their experimental units. [19]</p>
 <p>This post connects the cleanup cause and the invariant maintained by the fix with experiments, failures, and completion records in the preserved report. The main text follows research questions and outcomes; Appendix A retains all six exchange helpers and their code flows. A <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.en.md">public evidence summary</a> and the conceptual lifetime demonstration accompany the analysis. [19]</p>
 <h2>1. The starting assumption</h2>
 <p>The recorded target is Chrome 152.0.7977.64 / V8 M152. The subject is cleanup and lifetime management of ExternalString resources, and how changes to sandboxed state affect external native objects in the same renderer. Target identifiers and execution assumptions follow below; section 9.1 records the evidence available for each claim.</p>
@@ -45,7 +45,7 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
 <h3>1.2 Execution conditions and what the result means</h3>
 <p>The starting capability is <strong>that memory inside the V8 Sandbox can already be corrupted</strong>. On the M152 target in section 1.1, the investigation asks whether external-string resource lifetimes and native memory outside that boundary remain protected under this assumption. How the preceding work obtained in-sandbox access is a separate research subject.</p>
 <p>V8’s memory boundary separates sandboxed state from external memory. Chrome’s OS process boundary restricts accessible files and OS resources. These responsibilities frame the lifetime analysis in section 3 and the file-read result in section 11. [1, 2]</p>
-<p>The reported <strong>local tests used Linux x86-64 with the process sandbox disabled</strong>. Elevated privileges in the local checkpoint were granted before execution. Remote completion cases have separate records; that local configuration is not attributed to every remote run. Section 11.1 interprets the file-access outcome. [3, 16]</p>
+<p>The reported <strong>local tests used Linux x86-64 with the process sandbox disabled</strong>. Elevated privileges in the local checkpoint were granted before execution. The file read therefore validates completion within existing OS privileges; it does not mean that the chain acquired new OS privileges. Section 11.1 interprets the outcome. [3, 16]</p>
 <h2>2. ExternalString and external resources</h2>
 <p>It is easy to picture a JavaScript string as an object whose character data all lives inside the JavaScript heap. <code>ExternalString</code> instead connects a string representation to external resources. That means the state visible to V8 and the state maintained by native resource owners must be considered together.</p>
 <p>The character contents are only part of the problem. Ownership, cleanup, and the lifetime of the final user must also agree. A plausible pointer value does not establish that the object expected at that location is still alive.</p>
@@ -87,6 +87,88 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
 <p>Atomicity of one shared-state read and target agreement throughout cleanup are different guarantees. An atomic read prevents a partially mixed value, but does not establish that later work processes the same target.</p>
 <p>The developer’s intended result is <strong>agreement between the disposed resource and the previous target of the reference being cleaned up</strong>. The defect in the earlier path was that its reference-resolution operations could fail to maintain this agreement as one contract. Disposal and reference cleanup concerning different targets can leave an apparently valid path to an ended object, violating temporal safety. [8, 19]</p>
 <p>The fix retains the selected entry’s exchange result as a local cleanup value. Connecting <code>value</code> below with Appendix A’s return path shows that the central change is the <strong>data dependency between target selection and disposal</strong>, rather than merely the number of reads. The null check and accounting predicates govern the subsequent callbacks.</p>
+<h3>3.2.1 The pre-fix code and the <code>h1/h2</code> interleaving</h3>
+<p>The following excerpt reduces the target M152 revision to the semantics relevant to the defect. The implementation has additional branches and types; the essential point is that the first <code>load()</code> and final <code>store()</code> interpret <code>resource_</code> at different times.</p>
+<pre><code class="hljs language-cpp"><span class="hljs-comment">// Vulnerable shape — target M152 revision, simplified</span>
+Address value = resource_.<span class="hljs-built_in">load</span>(isolate);
+<span class="hljs-keyword">auto</span>* resource =
+    <span class="hljs-keyword">reinterpret_cast</span>&lt;ExternalStringResourceBase*&gt;(value);
+
+<span class="hljs-keyword">if</span> (resource != <span class="hljs-literal">nullptr</span>) {
+  resource-&gt;<span class="hljs-built_in">Unaccount</span>(<span class="hljs-keyword">reinterpret_cast</span>&lt;v8::Isolate*&gt;(isolate));
+  resource-&gt;<span class="hljs-built_in">Dispose</span>();
+  resource_.<span class="hljs-built_in">store</span>(isolate, kNullAddress);
+}
+</code></pre>
+<p>Let <code>h1</code> and <code>h2</code> be two valid handles. If the first read selects resource <code>R2</code> through <code>h2</code>, and another execution flow changes the heap field to <code>h1</code>, cleanup callbacks still run on <code>R2</code> while the final store can clear the EPT entry currently selected by <code>h1</code>.</p>
+<pre><code class="language-text">Cleanup flow                                 Concurrent flow
+────────────────────────────────────────────────────────
+read h2 from resource_ and select R2
+R2.Unaccount()/Dispose()
+                                             resource_ = h1
+resource_.store(null) reads current h1
+EPT[h1] is cleared while EPT[h2] retains disposed R2
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Point</th>
+<th><code>resource_</code></th>
+<th><code>EPT[h1]</code></th>
+<th><code>EPT[h2]</code></th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Start</td>
+<td><code>h2</code></td>
+<td>live R1</td>
+<td>live R2</td>
+<td>both resources alive</td>
+</tr>
+<tr>
+<td>After first read</td>
+<td><code>h2</code></td>
+<td>live R1</td>
+<td>live R2</td>
+<td>local value denotes R2</td>
+</tr>
+<tr>
+<td>After <code>Dispose(R2)</code></td>
+<td><code>h2</code></td>
+<td>live R1</td>
+<td>R2’s former address</td>
+<td>R2 lifetime ended</td>
+</tr>
+<tr>
+<td>After field change</td>
+<td><code>h1</code></td>
+<td>live R1</td>
+<td>R2’s former address</td>
+<td>the <code>h2</code> path remains</td>
+</tr>
+<tr>
+<td>After final store</td>
+<td><code>h1</code></td>
+<td><code>null</code></td>
+<td><strong>R2’s former address</strong></td>
+<td><code>h2</code> is dangling</td>
+</tr>
+</tbody>
+</table>
+<p>The defect is therefore not merely the syntax of reading twice. It is the possibility that <strong>the resource being disposed and the EPT entry being invalidated no longer have the same identity</strong>. On the research build, the released resource occupied a 48-byte size class, and later experiments separately measured whether a like-sized allocation reused that exact address. This size is build-specific and is not a portable property of other versions.</p>
+<p>The fixed form uses <code>exchange()</code> to clear the selected entry and return that entry’s previous address, then disposes only the returned object.</p>
+<pre><code class="hljs language-cpp">Address value = resource_.<span class="hljs-built_in">exchange</span>(isolate, kNullAddress);
+<span class="hljs-keyword">auto</span>* resource =
+    <span class="hljs-keyword">reinterpret_cast</span>&lt;ExternalStringResourceBase*&gt;(value);
+
+<span class="hljs-keyword">if</span> (resource != <span class="hljs-literal">nullptr</span>) {
+  resource-&gt;<span class="hljs-built_in">Unaccount</span>(<span class="hljs-keyword">reinterpret_cast</span>&lt;v8::Isolate*&gt;(isolate));
+  resource-&gt;<span class="hljs-built_in">Dispose</span>();
+}
+</code></pre>
+<p>The complete function below and Appendix A’s exchange helpers retain the shared-space branch and GC-mark handling omitted from the simplified comparison.</p>
 <h3>3.3 Read the complete cleanup function</h3>
 <p>This is the complete <code>DisposeResource</code> function from <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h#L1525"><code>src/objects/string-inl.h</code></a> at fix revision <code>7d1fb25</code>, including its branches, accounting callback, disposal call, and GC-related scopes. [9]</p>
 <pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">ExternalString::DisposeResource</span><span class="hljs-params">(Isolate* isolate)</span> </span>{
@@ -165,14 +247,25 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
 <p>The resulting review criterion was to treat <strong>address changes, visible character data, disposal, and actual use as separate observations</strong>. The next judgment needed object identity and a lifetime interval in which a value could be interpreted, rather than merely a value at a location. Section 7 makes that criterion concrete for reference counts and caches.</p>
 <h3>5.4 From intermediate effects to a final completion verdict</h3>
 <p>The browser records continue into review of external native-memory effects and subsequent behavior. Native-memory errors, observations at indirect calls, and completed file I/O remained separate verdicts. Section 8’s separation of CFI call relationships from liveness, and section 9’s separation of debugger intervention from execution outcomes, supply conditions for those verdicts. [3]</p>
-<p>The technical revision’s evidence map retains early remote results in which the final goal was not completed. They provide a failure baseline for comparing intermediate observations with completion verdicts. Later completion summaries and confirmation of the <code>hosts</code> read establish <strong>cases completing the final file read</strong>. Section 11.2 discusses execution units and denominators for rates. [5, 16]</p>
+<p>The technical revision’s evidence map retains early browser results in which the final action was not completed. They provide a failure baseline for comparing intermediate observations with completion verdicts. Later local completion summaries and confirmation of the <code>hosts</code> read establish <strong>cases completing the final file read</strong>. Section 11.2 discusses execution units and denominators for rates. [5, 16]</p>
 <p>The research connection therefore does not simply attach a file read to the name UAF. It fixes the source-level target, reviews lifetime relationships in execution, checks browser object identity, and distinguishes what completion records establish. Section 11 presents the final result’s evidence; section 12 examines the patch implementation addressing the same cause.</p>
 <h3>5.5 A chronology of the preserved evidence</h3>
 <p><strong>7 September — separate conditions from observed events.</strong> Roughly <code>0/950</code> on the shared host and <code>11/150</code> in the separate d8 test record the same class of observation under different conditions. Report section 4 preserves them as the starting point for reviewing environmental dependence. [19]</p>
 <p><strong>8 September — compare disposal with actual consumption.</strong> Browser records examine which object ended its lifetime and what was subsequently used, alongside address values. Local outcomes from that day separately record <code>hosts</code> output and a test-file output, requiring distinct completion goals. [19]</p>
 <p><strong>10–13 September — review ownership hypotheses and observation intervention.</strong> The report records why references remained, whether the expected lifetime ending was established, and how debugger-created states differed from natural execution observations. This strengthened explanations that had relied on changed values alone. [19]</p>
 <p><strong>14 September — compare conditional verdicts with overall completion.</strong> An eligible branch recorded <code>5/5</code> for a particular intermediate installation verdict, while completed output across the same experiment group was <code>2/60</code>. Separate local <code>hosts</code> reads were reported without dependence on debugger or parent-process memory observation. Section 11.2 interprets the counts. [19]</p>
-<p><strong>15–16 September — fix the unit of remote outcomes.</strong> Initial remote failures and subsequent completions remain in the record. The final report’s unit for no observed failure is a server execution group, distinct from an individual race verdict. Section 11 separates that reported conclusion from the availability of its exact denominator. [19]</p>
+<p><strong>15–16 September — fix the unit of repeated validation.</strong> Initial browser failures and subsequent completions remain in the record. The final report’s unit for no observed failure is an execution group containing several attempts, distinct from an individual race verdict. Section 11 separates that reported conclusion from the availability of its exact denominator. [19]</p>
+<h3>5.6 The changes that improved reliability over two weeks</h3>
+<p>Reliability did not improve merely by increasing the retry count. Each failure was classified by the stage where it stopped, and each change was kept only when it altered that stage’s verdict.</p>
+<ol>
+<li><strong>Separate execution environments:</strong> roughly <code>0/950</code> on the shared host and <code>11/150</code> under CPU-isolated d8 conditions were treated as different populations. The work first established a baseline in which the race could be observed.</li>
+<li><strong>Count semantic winners:</strong> a crash or changed value was insufficient. A winner had to show the expected relationship between the disposed object and retained handle. Address changes, disposal, and later consumption remained separate events.</li>
+<li><strong>Narrow the race window:</strong> promises, timers, logging, debugger stops, and unnecessary allocation were removed between publishing the handle and invoking the vulnerable cleanup. Instrumentation moved outside the window to reduce observer effects.</li>
+<li><strong>Separate allocator roles:</strong> long-lived objects retaining the dangling reference were separated from short-lived objects shaping allocator state. Exact-address reuse was measured independently for the 48-byte resource and a later 80-byte native object; simply increasing spray volume was not treated as proof.</li>
+<li><strong>Reduce the number of required races:</strong> the early design recreated a native-read condition several times. The later <code>read1</code> design connected the first genuine resource directly to the read primitive, reducing three consecutive race requirements to one.</li>
+<li><strong>Isolate attempts:</strong> a failed renderer was not reused for the next attempt. A fresh renderer recreated heap and allocator state, while the controller was limited to launch, timeout, and result collection.</li>
+</ol>
+<p>These changes did not make an individual race mathematically certain. They restructured the chain so that a later stage did not repeatedly demand the same accidental state. Under the simple model <code>p = 11/150</code>, reducing three consecutive races to one changes the modeled prefix from <code>p³ ≈ 1/2,536</code> to <code>p ≈ 1/14</code>. Browser events are not actually independent and identically distributed, so this compares design complexity rather than reporting a measured completion rate.</p>
 <h2>6. Moving from d8 to the browser</h2>
 <p>The early observations varied substantially across environments. The preserved notes describe roughly 950 runs on a shared host with no observed UAF, followed by a separate d8 test configuration with 11 observations in 150 runs. [3]</p>
 <p>The shared-host configuration recorded 0 UAF observations, while the separate d8 sample’s observation rate was approximately 7.33%. Each figure applies to its own test conditions and sample.</p>
@@ -222,7 +315,7 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
 <p>The earlier technical revision’s <code>EVIDENCE-MAP.md</code> associated claims with report sections. The new full-review ZIP actually includes the <strong>research report and some original checkpoints and aggregate records</strong> named by that map. Reference 19 links a public summary of the materials compared here. [16, 19]</p>
 <p><strong>Source checked directly:</strong> the <code>Chrome VERSION → Chromium DEPS → V8 VERSION</code> relationship, target API contracts, and cleanup/exchange functions at fix revision <code>7d1fb25</code>. Target and fix sources are different revisions. The executed binary was not obtained to recalculate its SHA-256 or inspect build options, so identity with the target source remains unestablished. No fixed-binary regression run was performed. Shipping-version coverage, including M153, and public access to the issue body were not separately verified. [8–10, 15, 17]</p>
 <p><strong>Symptom and cause observations:</strong> call locations, object liveness, reference use, and external-memory effects require corresponding records. The new report explicitly excludes simple crashes and executions after forced intermediate state from whole-run completion verdicts. The confirmed cause here is cleanup-target consistency; ownership, caching, and CFI review questions are not additional confirmed vulnerabilities. Spatial/type faults and every CFI check site in the target build are not separately established findings either. [3, 4, 19]</p>
-<p><strong>Completion records and subsequent confirmation:</strong> local completion records now support the author-confirmed <code>hosts</code> read. The v147 checkpoint concerns a separate local test output and is not cited as an official remote result. Final remote completion and no observed failure are claims recorded in the report and retained archive description; this edit did not audit every raw campaign log or an exact final session count. Daybreak approval remains author-confirmed, without direct review of the notice, scope, reward, or publication terms. [5, 18, 19]</p>
+<p><strong>Completion records and subsequent confirmation:</strong> local completion records support the author-confirmed <code>hosts</code> read. The v147 checkpoint concerns a separate local test output. The report also states that no failure was observed in the later repeated validation, but this edit did not audit every raw campaign log or an exact final session count. The public account therefore centers on verifiable local outcomes and measurements with preserved denominators. [5, 19]</p>
 <p><strong>Integrity and verification scope:</strong> all 15 manifest-listed files in the earlier technical ZIP and all 20 <code>SHA256SUMS</code> files in this full-review ZIP matched their digests. The additional original report expands the evidence available for review, while matching hashes establish file integrity. Preparing this post did not involve executing the original PoC or revalidating every stage in one run. Hashes for the public summaries identify those distributed summary files themselves. [16, 19]</p>
 <h2>10. A conceptual object-lifetime demonstration</h2>
 <p>The demonstration is a <strong>conceptual model</strong> comparing three object-lifetime states. It displays predefined object and reference states; its timer advances the scenes. It does not execute a Chrome/V8 vulnerability or a particular patch’s regression test.</p>
@@ -234,34 +327,110 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
 <div class="concept-demo-embed"><iframe data-concept-demo src="/assets/research/chrome-m152-externalstring-race/m152-lifetime-demo.html#en" title="Object lifetime concept demo" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></div>
 <p><a href="/assets/research/chrome-m152-externalstring-race/m152-lifetime-demo.html#en">Open the conceptual demonstration separately</a></p>
 <p>The important feature is not the warning color. It is whether <strong>object liveness and reference validity continue to describe a consistent relationship</strong>. In a real investigation, that relationship must be supported by observations rather than assumed.</p>
-<h2>11. Final exploit and successful hosts file read</h2>
-<p>The investigation continued, and <strong>the final exploit successfully read the <code>hosts</code> file.</strong> [5] The new review material separately records that local completion, local test output, and remote completion by the official-server variant. Distinguishing provenance, privileges, and execution units clarifies both what completed and which repeatability claims were recorded. [19]</p>
+<h2>11. Local validation and the <code>hosts</code> file read</h2>
+<p>The investigation continued, and <strong>the final chain successfully read local <code>/etc/hosts</code>.</strong> [5] The early d8 UAF observation, browser intermediate states, and final file read remained different success verdicts. This separation showed which changes improved the race itself and which stabilized later stages. [19]</p>
 <p><img src="/assets/research/chrome-m152-externalstring-race/03-evidence.svg" alt="Separate evidence requirements for symptoms, causes, outcomes, and rates"></p>
 <p><em>Figure 6. One crash cannot establish a cause, a final outcome, and a repeated-run success rate. Each claim requires different evidence.</em></p>
-<h3>11.1 Local and remote result scope</h3>
-<p>The successful <code>hosts</code> read establishes <strong>completion of the final file read in that local test environment</strong>. Report section 9 distinguishes early <code>hosts</code> output from separate local test output; section 14 records local completions without dependence on debugger or parent-process memory observation. Those are the records’ verdicts, rather than reruns performed for this edit. [5, 19]</p>
-<p>The preserved outcomes are separated as follows.</p>
-<ul>
-<li><strong>Local <code>hosts</code> read:</strong> completion of the predefined file read.</li>
-<li><strong>Local test output:</strong> the v147 checkpoint’s local fixture result under elevated privilege, distinct from an official-server result.</li>
-<li><strong>Remote completion:</strong> server-variant completions recorded by the report and final v1526 archive description. The report names <code>/flag/flag</code> as the remote goal path. Submission results from other M152 vulnerability chains are not used as evidence for this issue. [19]</li>
-</ul>
-<p>The OS evaluates file access against process privileges and policies. Section 1.2’s local tests had the process sandbox disabled and elevated privileges granted beforehand. That output records completion within existing privileges, not acquisition of new OS privileges. The cases do not guarantee access to every arbitrary file or equivalent results in another browser’s default configuration.</p>
-<h3>11.2 Observation units and success rates</h3>
-<p>The observation units are <strong>one d8 trial, an individual browser execution, and a server execution group containing several trials</strong>. Define both the success event and the full set of trials before reporting a rate. [16, 19]</p>
-<p>The early <code>11/150</code>, approximately <code>7.33%</code>, counts d8 trials meeting the UAF verdict against all d8 trials. It is not a browser completion rate. A sample eligible under an intermediate condition also differs from the full trial population.</p>
-<p><strong>The early design model:</strong> the review applies <code>p = 11/150</code> under the assumptions that all events are independent and equally probable. <code>p⁵</code> is approximately one in 471,512; <code>p⁶</code> is approximately one in 6,429,711. This illustrates how a conjunction of conditions can produce a very small modeled value, rather than measuring actual browser completion. [19]</p>
-<p><strong>Conditional verdicts and overall completion:</strong> report section 13.5 records <code>5/5</code> for a particular intermediate installation verdict within an eligible branch, but completed output across the same three experiment groups was <code>2/60</code>. The former is an intermediate verdict in a restricted sample; the latter is the final verdict across all trials. Calling the conditional <code>5/5</code> an overall “100%” success rate hides excluded failures. [19]</p>
-<p><strong>The final server record:</strong> report section 19 states that <strong>no failure was observed at the execution-group level in the final campaign</strong>. That reported outcome should be retained, while its exact total session count was not preserved. It therefore cannot supply a definite <code>N/N</code>, a general repeatability rate, or a statistical confidence interval, and does not mean every individual race or browser execution succeeded. [19]</p>
-<p>Rates from different versions and conditions are not multiplied together, nor is the earlier <code>2/60</code> treated as the final version’s probability. Conditional events may be correlated and populations differ. <strong>Zero observed failures and 0/N with a known denominator are different statistical records.</strong></p>
-<h3>11.3 Recording approval status separately from execution outcomes</h3>
-<p>According to the author’s subsequent confirmation, <strong>this research received Daybreak approval.</strong> [18] This research status is recorded alongside the successful <code>hosts</code> file read through the final exploit.</p>
-<p>Section 9.1 records the approval confirmation’s provenance and the extent of review of its detailed terms.</p>
-<h3>11.4 Evidence connecting the cause analysis with the final result</h3>
+<h3>11.1 Scope of the public result</h3>
+<p>The successful <code>/etc/hosts</code> read establishes <strong>completion of a predefined file read in an authorized local environment</strong>. Report section 9 distinguishes early output from separate local test output; section 14 records local completions without dependence on debugger or parent-process memory observation. Those are preserved verdicts, not reruns performed for this edit. [5, 19]</p>
+<p>The OS evaluates file access against process privileges and policies. Section 1.2’s tests had the process sandbox disabled and required privileges granted beforehand. The result therefore demonstrates chain completion within existing privileges, not acquisition of new OS privileges. It does not guarantee equivalent access to other files or in a default browser configuration.</p>
+<p>The public article omits build-specific addresses, control-flow details, and the complete PoC. It retains the cause code, the <code>h1/h2</code> transition, size-class reuse verdicts, and rate interpretation so that the basis of the result remains reviewable.</p>
+<h3>11.2 Observations and a simple probability model</h3>
+<p>The early <code>11/150</code>, approximately <code>7.33%</code>, is a sample rate for d8 trials meeting the defined UAF verdict. If that value is called <code>p</code> and every event is <strong>assumed</strong> to be independent and equally likely, consecutive successes produce the following model.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">Required consecutive races</th>
+<th style="text-align:right">Model</th>
+<th style="text-align:right">Probability</th>
+<th style="text-align:right">Approximately one in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">1</td>
+<td style="text-align:right"><code>p</code></td>
+<td style="text-align:right">7.3333%</td>
+<td style="text-align:right">14</td>
+</tr>
+<tr>
+<td style="text-align:right">2</td>
+<td style="text-align:right"><code>p²</code></td>
+<td style="text-align:right">0.53778%</td>
+<td style="text-align:right">186</td>
+</tr>
+<tr>
+<td style="text-align:right">3</td>
+<td style="text-align:right"><code>p³</code></td>
+<td style="text-align:right">0.039437%</td>
+<td style="text-align:right">2,536</td>
+</tr>
+<tr>
+<td style="text-align:right">4</td>
+<td style="text-align:right"><code>p⁴</code></td>
+<td style="text-align:right">0.0028920%</td>
+<td style="text-align:right">34,578</td>
+</tr>
+<tr>
+<td style="text-align:right">5</td>
+<td style="text-align:right"><code>p⁵</code></td>
+<td style="text-align:right">0.00021208%</td>
+<td style="text-align:right">471,512</td>
+</tr>
+<tr>
+<td style="text-align:right">6</td>
+<td style="text-align:right"><code>p⁶</code></td>
+<td style="text-align:right">0.000015553%</td>
+<td style="text-align:right">6,429,711</td>
+</tr>
+</tbody>
+</table>
+<p>The combined rate is therefore not calculated as <code>14 ^ 186 * 2536 * 34578</code>. Independent probabilities are multiplied; for repeated equal <code>p</code>, the result is <code>pⁿ</code>. The final column is the reciprocal probability, expressed as a rough expected interval.</p>
+<p>This table models the cost of an early design requiring several races; it is not a measured browser completion rate. Real events can be correlated through allocator state and scheduling, and different stages need not have the same probability. That is why the research reduced repeated race requirements and reused already-established state.</p>
+<h3>11.3 Per-stage measurements and the final repeated record</h3>
+<p>The preserved records contain the following directly comparable observations.</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th style="text-align:right">Observation</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shared-host d8</td>
+<td style="text-align:right"><code>0/about 950</code></td>
+<td>no UAF verdict observed in that environment</td>
+</tr>
+<tr>
+<td>Isolated d8 condition</td>
+<td style="text-align:right"><code>11/150</code></td>
+<td>7.33% single-UAF verdict</td>
+</tr>
+<tr>
+<td>Early local browser</td>
+<td style="text-align:right"><code>1/20</code></td>
+<td>whole-run sample for that version</td>
+</tr>
+<tr>
+<td>Later full experiment groups</td>
+<td style="text-align:right"><code>2/60</code></td>
+<td>completed output including the upstream race</td>
+</tr>
+<tr>
+<td>Eligible later branch</td>
+<td style="text-align:right"><code>5/5</code></td>
+<td>intermediate installation verdict after entering the condition</td>
+</tr>
+</tbody>
+</table>
+<p><code>5/5</code> is conditional, while <code>2/60</code> covers all trials, so the figures are not interchangeable. The later repeated-validation record states that <strong>no failure was observed at the execution-group level</strong>. Its exact final session count was not preserved, however, so it cannot provide a definite <code>N/N</code>, statistical confidence interval, or universal “100% success rate.” The informal description that the final version was nearly 100% refers to that last grouped observation; it does not mean each individual race always succeeded. [19]</p>
+<h3>11.4 Evidence connecting cause and result</h3>
 <p>The first evidence item is patch source at a pinned revision. The data dependency from a selected entry’s previous address through local <code>value</code> to disposal callbacks is directly visible. It supports the cleanup-target agreement interpretation of the cause. [8–10]</p>
-<p>The second comprises d8 aggregates and browser progress records. Aggregates record whether the defined error was observed; progress records examine which object’s ownership, lifetime, and consumption explain the observation. Report section 2’s verdict criteria distinguish crashes, cause observations, intermediate validation, and completion. [3, 19]</p>
-<p>The third comprises outcome-specific records: the report’s local <code>hosts</code> cases, v147’s local fixture checkpoint, and the final remote completion description. These retain distinct documents and verdicts. Access to the original report and some checkpoints now allows direct comparison of their accounts, expanding the evidence available for the earlier draft. The public summary records document sections and claim scope together. [5, 19]</p>
-<p>In this connection, <strong>source explains the cause contract, observations explain objects and execution events, and completion records explain final outcomes</strong>. Section 9.1 collects the review scope, section 11.1 file privileges, and section 11.2 rate units.</p>
+<p>The second comprises d8 aggregates and browser progress records. Aggregates record whether the defined error was observed; progress records examine which object’s ownership, lifetime, and consumption explain the observation. Crashes, cause observations, intermediate validation, and completion are not counted as the same success. [3, 19]</p>
+<p>The third comprises local outcome records. The report’s <code>/etc/hosts</code> cases and the separate fixture checkpoint retain distinct documents and verdicts. The public summary records their sections and claim scope. [5, 19]</p>
+<p>In this connection, <strong>source explains the cause contract, observations explain objects and execution events, and completion records explain final outcomes</strong>. Section 9.1 collects the review scope, section 11.1 file privileges, and sections 11.2–11.3 rate units.</p>
 <h2>12. The invariant that matters for remediation</h2>
 <p>The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] Comparing the public fix with source at that revision shows how the exchange path below maintains it. Section 9.1 records the source and binary verification scope. [8–10]</p>
 <p>The defensive question is whether the target established at the start remains the same target through cleanup. If shared state can change in between, the assumption that reading it again preserves the earlier meaning needs scrutiny.</p>
@@ -592,7 +761,6 @@ Retire(key):
 <li>Target-source <a href="https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/chrome/VERSION">Chromium VERSION</a>, <a href="https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/DEPS">Chromium DEPS</a>, and <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-version.h">V8 version header</a>. Compared directly on 1 October 2026 to establish the relationship between versions and revisions.</li>
 <li>The author-supplied <code>m152-blog-technical-revision.zip</code>: <code>TECHNICAL-REVIEW.md</code>, <code>EVIDENCE-MAP.md</code>, <code>PUBLICATION-CHECKLIST.md</code>, and <code>SOURCE-INDEX.md</code>. Editorial evidence for target identifiers, provenance, and measurement interpretation. Section 9.1 records its manifest check.</li>
 <li><a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/src/objects/string.h">string.h</a> and <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-primitive.h">v8-primitive.h</a> at the target V8 revision. Sources checked for resource and data member types, cacheability, and lock/disposal callback contracts.</li>
-<li>The author’s subsequent confirmation of Daybreak approval. Section 9.1 records the verification scope.</li>
 <li>The author-supplied <code>m152-blog-full-review-20261001.zip</code>: full revision review, <code>RESEARCH_REPORT.md</code>, local checkpoints/progress records, and final archive description. <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.en.md">Public evidence summary</a> · <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.ko.md">Korean summary</a> · <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.SHA256SUMS">Summary-file SHA-256</a>. The summary separates the original documents’ claims from this edit’s review scope.</li>
 </ol>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/chrome-m152-externalstring-race/" hreflang="ko">Read this post in Korean →</a></div></article></main>
