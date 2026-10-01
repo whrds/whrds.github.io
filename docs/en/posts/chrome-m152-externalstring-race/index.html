@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString race and sandbox boundary research</h1><p class="article-description">Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>25 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> race I investigated in Chrome M152.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString race and sandbox boundary research</h1><p class="article-description">Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>28 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> race I investigated in Chrome M152.</p>
 <p>The final exploit successfully read the <code>hosts</code> file. [5] This post follows the research direction that led to that result and the assumptions I needed to revisit along the way.</p>
 <p>The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?</p>
 <p>Observing a race once and explaining its significance inside a browser turned out to be different tasks. A problem observed in d8 could appear differently in Chrome. Results obtained under a debugger also needed to be distinguished from results obtained without that intervention. Even deciding whether a result represented an intermediate observation or completion of the whole experiment required care.</p>
@@ -143,13 +143,24 @@
 <h3>3.2 Atomic reads and consistent operations</h3>
 <p>An individual atomic read and a multi-operation cleanup that preserves one target’s identity are different guarantees. Atomicity can prevent observing a partially mixed value; it does not make two reads at different times carry the same meaning.</p>
 <p>A double-fetch therefore needs more than a count of loads. The important question is whether the target established earlier remains the target of the later operation.</p>
-<h3>3.3 What the actual cleanup function does</h3>
-<p>Here is a source excerpt from <code>src/objects/string-inl.h</code> at public fix revision <code>7d1fb25</code>. The <code>// ...</code> markers indicate omitted statements. This is neither the full function nor its pre-fix implementation. [9]</p>
-<pre><code class="language-cpp">DisallowGarbageCollection no_gc;
-// ...
-Address value = resource_.exchange(isolate, kNullAddress);
-// ...
-resource-&gt;Dispose();
+<h3>3.3 Read the complete cleanup function</h3>
+<p>This is the complete <code>DisposeResource</code> function from <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h#L1525"><code>src/objects/string-inl.h</code></a> at fix revision <code>7d1fb25</code>, including its branches, accounting callback, disposal call, and GC-related scopes. [9]</p>
+<pre><code class="language-cpp">void ExternalString::DisposeResource(Isolate* isolate) {
+  DisallowGarbageCollection no_gc;
+
+  Address value = resource_.exchange(isolate, kNullAddress);
+  v8::String::ExternalStringResourceBase* resource =
+      reinterpret_cast&lt;v8::String::ExternalStringResourceBase*&gt;(value);
+
+  // Dispose of the C++ object if it has not already been disposed.
+  if (resource != nullptr) {
+    if (!IsShared() &amp;&amp; !HeapLayout::InWritableSharedSpace(this)) {
+      resource-&gt;Unaccount(reinterpret_cast&lt;v8::Isolate*&gt;(isolate));
+    }
+    DisableGCMole no_gc_mole;
+    resource-&gt;Dispose();
+  }
+}
 </code></pre>
 <table>
 <thead>
@@ -164,7 +175,7 @@ resource-&gt;Dispose();
 <td>A debug assertion scope documenting where GC must not occur; it is not a synchronization lock. [11]</td>
 </tr>
 <tr>
-<td><code>resource_.exchange(...)</code></td>
+<td><code>resource_.exchange</code></td>
 <td>Obtains the selected EPT entry’s old value while clearing that entry. [10]</td>
 </tr>
 <tr>
@@ -180,11 +191,16 @@ resource-&gt;Dispose();
 <td>An external-memory accounting callback with an empty default implementation; subclass behavior is distinct from disposal. [12]</td>
 </tr>
 <tr>
+<td><code>DisableGCMole</code></td>
+<td>A debug scope that skips GCMole verification around raw resource work; not a synchronization lock. [11]</td>
+</tr>
+<tr>
 <td><code>Dispose()</code></td>
 <td>Calls the resource’s cleanup implementation; see the API contract in section 2.1.</td>
 </tr>
 </tbody>
 </table>
+<p><code>value</code> contains the pre-exchange value. The disposal block runs only if the resource represented by it is non-null. <code>Unaccount</code> is called only when both shared-state predicates are false. The resource callback contract and the EPT exchange implementation must be read together.</p>
 <p>The function must keep reference cleanup consistent with disposal of the same resource. Casting and null checks do not themselves establish that lifetime contract.</p>
 <h3>3.4 Source facts and the cause interpretation</h3>
 <p>The public fix identifies a consistency failure rather than a missing cast or null check. The resource selected for disposal and the resulting EPT state must agree. Separate reference operations could fail to preserve that agreement; the fix binds them to an exchange on one target. [8]</p>
@@ -491,6 +507,100 @@ Retire(key):
 <p>The member-level exchange delegates to the EPT exchange. The entry implementation uses a compare-and-exchange loop to install a new payload, return the previous pointer value, and preserve the existing GC mark. This describes the sandbox branch at the fix revision. [10]</p>
 <p>The exchanged state is the <strong>EPT entry’s payload</strong>. It does not mean that every heap handle is erased or every external reference is invalidated together. Nor is this a direct call to JavaScript’s <code>Atomics.exchange</code>. [10]</p>
 <p>The fix links one entry’s reference state to disposal of the resource obtained from it. It does not establish a solution to every lifetime error or verification that the target browser contains the fix.</p>
+<h3>12.4 Follow the complete exchange functions</h3>
+<p>These are the complete function definitions behind the exchange call in section 3.3, all from fix revision <code>7d1fb25</code>. Statements and original comments are preserved; only the outer indentation of the in-class overload is normalized. The functions belong to V8’s class, type, and header context. Code blocks scroll horizontally on narrow screens. [10, 13]</p>
+<h4>1. The single-tag overload</h4>
+<p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h#L60"><code>src/sandbox/external-pointer.h</code></a> · <code>7d1fb25</code></p>
+<pre><code class="language-cpp">inline Address exchange(IsolateForSandbox isolate, Address value)
+  requires(kTagRange.Size() == 1)
+{
+  return exchange&lt;kTagRange.first&gt;(isolate, value);
+}
+</code></pre>
+<p>This overload is defined inside <code>ExternalPointerMember</code>. It is selected for a range containing one tag and forwards to the template overload with that tag. Its <code>requires</code> clause is a compile-time selection condition, not a liveness check or runtime synchronization.</p>
+<h4>2. Delegation from the member to the field operation</h4>
+<p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L77"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
+<pre><code class="language-cpp">template &lt;ExternalPointerTagRange kTagRange&gt;
+template &lt;ExternalPointerTag tag&gt;
+inline Address ExternalPointerMember&lt;kTagRange&gt;::exchange(
+    IsolateForSandbox isolate, Address value) {
+  static_assert(kTagRange.Contains(tag));
+  return ExchangeExternalPointerField&lt;tag&gt;(reinterpret_cast&lt;Address&gt;(storage_),
+                                           isolate, value);
+}
+</code></pre>
+<p>The template asserts that the tag belongs to the permitted range and delegates to the field operation. The address obtained from <code>storage_</code> identifies the field that stores a handle. Delegation does not acquire ownership of the external object.</p>
+<h4>3. Sandbox and non-sandbox exchange paths</h4>
+<p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L260"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
+<pre><code class="language-cpp">template &lt;ExternalPointerTag tag&gt;
+V8_INLINE Address ExchangeExternalPointerField(Address field_address,
+                                               IsolateForSandbox isolate,
+                                               Address value) {
+#ifdef V8_ENABLE_SANDBOX
+  static_assert(tag != kExternalPointerNullTag);
+  ExternalPointerHandle handle =
+      Relaxed_ReadExternalPointerHandle(field_address);
+  return isolate.GetExternalPointerTableFor(tag).Exchange(handle, value, tag);
+#else
+  Address old_value = ReadMaybeUnalignedValue&lt;Address&gt;(field_address);
+  WriteMaybeUnalignedValue&lt;Address&gt;(field_address, value);
+  return old_value;
+#endif  // V8_ENABLE_SANDBOX
+}
+</code></pre>
+<p>Both build branches are included. The sandbox branch passes a handle to the selected EPT exchange. The non-sandbox branch reads an address, writes the new value, and returns the old one. The shared function name does not imply identical atomicity in both branches.</p>
+<h4>4. The atomic handle read</h4>
+<p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L193"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
+<pre><code class="language-cpp">#ifdef V8_ENABLE_SANDBOX
+V8_INLINE ExternalPointerHandle
+Relaxed_ReadExternalPointerHandle(Address field_address) {
+  // Handles may be written to objects from other threads so the handle needs
+  // to be loaded atomically. We assume that the access to the table cannot
+  // be reordered before the load of the handle due to the data dependency
+  // between the two accesses and therefore use relaxed memory ordering, but
+  // technically we should use memory_order_consume here.
+  auto location = reinterpret_cast&lt;ExternalPointerHandle*&gt;(field_address);
+  return base::AsAtomic32::Relaxed_Load(location);
+}
+#endif
+</code></pre>
+<p>The responsibility here is an atomic read of one handle value. The original comment explains its relaxed ordering in terms of the data dependency before table access. This does not turn several operations into a transaction or keep an object alive.</p>
+<h4>5. Selecting an EPT entry</h4>
+<p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L206"><code>src/sandbox/external-pointer-table-inl.h</code></a> · <code>7d1fb25</code></p>
+<pre><code class="language-cpp">Address ExternalPointerTable::Exchange(ExternalPointerHandle handle,
+                                       Address value, ExternalPointerTag tag) {
+  DCHECK_NE(kNullExternalPointerHandle, handle);
+  DCHECK(!IsManagedExternalPointerType(tag));
+  uint32_t index = HandleToIndex(handle);
+  return at(index).ExchangeExternalPointer(value, tag);
+}
+</code></pre>
+<p>The chosen handle is converted to an entry index, and the operation delegates to that entry. The <code>DCHECK</code> statements express expected invariants. Their presence alone does not establish the runtime-check coverage of the target release build.</p>
+<h4>6. Exchanging the entry payload</h4>
+<p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L70"><code>src/sandbox/external-pointer-table-inl.h</code></a> · <code>7d1fb25</code></p>
+<pre><code class="language-cpp">Address ExternalPointerTableEntry::ExchangeExternalPointer(
+    Address value, ExternalPointerTag tag) {
+  // The 2nd most significant byte must be empty as we store the tag in int.
+  DCHECK_EQ(0, value &amp; kExternalPointerTagAndMarkbitMask);
+
+  auto old_payload = payload_.load(std::memory_order_relaxed);
+  while (true) {
+    DCHECK(old_payload.ContainsPointer());
+    Payload new_payload(value, tag);
+    if (old_payload.HasMarkBitSet()) {
+      new_payload.SetMarkBit();
+    }
+    if (payload_.compare_exchange_weak(old_payload, new_payload,
+                                       std::memory_order_relaxed)) {
+      MaybeUpdateRawPointerForLSan(value);
+      return old_payload.Untag(tag);
+    }
+  }
+}
+</code></pre>
+<p>This function updates the payload. It reads the old payload, preserves its GC mark in the replacement, and attempts compare-and-exchange. On failure the updated observed value is used for another attempt; on success it returns the old pointer. <code>MaybeUpdateRawPointerForLSan</code> updates auxiliary LSan-related state rather than acquiring ownership.</p>
+<p>The CAS covers one EPT entry payload. It does not synchronize all heap handle fields or several external objects as one operation.</p>
+<p>Source attribution: V8 project authors, Copyright 2017 / 2020 / 2021. The original copyright notices and BSD-style license are provided in the <a href="/assets/research/chrome-m152-externalstring-race/v8-source-license.txt">license file</a>. [13]</p>
 <h2>13. Closing thoughts</h2>
 <p>The question that kept returning was: does this reference still point to the same object, and is that object still alive?</p>
 <p>The investigation began with double-fetch and UAF. Moving into the browser required examining ownership, object identity, control-flow protections, and the effects of observation tools. Evidence at one stage did not substitute for the conclusion at the next.</p>
@@ -508,10 +618,11 @@ Retire(key):
 <li><a href="https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h">V8 public API header — v8-primitive.h</a>. Public contracts and default disposal from main, retrieved on 1 October 2026, used as structural background. This does not identify the target M152 build’s source revision.</li>
 <li><a href="https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h">V8 — external-pointer-table.h</a>. EPT design documentation from main, retrieved on 1 October 2026. Background for type and temporal safety, not proof of the target build or patch coverage.</li>
 <li><a href="https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03">V8 fix commit — 7d1fb25</a>. External-string disposal fix naming issue <code>532204454</code>. Its description and changes were checked directly; this does not verify public access to the issue body or coverage in a shipping Chrome version.</li>
-<li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h">V8 — string-inl.h at the fix revision</a>. Source for the cleanup excerpt and role analysis. Omission markers were added editorially.</li>
+<li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h">V8 — string-inl.h at the fix revision</a>. Source for the cleanup excerpt and role analysis. The full function is reproduced from that revision, as are the related functions below.</li>
 <li>V8’s <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h">external-pointer-inl.h</a> and <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h">external-pointer-table-inl.h</a> at the fix revision. Sources for exchange delegation, EPT payload behavior, and GC mark preservation. This revision was not established as identical to the recorded target M152 binary.</li>
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/common/assert-scope.h">V8 — assert-scope.h at the fix revision</a>. Confirms the debug-only assertion scope behind <code>DisallowGarbageCollection</code>; its name does not establish synchronization in a release build.</li>
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h">V8 — v8-primitive.h at the fix revision</a>. Source for the <code>Unaccount</code> callback contract and empty default implementation.</li>
+<li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h">V8 — external-pointer.h at the fix revision</a> and <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/LICENSE">original license</a>. Sources for the in-class single-tag overload and code redistribution terms.</li>
 </ol>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/chrome-m152-externalstring-race/" hreflang="ko">Read this post in Korean →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>

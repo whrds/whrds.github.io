@@ -119,26 +119,40 @@ SafeUse(h, R, t) =
 
 그래서 double-fetch를 볼 때는 단순히 읽기 횟수를 세는 것보다 **앞에서 확인한 대상의 정체성이 뒤의 작업에도 보존되는가**를 봐야 한다. 이 글에서 설명하는 수명 오류도 그 일관성의 문제다.
 
-### 3.3 실제 정리 함수가 수행하는 일
+### 3.3 실제 정리 함수 전체를 읽기
 
-일반적인 수명 설명에서 한 단계 더 들어가 보겠다. 아래는 공개 수정 리비전 `7d1fb25`의 `src/objects/string-inl.h`에서 발췌한 코드다. `// ...`에는 생략된 문장이 있으며, 함수 전체나 수정 전 구현을 나타내지는 않는다. [9]
+아래는 수정 리비전 `7d1fb25`의 [`src/objects/string-inl.h`](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h#L1525)에 있는 `DisposeResource` 함수 전체다. 조건 분기, 메모리 집계 콜백, 정리 호출과 GC 관련 스코프를 모두 포함했다. [9]
 
 ```cpp
-DisallowGarbageCollection no_gc;
-// ...
-Address value = resource_.exchange(isolate, kNullAddress);
-// ...
-resource->Dispose();
+void ExternalString::DisposeResource(Isolate* isolate) {
+  DisallowGarbageCollection no_gc;
+
+  Address value = resource_.exchange(isolate, kNullAddress);
+  v8::String::ExternalStringResourceBase* resource =
+      reinterpret_cast<v8::String::ExternalStringResourceBase*>(value);
+
+  // Dispose of the C++ object if it has not already been disposed.
+  if (resource != nullptr) {
+    if (!IsShared() && !HeapLayout::InWritableSharedSpace(this)) {
+      resource->Unaccount(reinterpret_cast<v8::Isolate*>(isolate));
+    }
+    DisableGCMole no_gc_mole;
+    resource->Dispose();
+  }
+}
 ```
 
 | 코드의 요소 | 개발 의도와 실제 역할 |
 |---|---|
 | `DisallowGarbageCollection` | GC가 일어나지 않아야 하는 구간을 표시하는 디버그 assertion 스코프다. 공유 참조를 동기화하는 잠금은 아니다. [11] |
-| `resource_.exchange(...)` | 선택한 EPT 항목의 이전 값을 얻으면서 그 항목을 비운다. [10] |
+| `resource_.exchange` | 선택한 EPT 항목의 이전 값을 얻으면서 그 항목을 비운다. [10] |
 | `reinterpret_cast` | 주소 값을 리소스 포인터 타입으로 표현한다. 객체의 생존을 검사하지 않는다. |
 | null 검사 | 리소스가 없는 경우 호출을 생략한다. non-null이 살아 있는 객체라는 뜻은 아니다. |
 | `Unaccount` | 외부 메모리 집계용 콜백이다. 기본 구현은 비어 있고 구체 처리는 하위 클래스에 달려 있다. 객체 정리와 역할이 다르다. [12] |
+| `DisableGCMole` | raw 리소스 작업 구간의 GCMole 검증을 건너뛰는 디버그 스코프다. 공유 참조의 잠금은 아니다. [11] |
 | `Dispose()` | 리소스의 정리 구현을 호출한다. 기본 구현과 하위 클래스의 계약은 2.1절에서 설명했다. |
+
+`value`는 교환 전의 값을 담고, 그 값으로 표현한 리소스가 null이 아닐 때만 정리 블록에 들어간다. `Unaccount`는 두 shared-space 관련 조건이 모두 해당하지 않는 경로에서만 호출된다. 이어지는 `Dispose` 호출의 수명 계약과 EPT의 교환 구현을 함께 봐야 전체 의미를 읽을 수 있다.
 
 이 함수의 의도는 **같은 외부 리소스에 대한 참조 정리와 객체 정리를 일관되게 수행하는 것**이다. 캐스팅이나 null 검사가 있다고 해서 그 수명 계약이 자동으로 성립하는 것은 아니다.
 
@@ -388,6 +402,134 @@ Retire(key):
 
 정리하면 패치 의도는 한 항목의 참조 상태와 그 항목에서 얻은 리소스의 정리를 연결하는 것이다. 모든 객체 수명 문제를 해결했다는 주장이나, 목표 브라우저에서 패치 적용을 검증했다는 주장으로 넓히지 않았다.
 
+### 12.4 교환 경로의 함수 전체를 따라가기
+
+3.3절에서 호출한 교환 연산의 정의들을 함수 단위로 모두 보겠다. 아래 코드는 같은 수정 리비전 `7d1fb25`에서 가져왔다. 함수 안의 문장과 원문 주석을 생략하지 않았고, 클래스 안의 오버로드는 바깥 들여쓰기만 정리했다. 이 함수들은 V8의 클래스·타입·헤더 문맥 안에서 사용된다. 좁은 화면에서는 코드 블록을 가로로 스크롤할 수 있다. [10, 13]
+
+#### 1. 단일 태그 오버로드
+
+[`src/sandbox/external-pointer.h`](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h#L60) · `7d1fb25`
+
+```cpp
+inline Address exchange(IsolateForSandbox isolate, Address value)
+  requires(kTagRange.Size() == 1)
+{
+  return exchange<kTagRange.first>(isolate, value);
+}
+```
+
+이 함수는 `ExternalPointerMember` 클래스 안에 정의된 오버로드다. 허용 범위에 태그가 하나일 때만 선택되며, 그 태그를 명시하는 템플릿 오버로드로 전달한다. `requires`는 컴파일 시 선택 조건이지 객체의 생존 검사나 실행 중의 동기화가 아니다.
+
+#### 2. 멤버 함수에서 필드 연산으로 전달
+
+[`src/sandbox/external-pointer-inl.h`](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L77) · `7d1fb25`
+
+```cpp
+template <ExternalPointerTagRange kTagRange>
+template <ExternalPointerTag tag>
+inline Address ExternalPointerMember<kTagRange>::exchange(
+    IsolateForSandbox isolate, Address value) {
+  static_assert(kTagRange.Contains(tag));
+  return ExchangeExternalPointerField<tag>(reinterpret_cast<Address>(storage_),
+                                           isolate, value);
+}
+```
+
+태그가 멤버의 허용 범위 안에 있다는 조건을 컴파일 시 확인하고 필드 연산으로 전달한다. `storage_`에서 얻는 것은 핸들을 저장하는 필드의 주소다. 이 전달 함수가 외부 객체의 소유권을 새로 만드는 것은 아니다.
+
+#### 3. sandbox와 비 sandbox의 교환 경로
+
+[`src/sandbox/external-pointer-inl.h`](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L260) · `7d1fb25`
+
+```cpp
+template <ExternalPointerTag tag>
+V8_INLINE Address ExchangeExternalPointerField(Address field_address,
+                                               IsolateForSandbox isolate,
+                                               Address value) {
+#ifdef V8_ENABLE_SANDBOX
+  static_assert(tag != kExternalPointerNullTag);
+  ExternalPointerHandle handle =
+      Relaxed_ReadExternalPointerHandle(field_address);
+  return isolate.GetExternalPointerTableFor(tag).Exchange(handle, value, tag);
+#else
+  Address old_value = ReadMaybeUnalignedValue<Address>(field_address);
+  WriteMaybeUnalignedValue<Address>(field_address, value);
+  return old_value;
+#endif  // V8_ENABLE_SANDBOX
+}
+```
+
+두 빌드 분기를 모두 남겼다. sandbox 분기는 핸들을 얻어 해당 EPT의 교환 연산에 전달한다. 비 sandbox 분기는 주소 값을 읽고 새 값을 쓴 뒤 이전 값을 반환한다. 따라서 함수 이름이 같다는 이유로 두 분기의 원자성까지 같다고 해석할 수는 없다.
+
+#### 4. 핸들의 원자적 읽기
+
+[`src/sandbox/external-pointer-inl.h`](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L193) · `7d1fb25`
+
+```cpp
+#ifdef V8_ENABLE_SANDBOX
+V8_INLINE ExternalPointerHandle
+Relaxed_ReadExternalPointerHandle(Address field_address) {
+  // Handles may be written to objects from other threads so the handle needs
+  // to be loaded atomically. We assume that the access to the table cannot
+  // be reordered before the load of the handle due to the data dependency
+  // between the two accesses and therefore use relaxed memory ordering, but
+  // technically we should use memory_order_consume here.
+  auto location = reinterpret_cast<ExternalPointerHandle*>(field_address);
+  return base::AsAtomic32::Relaxed_Load(location);
+}
+#endif
+```
+
+이 함수의 책임은 핸들 값 하나를 원자적으로 읽는 것이다. 원문 주석은 테이블 접근과의 데이터 의존성을 근거로 relaxed 읽기를 선택했다고 설명한다. 이것만으로 여러 연산이 하나의 트랜잭션이 되거나 객체의 수명이 유지되지는 않는다.
+
+#### 5. EPT에서 항목 선택
+
+[`src/sandbox/external-pointer-table-inl.h`](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L206) · `7d1fb25`
+
+```cpp
+Address ExternalPointerTable::Exchange(ExternalPointerHandle handle,
+                                       Address value, ExternalPointerTag tag) {
+  DCHECK_NE(kNullExternalPointerHandle, handle);
+  DCHECK(!IsManagedExternalPointerType(tag));
+  uint32_t index = HandleToIndex(handle);
+  return at(index).ExchangeExternalPointer(value, tag);
+}
+```
+
+선택된 핸들을 항목 인덱스로 변환하고 항목의 교환 연산으로 전달한다. `DCHECK`들은 이 경로가 기대하는 불변식을 표현한다. 그 문장만 보고 대상 release 빌드의 모든 실행 시 검증 범위를 확정할 수는 없다.
+
+#### 6. 항목 payload의 교환
+
+[`src/sandbox/external-pointer-table-inl.h`](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L70) · `7d1fb25`
+
+```cpp
+Address ExternalPointerTableEntry::ExchangeExternalPointer(
+    Address value, ExternalPointerTag tag) {
+  // The 2nd most significant byte must be empty as we store the tag in int.
+  DCHECK_EQ(0, value & kExternalPointerTagAndMarkbitMask);
+
+  auto old_payload = payload_.load(std::memory_order_relaxed);
+  while (true) {
+    DCHECK(old_payload.ContainsPointer());
+    Payload new_payload(value, tag);
+    if (old_payload.HasMarkBitSet()) {
+      new_payload.SetMarkBit();
+    }
+    if (payload_.compare_exchange_weak(old_payload, new_payload,
+                                       std::memory_order_relaxed)) {
+      MaybeUpdateRawPointerForLSan(value);
+      return old_payload.Untag(tag);
+    }
+  }
+}
+```
+
+실제 payload 갱신은 이 함수에 있다. 이전 payload를 읽고, 새 payload에 기존 GC mark를 보존한 뒤 compare-and-exchange를 시도한다. 실패하면 갱신된 이전 값으로 반복하고, 성공하면 이전 포인터 값을 반환한다. `MaybeUpdateRawPointerForLSan`은 LSan 관련 보조 상태를 갱신하는 호출이며, 객체 소유권을 만드는 연산은 아니다.
+
+이 CAS가 묶는 범위는 한 EPT 항목의 payload다. 힙 객체의 핸들 필드 전체나 여러 외부 객체를 한꺼번에 동기화한다고 범위를 넓혀 읽으면 안 된다.
+
+원문 출처: V8 project authors, Copyright 2017 / 2020 / 2021. 코드의 BSD-style 라이선스와 원문 저작권 고지는 [라이선스 파일](/assets/research/chrome-m152-externalstring-race/v8-source-license.txt)에 함께 제공한다. [13]
+
 ## 13. 마무리
 
 이번 연구에서 계속 따라간 질문은 결국 “지금 보고 있는 참조가, 지금도 살아 있는 같은 객체를 가리키고 있는가?”였다.
@@ -412,7 +554,8 @@ Retire(key):
 6. [V8 공개 API 헤더 — v8-primitive.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h). 2026년 10월 1일 조회한 main의 공개 API 계약과 기본 정리 구현을 구조 설명에 사용했다. 목표 M152 빌드와 동일한 소스 리비전이라는 뜻은 아니다.
 7. [V8 — external-pointer-table.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h). 2026년 10월 1일 조회한 main의 EPT 설계 설명. 타입·시간적 안전성의 설계 의도를 확인하는 배경 자료이며, 이 연구의 목표 빌드나 패치 적용 여부를 입증하지 않는다.
 8. [V8 수정 커밋 — 7d1fb25](https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03). 이슈 `532204454`를 명시한 외부 문자열 정리 수정. 커밋 설명과 변경 내용을 직접 확인했다. 이슈 본문의 공개 상태나 특정 Chrome 배포 버전의 수정 여부까지 확인한 것은 아니다.
-9. [V8 — string-inl.h, 수정 리비전](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h). `DisposeResource`의 코드와 역할 설명에 사용했다. 코드 블록의 생략 표시는 편집자가 넣었다.
+9. [V8 — string-inl.h, 수정 리비전](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h). `DisposeResource`의 코드와 역할 설명에 사용했다. 함수 전체를 원문에서 옮겼다. 아래 코드도 같은 리비전으로 고정했다.
 10. V8 수정 리비전의 [external-pointer-inl.h](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h) 및 [external-pointer-table-inl.h](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h). 교환 연산의 위임 관계, EPT payload와 GC mark 처리를 확인했다. 이 리비전과 기록상 목표 M152 바이너리의 동일성은 확인하지 않았다.
 11. [V8 — assert-scope.h, 수정 리비전](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/common/assert-scope.h). `DisallowGarbageCollection`이 debug-only assertion 스코프임을 확인했다. 이름만으로 release 빌드의 동기화 보장까지 추론하지 않았다.
 12. [V8 — v8-primitive.h, 수정 리비전](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h). 해당 리비전의 `Unaccount` 콜백 계약과 기본 구현을 확인했다.
+13. [V8 — external-pointer.h, 수정 리비전](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h)와 [원문 라이선스](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/LICENSE). 클래스 안의 단일 태그 오버로드와 코드 재사용 조건을 확인했다.
