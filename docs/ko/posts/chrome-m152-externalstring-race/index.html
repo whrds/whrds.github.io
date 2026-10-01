@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString 레이스와 샌드박스 경계 연구</h1><p class="article-description">Chrome M152 ExternalString 레이스의 연구 방향과 객체 수명 문제를 정리하고, 최종 익스플로잇을 통한 hosts 파일 읽기 성공을 기록한다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">2026년 10월 1일</time><span>·</span><span>21 분 읽기</span></div></div></header><div class="prose"><p>이번에는 Chrome M152에서 분석했던 <code>ExternalString</code> 레이스를 정리해보겠다.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString 레이스와 샌드박스 경계 연구</h1><p class="article-description">Chrome M152 ExternalString 레이스의 연구 방향과 객체 수명 문제를 정리하고, 최종 익스플로잇을 통한 hosts 파일 읽기 성공을 기록한다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">2026년 10월 1일</time><span>·</span><span>23 분 읽기</span></div></div></header><div class="prose"><p>이번에는 Chrome M152에서 분석했던 <code>ExternalString</code> 레이스를 정리해보겠다.</p>
 <p>최종적으로는 익스플로잇을 통해 <code>hosts</code> 파일을 읽는 데 성공했다. [5] 이 글에서는 그 결과에 이르기까지 어떤 방향으로 연구했고, 중간에 어떤 가정을 다시 확인해야 했는지 함께 정리하고자 한다.</p>
 <p>처음 확인하려고 했던 것은 비교적 단순했다. V8 샌드박스 내부에서 발생한 메모리 손상이 외부 네이티브 객체의 수명 관리에 영향을 줄 수 있을까? 외부 포인터를 테이블로 관리하고 있는데, 그 테이블에 남은 참조와 실제 객체의 상태가 달라지면 어떻게 될까?</p>
 <p>막상 들어가 보니 레이스가 한 번 관측되는 것과 브라우저 안에서 그 의미를 설명하는 것은 별개의 일이었다. d8에서는 확인한 문제가 브라우저에서는 다른 모양으로 나타났고, 디버거로 들여다볼 때와 관측 도구 없이 실행할 때의 결과도 같지 않았다. 중간 단계를 확인한 것을 전체 과정의 성공으로 착각하지 않는 것부터 필요했다.</p>
@@ -106,6 +106,9 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
   }
 }
 </code></pre>
+<p><img src="/assets/research/chrome-m152-externalstring-race/07-dispose-flow.ko.svg" alt="수정된 DisposeResource의 null·집계·정리 분기"></p>
+<p><em>코드 흐름 A. 수정 리비전의 정리 경로다. null 결과는 콜백을 건너뛰고, shared-state 분기는 집계 콜백의 호출 여부를 정한다.</em></p>
+<p><a href="/assets/research/chrome-m152-externalstring-race/07-dispose-flow.ko.svg">확대해서 보기</a></p>
 <p><code>DisallowGarbageCollection</code>은 GC가 일어나지 않아야 하는 구간을 표시하는 디버그 assertion 스코프다. 공유 참조를 동기화하는 잠금은 아니다. 뒤의 <code>DisableGCMole</code> 역시 raw 리소스 작업 구간의 GCMole 검증을 건너뛰는 디버그 스코프이며, 공유 참조의 잠금으로 해석할 수 없다. [11]</p>
 <p><code>resource_.exchange</code>는 선택한 EPT 항목의 이전 값을 얻으면서 그 항목의 포인터 값을 비운다. [10] <code>reinterpret_cast</code>는 이 주소를 리소스 포인터 타입으로 표현하지만 객체의 생존을 검사하지 않는다. null 검사는 리소스가 없을 때 호출을 생략할 뿐, non-null인 대상이 살아 있다는 뜻은 아니다.</p>
 <p><code>Unaccount</code>는 외부 메모리 집계용 콜백이다. 기본 구현은 비어 있고 구체 처리는 하위 클래스에 달려 있어 객체 정리와 역할이 다르다. [12] 실제 정리 구현은 <code>Dispose()</code>가 호출하며, 기본 구현과 하위 클래스의 계약은 2.1절에서 설명했다.</p>
@@ -114,6 +117,9 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
 <h3>3.4 코드에서 확인한 사실과 원인 해석</h3>
 <p>공개 패치가 지목한 결함은 캐스팅 문법이나 null 검사의 유무가 아니다. 정리 작업이 대상으로 삼은 리소스와 EPT 상태가 끝까지 일치해야 한다는 계약의 문제다. 수정 전에는 분리된 참조 처리가 이 일치를 유지하지 못할 수 있었고, 패치는 그 연결을 한 대상의 교환 연산으로 묶었다. [8]</p>
 <p>따라서 UAF라는 이름만 붙이는 것보다 <strong>어느 객체의 수명이 끝났으며, 그 객체를 유효하다고 취급하는 참조가 남을 수 있는가</strong>를 설명하는 편이 정확하다. 이는 소스의 수명 계약에 대한 분석이다. 실제 브라우저에서 어느 결과까지 관측했는지는 11절의 실행 기록과 별도로 판단한다.</p>
+<p>여기서 원인 판단의 기준은 <strong>정리되는 리소스가 선택된 EPT 항목의 이전 포인터와 같은 대상인가</strong>다. 참조를 해석하는 작업과 참조 상태를 바꾸는 작업이 분리되어 있으면, 개별 읽기가 원자적이어도 두 작업이 같은 대상을 처리한다는 보장을 따로 세워야 한다. 메모리 순서를 강하게 지정하는 것만으로 대상의 동일성이 만들어지는 것은 아니다.</p>
+<p>수정된 sandbox 경로는 선택한 항목의 포인터 값을 먼저 교환하고, 그 연산이 반환한 이전 주소를 지역 변수 <code>value</code>에 보관한다. 이후의 캐스팅과 콜백은 그 지역 값으로 표현한 리소스를 사용한다. 이 데이터 흐름이 <strong>항목 선택 → 해당 항목의 이전 값 → 같은 리소스의 정리</strong>를 연결한다. 힙 멤버의 핸들, EPT 슬롯의 존재, 슬롯에 저장된 포인터 값은 구분해야 한다. 이 함수가 바꾸는 것은 그중 payload의 포인터 값이다. [9, 10]</p>
+<p>따라서 이슈의 원인은 주소를 C++ 포인터로 캐스팅했다는 사실이나 <code>Unaccount</code>라는 콜백의 존재가 아니다. 선택한 리소스와 참조 상태의 일치가 정리 작업 동안 유지되어야 한다는 계약이 핵심이다. 콜백 구현이 지켜야 할 소유권·집계 계약은 그 위에서 별도로 확인한다.</p>
 <h3>3.5 정리 함수의 입력·분기·결과</h3>
 <p>최상위 함수는 <code>void</code>를 반환한다. 내부의 교환 연산이 이전 주소를 반환하는 것과, <code>DisposeResource</code> 자체가 리소스 주소를 호출자에게 돌려주는 것은 다른 이야기다. 이 함수는 자신의 멤버와 <code>isolate</code> 문맥을 사용해 정리를 수행한다. [9]</p>
 <p>교환 결과가 null이면 처리할 이전 리소스 주소가 없으므로 리소스 콜백 블록을 건너뛴다. 이전 리소스가 있고 두 shared-state 조건이 모두 false이면 <code>Unaccount</code> 이후 <code>Dispose</code>를 호출한다. 이때 집계 콜백과 실제 정리 콜백의 역할은 구분해야 한다.</p>
@@ -126,6 +132,12 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
 <p>sandbox 경로는 정리 콜백 전에 해당 payload의 포인터 값을 비운다. 다른 참조와 캐시의 유효 기간까지 이 작업 하나로 확정할 수는 없다. 교환 함수 자체에는 lease 획득이나 기존 사용자 종료 대기가 없으므로, 상위 계층이 사용과 정리를 어떻게 조정하는지도 확인해야 한다.</p>
 <p>CAS의 성공은 한 payload가 교체됐다는 사실을 정한다. 그 뒤의 가상 콜백까지 한 원자적 연산으로 감싸는 것은 아니다. 또한 반환된 이전 주소를 C++ 포인터로 표현하는 과정은 소유권 획득 연산이 아니다. 따라서 패치의 대상 일관성 보장과 전체 객체의 수명 계약을 같은 주장으로 합치지 않았다.</p>
 <p>이는 공개 패치가 부족하다는 판정이 아니다. 함수 하나가 직접 수행하는 작업과 호출자·리소스 구현이 함께 지켜야 하는 조건을 분리한 소스 검토다. 원자적 교환을 도입한 이유를 설명하려면 이 경계부터 정확히 잡아야 한다.</p>
+<h3>3.7 루트 커즈와 후속 검토 항목을 구분하기</h3>
+<p><strong>정리 대상의 일관성</strong>은 이 공개 패치가 직접 다루는 원인이다. 검토 기준은 정리되는 리소스와 교환한 항목의 이전 포인터가 같은 대상을 뜻하는가다. 항목을 비웠다는 사실과 어느 리소스를 정리했는지가 서로 대응해야 한다.</p>
+<p><strong>객체 수명과 소유권</strong>은 그 원인이 왜 메모리 안전성 문제로 이어질 수 있는지 설명한다. EPT 핸들이 해석 가능하더라도 리소스의 생존과 현재 사용자의 소유권은 별도 조건이다. 주소가 같은 메모리 위치를 가리킨다는 사실도 같은 객체의 수명이 이어진다는 뜻은 아니다. 이 구분이 해제된 객체를 유효하게 취급하는 문제와 일반적인 포인터 값 오류를 나눈다.</p>
+<p><strong>데이터 캐시와 소비 경로</strong>는 브라우저에서 관측한 현상을 해석하는 조건이다. <code>resource_</code>는 리소스 객체, <code>resource_data_</code>는 문자열 데이터와 관련된 멤버다. 리소스의 정리 상태만 보고 모든 데이터 참조의 유효 기간을 확정할 수는 없다. 어떤 참조가 소유권을 갖고 어떤 참조가 데이터 주소를 보관하는지는 7.3절의 타입과 API 계약으로 대조한다.</p>
+<p><strong>제어 흐름 검사</strong>는 호출이 허용된 관계를 만족하는지 확인하는 보호다. 호출에 쓰이는 객체가 살아 있는지는 다른 조건이며, 8절에서 설명한 것처럼 둘을 같은 판정으로 취급하지 않았다.</p>
+<p>뒤에서 읽을 여섯 교환 helper는 별도의 여섯 취약점이 아니다. 같은 정리 경로에서 태그 선택, 필드 해석, 항목 선택과 payload 교환을 나누어 수행하는 계층이다. 아래의 코드 흐름 그래프와 설명은 각 계층이 원인과 방어 계약에 어떻게 연결되는지 보여 준다. [9, 10, 17]</p>
 <h2>4. 우회가 겨냥한 보호 가정</h2>
 <p>그렇다면 “EPT가 있는데 어떻게 보호 경계를 넘어서는 문제가 생길 수 있었는가?”라는 질문이 남는다.</p>
 <p>이 연구에서 살펴본 방향은 <strong>외부 포인터를 간접 참조로 관리하더라도, 그 참조와 객체의 수명이 어긋나면 외부 네이티브 메모리의 안전성이 무너질 수 있는가</strong>였다. 참조가 허용된 경로를 거친다는 사실과 그 대상이 현재도 유효하다는 사실은 같은 보장이 아니다.</p>
@@ -281,6 +293,10 @@ Retire(key):
 <p>정리하면 패치 의도는 한 항목의 참조 상태와 그 항목에서 얻은 리소스의 정리를 연결하는 것이다. 모든 객체 수명 문제를 해결했다는 주장이나, 목표 브라우저에서 패치 적용을 검증했다는 주장으로 넓히지 않았다.</p>
 <h3>12.4 교환 경로의 함수 전체를 따라가기</h3>
 <p>3.3절에서 호출한 교환 연산의 정의들을 함수 단위로 모두 보겠다. 아래 코드는 같은 수정 리비전 <code>7d1fb25</code>에서 가져왔다. 함수 안의 문장과 원문 주석을 생략하지 않았고, 클래스 안의 오버로드는 바깥 들여쓰기만 정리했다. 이 함수들은 V8의 클래스·타입·헤더 문맥 안에서 사용된다. 좁은 화면에서는 코드 블록을 가로로 스크롤할 수 있다. [10, 13]</p>
+<p>먼저 호출과 반환의 방향을 나누어 보겠다. 새 값과 태그는 아래 계층으로 전달되고, 이전 주소는 반환 경로를 따라 <code>DisposeResource</code>로 올라온다. 그래프 B의 두 분기는 빌드 시 선택되는 서로 다른 필드 표현이다. entry 내부의 CAS 반복은 그래프 C에서 따로 살펴본다.</p>
+<p><img src="/assets/research/chrome-m152-externalstring-race/08-exchange-flow.ko.svg" alt="교환 helper의 호출 관계와 sandbox 빌드 분기"></p>
+<p><em>코드 흐름 B. 단일 태그 오버로드에서 필드 연산으로 이어지는 호출과 빌드 분기다. 두 분기 모두 이전 주소를 반환하지만 갱신하는 저장소가 다르다.</em></p>
+<p><a href="/assets/research/chrome-m152-externalstring-race/08-exchange-flow.ko.svg">확대해서 보기</a></p>
 <h4>1. 단일 태그 오버로드</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h#L60"><code>src/sandbox/external-pointer.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-keyword">inline</span> Address <span class="hljs-title">exchange</span><span class="hljs-params">(IsolateForSandbox isolate, Address value)</span>
@@ -312,8 +328,8 @@ Retire(key):
 </tr>
 </tbody>
 </table>
-<p>이 함수는 <code>ExternalPointerMember</code> 클래스 안에 정의된 오버로드다. 허용 범위에 태그가 하나일 때만 선택되며, 그 태그를 명시하는 템플릿 오버로드로 전달한다. <code>requires</code>는 컴파일 시 선택 조건이지 객체의 생존 검사나 실행 중의 동기화가 아니다.</p>
-<p>여기서 <code>value</code>는 반환받을 값이 아니라 테이블에 넣을 <strong>새 값</strong>이다. 정리 함수가 넘기는 <code>kNullAddress</code>와, 교환 연산이 반환하는 이전 리소스 주소를 구분해야 한다. 오버로드는 이 둘의 역할을 바꾸지 않고 아래 계층으로 전달한다.</p>
+<p>호출자는 태그를 쓰지 않았지만, 이 오버로드는 단일 태그 범위에서 <code>kTagRange.first</code>를 템플릿 인자로 선택한다. 다음 함수에는 그 태그와 <code>isolate</code>, 새 값이 전달된다. 여기에는 필드 읽기나 payload 변경이 없다. <strong>호출 표기를 정적 태그가 있는 연산으로 연결하는 단계</strong>다. <code>requires</code>는 컴파일 시 오버로드 선택 조건이며 객체의 생존 검사나 실행 중 동기화를 수행하지 않는다.</p>
+<p>정리 경로에서 새 값은 <code>kNullAddress</code>다. 이 값은 아래 계층으로 내려가는 입력이고, 이전 리소스 주소는 아래 계층에서 반환되어 올라오는 결과다. 전달 방향이 반대인 두 값을 구분하면 왜 <code>DisposeResource</code>가 교환 결과를 지역 변수에 보관하는지 이해할 수 있다.</p>
 <h4>2. 멤버 함수에서 필드 연산으로 전달</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L77"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-keyword">template</span> &lt;ExternalPointerTagRange kTagRange&gt;
@@ -348,8 +364,8 @@ Retire(key):
 </tr>
 </tbody>
 </table>
-<p>태그가 멤버의 허용 범위 안에 있다는 조건을 컴파일 시 확인하고 필드 연산으로 전달한다. <code>storage_</code>에서 얻는 것은 핸들을 저장하는 필드의 주소다. 이 전달 함수가 외부 객체의 소유권을 새로 만드는 것은 아니다.</p>
-<p><code>reinterpret_cast&lt;Address&gt;(storage_)</code>를 외부 리소스 객체의 주소라고 읽으면 이 함수의 역할이 달라 보인다. 여기서는 멤버의 저장 위치를 필드 연산에 전달한다. 그 위치에서 핸들을 얻고 외부 값을 해석하는 책임은 다음 계층에 있다.</p>
+<p>이 단계의 데이터는 필드 주소, 새 주소 값, 실행 문맥이라는 세 가지다. <code>storage_</code>를 <code>Address</code>로 표현한 값은 <strong>핸들을 읽을 위치</strong>이고, 매개변수 <code>value</code>는 <strong>교체할 포인터 값</strong>이다. 두 값의 C++ 타입이 같아도 역할은 다르다.</p>
+<p><code>static_assert</code>는 태그가 멤버의 허용 범위 안에 있는지 컴파일 시 확인한다. 검증한 태그는 템플릿 인자로 전달된다. 함수는 자체적으로 필드를 읽지 않고 <code>ExchangeExternalPointerField&lt;tag&gt;</code>가 반환한 값을 그대로 돌려준다. 따라서 원인 분석에서는 이 전달 함수에서 새로운 리소스를 선택했다고 보지 않고, 실제 선택과 변경이 일어나는 다음 계층을 확인한다. 저장 위치의 캐스팅과 위임이 객체 소유권을 새로 만들지는 않는다.</p>
 <h4>3. sandbox와 비 sandbox의 교환 경로</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L260"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-keyword">template</span> &lt;ExternalPointerTag tag&gt;
@@ -391,8 +407,10 @@ Retire(key):
 </tr>
 </tbody>
 </table>
-<p>두 빌드 분기를 모두 남겼다. sandbox 분기는 핸들을 얻어 해당 EPT의 교환 연산에 전달한다. 비 sandbox 분기는 주소 값을 읽고 새 값을 쓴 뒤 이전 값을 반환한다. 따라서 함수 이름이 같다는 이유로 두 분기의 원자성까지 같다고 해석할 수는 없다.</p>
 <p>sandbox 분기의 교환은 선택된 항목에 새 포인터 값을 반영한다. 이 코드에는 힙 객체의 핸들 필드를 null로 덮거나 항목을 free list에 돌려주는 호출이 없다. 따라서 포인터 값이 null이 되는 것과 테이블 슬롯 자체가 삭제되는 것은 구분해야 한다.</p>
+<p>그래프 B의 갈림길은 실행 중의 <code>if</code>가 아니라 <code>#ifdef</code>다. sandbox 빌드에서는 <code>field_address</code>에서 핸들을 한 번 얻고, 태그로 사용할 테이블을 선택한 뒤 그 핸들을 <code>Exchange</code>에 넘긴다. <strong>테이블 선택에는 태그, 항목 선택에는 핸들</strong>을 사용한다.</p>
+<p>비 sandbox 빌드는 같은 위치에 주소 값이 직접 저장된다는 표현을 따른다. 기존 주소를 <code>old_value</code>로 보관하고 새 값을 쓴 뒤 <code>old_value</code>를 반환한다. 이 분기에는 EPT 조회나 entry CAS가 없으므로, sandbox 분기의 payload 원자성을 그대로 적용해 설명하지 않았다.</p>
+<p>두 분기의 공통 인터페이스는 새 값을 반영하고 이전 주소를 반환한다는 점이다. sandbox 경로에서 바뀌는 상태는 힙 핸들 필드가 아니라 선택한 EPT 항목이다. 이 차이가 정리 대상과 갱신 대상을 대조하는 기준이 된다.</p>
 <h4>4. 핸들의 원자적 읽기</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L193"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> V8_ENABLE_SANDBOX</span>
@@ -432,7 +450,9 @@ Retire(key):
 </tbody>
 </table>
 <p>이 함수의 책임은 핸들 값 하나를 원자적으로 읽는 것이다. 원문 주석은 테이블 접근과의 데이터 의존성을 근거로 relaxed 읽기를 선택했다고 설명한다. 이것만으로 여러 연산이 하나의 트랜잭션이 되거나 객체의 수명이 유지되지는 않는다.</p>
-<p>원자성은 한 핸들 값을 일관되게 관측하는 성질이고, 메모리 순서는 여러 데이터 접근 사이의 관계를 다루는 성질이다. 원문 주석에 있는 데이터 의존성 가정은 그 관계에 대한 설명이다. 리소스를 누가 사용 중인지 추적하는 계약까지 대신하지는 않는다.</p>
+<p><code>location</code>은 외부 리소스의 주소가 아니라 핸들 필드를 가리킨다. <code>AsAtomic32::Relaxed_Load</code>가 반환하는 것은 그 필드에서 읽은 핸들 값이다. 실제 네이티브 리소스 주소를 얻는 일은 이후 EPT 항목 연산에서 이루어진다.</p>
+<p>따라서 이 경로에는 원자적 작업의 대상이 둘 있다. 여기서는 <strong>힙 필드의 핸들 값</strong>을 읽고, entry 함수에서는 <strong>테이블 항목의 payload</strong>를 교환한다. 둘이 각각 원자적이라고 해서 전체 함수나 모든 사용자의 수명이 하나의 원자적 구간이 되지는 않는다.</p>
+<p>수정된 호출에서는 반환된 핸들이 지역 값으로 테이블 연산에 전달된다. entry CAS의 반복도 그 선택된 항목 안에서 이루어진다. payload 재시도와 힙 핸들의 재선택을 같은 동작으로 해석하지 않는 것이 중요하다.</p>
 <h4>5. EPT에서 항목 선택</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L206"><code>src/sandbox/external-pointer-table-inl.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-function">Address <span class="hljs-title">ExternalPointerTable::Exchange</span><span class="hljs-params">(ExternalPointerHandle handle,
@@ -466,8 +486,10 @@ Retire(key):
 </tr>
 </tbody>
 </table>
-<p>선택된 핸들을 항목 인덱스로 변환하고 항목의 교환 연산으로 전달한다. <code>DCHECK</code>들은 이 경로가 기대하는 불변식을 표현한다. 그 문장만 보고 대상 release 빌드의 모든 실행 시 검증 범위를 확정할 수는 없다.</p>
-<p>이 경로에는 managed 타입을 배제하는 assertion이 있다. 앞에서 소개한 <code>ManagedResource</code>의 일반적인 EPT 설계 설명을, 이 <code>Exchange</code>가 managed 리소스의 자동 수명 프로토콜을 수행한다는 뜻으로 옮겨 읽으면 안 된다. 이 함수의 명시적 동작은 항목 선택과 위임이다.</p>
+<p><code>DCHECK</code>들은 이 경로가 기대하는 불변식을 표현한다. 그 문장만 보고 대상 release 빌드의 모든 실행 시 검증 범위를 확정할 수는 없다.</p>
+<p>첫 assertion이 확인하는 null은 <code>kNullExternalPointerHandle</code>이다. 이는 새 포인터 값으로 전달한 <code>kNullAddress</code>와 역할이 다르다. <strong>선택할 항목의 핸들은 존재해야 하지만, 그 항목에 넣을 포인터 값은 null일 수 있다.</strong></p>
+<p><code>HandleToIndex(handle)</code>는 항목 선택에 사용할 인덱스를 만들고, <code>at(index)</code>가 그 항목의 교환 함수를 호출한다. 이 함수는 리소스 정리 콜백을 실행하지 않는다. 반환은 entry 함수에서 필드 함수, 멤버 함수 순서로 올라가며 최종적으로 <code>DisposeResource</code>의 <code>value</code>가 된다.</p>
+<p>managed 태그를 배제하는 assertion도 이 위임 경로의 전제를 보여 준다. 앞서 설명한 <code>ManagedResource</code>의 일반 설계와 이 함수의 동작을 구분해야 하는 이유다. 항목 선택과 객체 소유권 관리는 같은 연산이 아니다.</p>
 <h4>6. 항목 payload의 교환</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L70"><code>src/sandbox/external-pointer-table-inl.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-function">Address <span class="hljs-title">ExternalPointerTableEntry::ExchangeExternalPointer</span><span class="hljs-params">(
@@ -490,6 +512,9 @@ Retire(key):
   }
 }
 </code></pre>
+<p><img src="/assets/research/chrome-m152-externalstring-race/09-entry-cas.ko.svg" alt="EPT entry의 mark 보존과 weak CAS 재시도 흐름"></p>
+<p><em>코드 흐름 C. 실패 시 expected 상태로 후보를 다시 구성하고, 성공 시 이전 payload의 주소를 반환한다. 반복은 선택된 한 entry 안에서 이루어진다.</em></p>
+<p><a href="/assets/research/chrome-m152-externalstring-race/09-entry-cas.ko.svg">확대해서 보기</a></p>
 <p><strong>입출력 계약</strong></p>
 <table>
 <thead>
@@ -513,10 +538,12 @@ Retire(key):
 </tr>
 </tbody>
 </table>
-<p>실제 payload 갱신은 이 함수에 있다. 이전 payload를 읽고, 새 payload에 기존 GC mark를 보존한 뒤 compare-and-exchange를 시도한다. 실패하면 갱신된 이전 값으로 반복하고, 성공하면 이전 포인터 값을 반환한다. <code>MaybeUpdateRawPointerForLSan</code>은 LSan 관련 보조 상태를 갱신하는 호출이며, 객체 소유권을 만드는 연산은 아니다.</p>
+<p>첫 <code>DCHECK</code>는 새 주소 값이 payload의 태그·mark용 비트와 겹치지 않아야 한다는 전제를 표현한다. 루프의 <code>ContainsPointer()</code>는 관측한 payload가 포인터를 담는 상태인지 확인하는 assertion이다. 주소 표현과 payload 상태에 대한 전제이며, 리소스 생존이나 객체 소유권을 검사하는 연산은 아니다.</p>
 <p>이 CAS가 묶는 범위는 한 EPT 항목의 payload다. 힙 객체의 핸들 필드 전체나 여러 외부 객체를 한꺼번에 동기화한다고 범위를 넓혀 읽으면 안 된다.</p>
-<p><code>old_payload</code>는 CAS의 expected 인자로도 사용된다. 값 불일치로 실패하면 새로 관측한 값이 expected에 반영되고, weak CAS는 비교 값이 같아도 일시적으로 실패할 수 있다. 따라서 실패 자체를 새로운 수명 오류로 해석하지 않고 다음 반복에서 다시 조건을 평가한다. [14]</p>
-<p>반복마다 <code>new_payload</code>를 구성하고 현재 <code>old_payload</code>의 mark를 옮기는 것은 재시도에서 관측 상태를 반영하기 위해서다. 성공한 CAS는 <strong>그 한 항목의 교체가 확정되는 지점</strong>으로 볼 수 있다. 이 원자적 갱신과 호출자가 이전 리소스 주소를 안전하게 사용하는 계약은 별도로 검토해야 한다.</p>
+<p>반복문의 입력으로 쓰이는 <code>old_payload</code>는 첫 relaxed load에서 얻은 기대값이다. <code>Payload(value, tag)</code>는 호출자가 요청한 새 포인터와 태그로 교체 후보를 만들고, 관측한 이전 payload의 mark가 설정되어 있으면 후보에도 mark를 설정한다. 새 후보를 반복문 안에서 만드는 것은 <strong>실패 후 갱신된 expected 상태를 다시 반영하기 위해서</strong>다.</p>
+<p>CAS가 성공하면 <strong>그 한 항목의 교체가 확정되는 지점</strong>이 된다. 이때 <code>old_payload</code>는 성공 직전의 이전 payload를 유지하므로 <code>old_payload.Untag(tag)</code>가 이전 주소를 반환할 수 있다. <code>new_payload</code>에서 주소를 꺼내 반환하는 코드와는 의미가 다르다. 이 원자적 갱신과 호출자가 반환된 리소스를 안전하게 사용하는 계약은 별도로 검토한다.</p>
+<p>CAS가 실패하면 다음 반복은 expected 인자로 갱신된 <code>old_payload</code>를 사용한다. weak CAS의 일시적 실패도 이 경로로 처리한다. 다시 만드는 것은 선택된 entry의 payload 후보이며, 힙 필드에서 다른 핸들을 다시 읽는 루프가 아니다. [14]</p>
+<p><code>MaybeUpdateRawPointerForLSan(value)</code>는 성공한 분기 안에서 새 값을 기준으로 호출된다. 이전 포인터를 반환하는 것과 LSan 보조 상태에 새 값을 반영하는 것 역시 구분한다. 이 함수에는 <code>Dispose()</code> 호출이 없으며, 실제 리소스 정리는 반환을 받은 상위 함수의 역할이다. LSan 보조 상태의 갱신이 객체 소유권을 획득하는 것도 아니다.</p>
 <p>원문 출처: V8 project authors, Copyright 2017 / 2020 / 2021. 코드의 BSD-style 라이선스와 원문 저작권 고지는 <a href="/assets/research/chrome-m152-externalstring-race/v8-source-license.txt">라이선스 파일</a>에 함께 제공한다. [13]</p>
 <h3>12.5 보호 범위를 상태별로 정리하기</h3>
 <p>같은 교환 연산이라도 무엇이 갱신되는지에 따라 보장 범위가 달라진다. 코드 검토에서는 다음 세 상태를 분리해서 확인하겠다.</p>
