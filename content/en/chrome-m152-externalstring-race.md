@@ -22,13 +22,7 @@ I will focus on the questions that guided the investigation, the assumptions beh
 
 ## 1. The starting assumption
 
-The recorded target is Chrome 152.0.7977.64 / V8 M152. The subject is cleanup and lifetime management of ExternalString resources: whether changes to sandboxed state can undermine an external native object's lifetime in the same renderer process. The account draws on source analysis notes, early observations, browser research records, and later checkpoints.
-
-The starting assumption matters. This post does not describe a single vulnerability that grants every capability from ordinary JavaScript. It examines whether external memory remains isolated **after memory inside the sandbox can already be corrupted**.
-
-The full research package contains preceding and subsequent work. The subject here is the lifetime of external string resources. How the earlier in-sandbox access was obtained is a separate question outside this post.
-
-Without that distinction, a reader could reasonably wonder whether this race alone provided OS privileges from a webpage. Explaining the scope requires stating what capabilities were already assumed.
+The recorded target is Chrome 152.0.7977.64 / V8 M152. The subject is cleanup and lifetime management of ExternalString resources, and how changes to sandboxed state affect external native objects in the same renderer. Target identifiers and execution assumptions follow below; section 9.1 records the evidence available for each claim.
 
 ### 1.1 Pinning the target build and its provenance
 
@@ -36,9 +30,7 @@ The technical revision identifies the target by source revisions and a binary fi
 
 The `chrome/VERSION` file at Chromium revision `506c834eccea` identifies Chrome `152.0.7977.64`. DEPS at the same revision pins `v8_revision` to `6aacaf6256a0`, whose `include/v8-version.h` defines V8 `15.2.124.18`.
 
-The technical revision reports Linux x86-64 as the platform and a disabled process sandbox for the local test results.
-
-The full identifiers follow. The Chrome SHA-256 is **reported by the research material**; it was not independently recalculated from a binary during this edit.
+The full identifiers follow. The Chrome SHA-256 is **reported by the research material**.
 
 ```text
 Chromium revision: 506c834ecceaa943c5f41e6cfe7f68acb5c45346
@@ -46,19 +38,17 @@ V8 revision:       6aacaf6256a069ee455142333b7d38cad1c8d6e0
 Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd0af
 ```
 
-The public-source relationship checked here is `Chrome VERSION → Chromium DEPS → V8 VERSION`. It supports consistency of the version identifiers. Establishing that the executed binary was built from those sources, with particular build options, requires the binary and build records separately.
+The checked public-source relationship is `Chrome VERSION → Chromium DEPS → V8 VERSION`, supporting consistency of the version identifiers. Section 9.1 records the extent of the binary and build-record checks.
 
-The patch functions reproduced in this post come from fix revision `7d1fb25`. The recorded target revision and the fix revision have distinct roles; these records do not establish coverage in M153 or another shipping version.
+The patch functions reproduced here come from fix revision `7d1fb25`. The target revision identifies the investigated version; the fix revision identifies the cleanup change.
 
 ### 1.2 Execution conditions and what the result means
 
-Reading this research requires fixing **the target, the assumed starting capability, and OS execution privileges** together. The target is the M152 build identified in section 1.1. The starting assumption is that memory inside the V8 Sandbox can already be corrupted. The external-string lifetime issue asks whether native memory outside that boundary remains protected under that assumption.
+The starting capability is **that memory inside the V8 Sandbox can already be corrupted**. On the M152 target in section 1.1, the investigation asks whether external-string resource lifetimes and native memory outside that boundary remain protected under this assumption. How the preceding work obtained in-sandbox access is a separate research subject.
 
-V8's memory boundary and Chrome's OS process boundary have different responsibilities. The former concerns the relationship between sandbox state and external memory; the latter restricts files and OS resources available to a process. Stating the assumed internal corruption also separates the starting capability from any claim of newly acquired file-access privileges. [1, 2]
+V8's memory boundary separates sandboxed state from external memory. Chrome's OS process boundary restricts accessible files and OS resources. These responsibilities frame the lifetime analysis in section 3 and the file-read result in section 11. [1, 2]
 
-The reported **local tests used Linux x86-64 with the process sandbox disabled**. Elevated privileges in the local checkpoint were also granted before execution. Completed file I/O in that context is interpreted within the process's existing privileges. Remote executions have separate records; the local configuration is not attributed to every remote run. [3, 16]
-
-Keeping these conditions explicit allows the lifetime analysis in section 3 and the `hosts` read in section 11 to be evaluated together. The former concerns engine reference and object-lifetime relationships; the latter is a completion result from a particular execution. Binary provenance and build options require the records described alongside the identifiers in section 1.1.
+The reported **local tests used Linux x86-64 with the process sandbox disabled**. Elevated privileges in the local checkpoint were granted before execution. Remote completion cases have separate records; that local configuration is not attributed to every remote run. Section 11.1 interprets the file-access outcome. [3, 16]
 
 ## 2. ExternalString and external resources
 
@@ -73,8 +63,6 @@ This led to two separate questions: whether the **reference path is permitted**,
 ![Diagram separating V8 memory isolation from the renderer's OS resource boundary](/assets/research/chrome-m152-externalstring-race/01-boundaries.svg)
 
 *Figure 1. Memory isolation inside a renderer and OS resource restrictions are separate boundaries. This diagram shows protection scope, not addresses or a bypass route.*
-
-The V8 Sandbox also needs to be distinguished from Chrome's process sandbox. The latter uses OS facilities to restrict process access to resources. [2] An out-of-sandbox memory error in V8 does not, by itself, establish escape from the browser's process sandbox or a kernel privilege escalation.
 
 ### 2.1 Lifetime contracts in the public API
 
@@ -110,7 +98,7 @@ Resource cleanup has at least two meanings: ending the actual object's lifetime,
 
 That inconsistency was the focus here. The key question was whether **the object being cleaned up and the reference regarded as cleaned up still represented the same target**.
 
-A later use of a retained reference can lead to a use-after-free, or UAF. But retaining a reference, using that reference, and observing an effect on external memory are separate claims. Evidence of the first does not automatically prove the others.
+A later use of a retained reference can lead to a use-after-free, or UAF. Section 9.1 sets out the evidence for retaining a reference, using it, and observing an external-memory effect.
 
 ![Object and reference states after normal cleanup and after a lifetime inconsistency](/assets/research/chrome-m152-externalstring-race/02-lifetime.svg)
 
@@ -188,7 +176,7 @@ The first invariant used to connect the fix with observations is that **the disp
 
 The previous address returned by the entry function propagates through the delegation layers into `DisposeResource`'s local `value`. Casting and callbacks use the resource represented by that local value. Read together, code flows A–C show **the selected entry's exchange result leading to disposal of that same resource**. The heap member's handle, the existence of an EPT slot, and the payload's pointer value are distinct states; the sandbox exchange updates the selected payload. [9, 10]
 
-**The part requiring execution evidence** is how this source relationship corresponds to the error in the recorded binary. Patch source supports the cause interpretation, but does not establish every subsequent browser outcome or replace regression validation of a fixed binary. Execution review must establish which object's lifetime ended and whether a reference treating that object as valid was used. That question leads into the research progression in section 5 and the final result in section 11.
+**The question for execution review** is which object ended its lifetime and whether a reference treating that object as valid was used. This leads into the research progression in section 5 and the final result in section 11. Section 9.1 collects the source and execution evidence boundaries.
 
 ### 3.5 Inputs, branches, and effects of cleanup
 
@@ -212,7 +200,7 @@ The sandbox path clears that payload's pointer value before disposal callbacks. 
 
 A successful CAS establishes replacement of one payload. It does not make the later virtual callbacks part of the same atomic operation. Expressing the previous address as a C++ pointer is also not ownership acquisition. Target consistency and the whole object's lifetime contract therefore remain distinct claims.
 
-This is not a finding that the public patch is insufficient. It separates the work performed by this function from the conditions its callers and resource implementations must jointly preserve. That boundary is necessary to explain the purpose of the atomic exchange accurately.
+The review therefore separates target consistency maintained by this function from use lifetimes coordinated by callers and resource implementations. Section 3.7 distinguishes the root cause from subsequent review questions.
 
 ### 3.7 Separate the root cause from later review questions
 
@@ -238,8 +226,6 @@ The research question is consequently whether cleanup can break the consistency 
 
 The analysis therefore asked what a check actually guaranteed and what had to remain true independently. A reference can have the expected form or category while its target's lifetime has ended. An object can also be alive without being the same object that the current operation was supposed to use.
 
-That is the high-level meaning of the bypass investigated here: a failure to preserve lifetime and identity consistency between sandboxed state and an external object. The values, timing, object combinations, and later control-flow operations needed to turn that into a working chain are outside this public account.
-
 The same distinction matters defensively. Introducing indirection is only part of the design. The guarantees about the referenced target must continue to hold while it is being cleaned up.
 
 ### 4.1 Spatial and temporal safety
@@ -248,11 +234,11 @@ Type consistency asks whether the expected kind of target is being used and cons
 
 Temporal safety concerns whether the object is alive when used, linking release and use. Identity consistency asks whether a multi-operation task continues processing the same object established earlier.
 
-These are analytical distinctions. The focus here was external-object lifetime and identity. Spatial or type faults cannot be added to the findings without separate observations.
+The focus of this analysis is external-object temporal safety and identity consistency.
 
 ## 5. The questions that guided the investigation
 
-When reading the preserved notes and later summaries, the useful connection is **which judgment an observation supported, and what needed to be checked next**. The following account connects review questions retained in source analysis, d8 tests, browser progress records, and completion summaries. Records from different conditions are not combined into a single execution transcript. [3, 16]
+The preserved notes and later summaries are organized around **which judgment an observation supported, and what needed to be checked next**. The following account connects review questions from source analysis, d8 tests, browser progress records, and completion summaries. Section 9.1 records their provenance. [3, 16]
 
 ![Research questions grouped by cause, observation, browser context, and interpretation](/assets/research/chrome-m152-externalstring-race/04-research.svg)
 
@@ -262,7 +248,7 @@ When reading the preserved notes and later summaries, the useful connection is *
 
 The starting hypothesis was that an external resource's lifetime could end while an EPT reference remained valid. The target-agreement invariant in section 3.4 supplies a criterion for examining that hypothesis. It explains why the review needed to go beyond a crash location and examine the relationship between the disposed object and a reference treating it as valid.
 
-The early d8 records contain UAF observations. They provided grounds for comparing the source-level lifetime possibility with execution evidence. Because the verdict in those tests was UAF observation, the next question was not a final file-read success rate: it was **whether the same lifetime relationship fails in the browser**. Section 6 covers the counts and environmental differences. [3]
+The early d8 records contain UAF observations, providing grounds for comparing the source-level lifetime hypothesis with execution evidence. The next question was **whether the same lifetime relationship fails in the browser**. Section 6 covers the counts and environmental differences. [3]
 
 ### 5.2 From d8 outcomes to browser object lifetime
 
@@ -282,7 +268,7 @@ The resulting review criterion was to treat **address changes, visible character
 
 The browser records continue into review of external native-memory effects and subsequent behavior. Native-memory errors, observations at indirect calls, and completed file I/O remained separate verdicts. Section 8's separation of CFI call relationships from liveness, and section 9's separation of debugger intervention from execution outcomes, supply conditions for those verdicts. [3]
 
-The technical revision's evidence map also retains early remote results in which the final goal was not completed. They provide a failure baseline against treating an intermediate observation as final success. Later completion summaries and subsequent confirmation of the `hosts` read added a different supported outcome: **there are cases completing the final file read**. The exact overall trial count and a general success rate remain separate from that result. [5, 16]
+The technical revision's evidence map retains early remote results in which the final goal was not completed. They provide a failure baseline for comparing intermediate observations with completion verdicts. Later completion summaries and confirmation of the `hosts` read establish **cases completing the final file read**. Section 11.2 discusses execution units and denominators for rates. [5, 16]
 
 The research connection therefore does not simply attach a file read to the name UAF. It fixes the source-level target, reviews lifetime relationships in execution, checks browser object identity, and distinguishes what completion records establish. Section 11 presents the final result's evidence; section 12 examines the patch implementation addressing the same cause.
 
@@ -294,7 +280,7 @@ The shared-host configuration recorded 0 UAF observations, while the separate d8
 
 The first result could make the problem seem difficult to observe. However, races depend on execution order and observation timing. Failure to observe an event does not establish that a vulnerability is absent. Conversely, when several environmental conditions changed together, the difference cannot be attributed to one of them without further evidence.
 
-The d8 result justified investigating the proposed cause further. It did not establish completion of the entire browser experiment.
+Those d8 observations led to review of the same lifetime relationship in the browser.
 
 A browser contains more surrounding state than a standalone engine. Page and Worker lifetimes, string creation and retention, caches, and native allocations interact. Even when the same class of error is involved, different surrounding conditions can change what happens afterward.
 
@@ -316,7 +302,7 @@ This applies beyond exploitation. In ordinary native debugging, “the value cha
 
 A positive reference count does not, by itself, explain a safe use. The object's identity must be established, and acquiring ownership must be synchronized correctly with retirement. Attempting to inspect a count through an already destroyed object may itself be unsafe.
 
-I therefore treated `object identity → ownership acquisition → use interval → ownership release` as an analytical contract, rather than reading only `address → field value`. This describes review dimensions, not an executable reproduction sequence.
+I therefore treated `object identity → ownership acquisition → use interval → ownership release` as an analytical contract, rather than reading only `address → field value`.
 
 ### 7.2 Caching and ownership are different states
 
@@ -342,21 +328,19 @@ The same header requires external string data to be immutable. Immutability of c
 
 ## 8. Separating CFI from memory safety
 
-Control-flow protections were another distinct concern when studying later effects in Chrome. Control Flow Integrity, or CFI, constrains operations such as indirect calls to permitted control-flow conditions. The exact coverage must be checked for the build being examined. [4]
+Control-flow protection also mattered when reviewing later effects in Chrome. Control Flow Integrity, or CFI, constrains operations such as indirect calls to permitted control-flow conditions. Section 9.1 records the extent of the target-build configuration checks. [4]
 
-One easy mistake is treating influence over some memory value as immediate proof of arbitrary code execution. A lifetime error, an external memory effect, an indirect-call observation, and completion of a final action are separate results.
+An effect on a memory value and a completed call are different events. The review distinguishes reference paths, object lifetime, and call relationships.
 
 The reverse mistake is assuming that a control-flow check also resolves every lifetime error around it. Guarantees about a call target and guarantees about an object's continued existence require separate examination.
 
 An allowed reference mechanism and the liveness of its target are separate conditions. Using an object during its valid lifetime also does not establish that the call satisfies control-flow checks.
 
-An indirect call meeting its control-flow conditions does not establish correctness of earlier data and ownership states. OS permission for a process's file access must likewise be distinguished from newly acquiring those privileges through a vulnerability.
+Even when an indirect call meets its control-flow conditions, the preceding data and ownership states require separate review.
 
 ![Reference path, lifetime, control flow, and OS privileges as separate review dimensions](/assets/research/chrome-m152-externalstring-race/05-guarantees.svg)
 
 *Figure 5. Distinct properties covered by different protections. This is not an inventory of all checks or bypass routes in a particular build.*
-
-For that reason, this post does not collapse those properties into a claim that every protection was bypassed. The original notes include research into later effects; this public account focuses on the guarantees examined and the meaning of the recorded results.
 
 ### 8.1 Checked types and object liveness
 
@@ -364,7 +348,7 @@ Clang distinguishes schemes such as `cfi-vcall` for virtual calls and `cfi-icall
 
 An allowed call-type relationship and a continuously live object are different propositions. Conversely, a run stopped by a CFI check cannot count as completion of the behavior after that check.
 
-This public record does not include an inventory of every check in the target build. It therefore does not assign a particular check to each call or infer that all CFI protection was defeated from the completed file read. Lifetime findings and later completion remain distinct claims.
+Section 9.1 distinguishes the evidence needed to compare the target build's check sites with execution results.
 
 ## 9. Observation tools were part of the environment
 
@@ -380,25 +364,23 @@ This is also why failure records matter. Recording only a missing final output d
 
 ### 9.1 Classifying the question each evidence item answers
 
-The technical revision's `EVIDENCE-MAP.md` associates claims with report sections and checkpoints. That map helps locate evidence; it does not replace the underlying execution records. [16]
+The technical revision's `EVIDENCE-MAP.md` points each claim to report sections and checkpoints. The following distinctions identify the questions those materials answer. [16]
 
-Pinned source shows the states and contracts a function handles. Connecting it to execution requires identifying the relationship between that source and the executed binary. Breakpoints or forced debugger state can explain an intermediate state or limited later behavior; an execution record without that intervention is separate evidence.
+**Source checked directly:** the `Chrome VERSION → Chromium DEPS → V8 VERSION` relationship, target API contracts, and cleanup/exchange functions at fix revision `7d1fb25`. Target and fix sources are different revisions. The executed binary was not obtained to recalculate its reported SHA-256 or inspect build options, so identity between that binary and target source was not established. No fixed-binary regression run was performed. Coverage across shipping versions, including M153, and public access to the issue body were not separately verified. [8–10, 15, 17]
 
-An observation recorded by the executing component needs its verdict criteria and final output. A completed file-read record answers whether the predefined outcome was reached in the specified environment. Repeatability claims also require all trials and failures.
+**Symptom and cause observations:** a failing call location records a symptom; liveness of the object used by that call and use of its reference inform the cause review. Retaining a reference, using it, and observing an external native-memory effect each require corresponding observations. The source analysis centers on cleanup-target consistency; ownership, caching, and CFI review questions are not counted as additional confirmed vulnerabilities. Spatial and type faults are not included as separately confirmed findings, and no record inventories every CFI check site in the target build. [3, 4]
 
-A package SHA-256 manifest checks whether received files match the manifest. Establishing the truth of experimental claims is a different evidentiary task.
+**Execution records and subsequent confirmation:** early d8 aggregates, browser progress records, local file-I/O checkpoints, and remote completion summaries describe their respective tests. Records from different conditions are not merged into one execution log. The final `hosts` read and Daybreak approval rest on the author's subsequent confirmation. The approval notice, scope, reward, and publication terms were not directly audited during this edit. Section 11 covers completion outcomes and rates. [3, 5, 18]
 
-All 15 files listed in the supplied technical ZIP's manifest matched their SHA-256 digests. This is an integrity check, not a rerun of the reported experiment. The ZIP does not contain every original report and checkpoint named in its evidence map; naming a log must not be presented as directly auditing it.
-
-Source and observation should support the same proposition. A failing call location records a symptom; the lifetime of the object used by that call is a separate causal observation. Output of the final file contents is a third, outcome-oriented record.
+**Integrity and verification scope:** all 15 files listed in the received technical ZIP's manifest matched their SHA-256 digests. This checks file integrity rather than reproducing experiments. Not every original report and checkpoint named by the evidence map is included in that ZIP, and preparing this post did not involve rerunning the original PoC or revalidating every stage in one execution. [16]
 
 ## 10. A conceptual object-lifetime demonstration
 
-The demonstration compares three ways of representing the lifetime of the same abstract object. It does not run a Chrome or V8 vulnerability. The scenes are predefined object and reference states; its timer only advances their display.
+The demonstration is a **conceptual model** comparing three object-lifetime states. It displays predefined object and reference states; its timer advances the scenes. It does not execute a Chrome/V8 vulnerability or a particular patch's regression test.
 
 - **Normal cleanup:** when use ends, the reference becomes invalid.
-- **Lifetime mismatch:** the object has ended but a reference remains. The display highlights that inconsistency without accessing freed memory.
-- **Defensive invariant:** a state that treats an ended object as usable is rejected. This does not implement a particular patch or run its regression test.
+- **Lifetime mismatch:** the object has ended but a reference remains. The display highlights that inconsistency.
+- **Defensive invariant:** a state that treats an ended object as usable is rejected.
 
 <!--DEMO-->
 
@@ -406,37 +388,23 @@ The demonstration compares three ways of representing the lifetime of the same a
 
 The important feature is not the warning color. It is whether **object liveness and reference validity continue to describe a consistent relationship**. In a real investigation, that relationship must be supported by observations rather than assumed.
 
-No fabricated terminal output or success transcript is presented. Mixing a conceptual animation with supposed evidence from a real PoC would recreate the very ambiguity this post is trying to resolve.
-
 ## 11. Final exploit and successful hosts file read
 
-After the initial d8 observations, the package records research into external native memory effects and subsequent behavior in the browser. A final local checkpoint reports completion of a predefined file input/output action. Later summaries also report completed remote runs. [3]
+After the initial d8 observations, the package records research into external native-memory effects and subsequent behavior in the browser. A final local checkpoint reports completion of predefined file I/O, and later summaries record remote completion cases. [3]
 
-The investigation continued, and **the final exploit successfully read the `hosts` file.** [5] The initial observation of a UAF in d8 and the completed file read through the final exploit remain separate results. The newly confirmed outcome is a completion case for the latter.
-
-The wording needs to remain precise. The original PoC was not rerun while preparing this post. The package does not contain every raw execution log; some outcomes survive as checkpoints and reports. These are therefore **descriptions grounded in the retained research records and a subsequent confirmation of the final file read**.
+The investigation continued, and **the final exploit successfully read the `hosts` file.** [5] The following sections interpret that outcome, the execution units behind observation rates, and approval status. Section 9.1 collects their provenance and verification scope.
 
 ![Separate evidence requirements for symptoms, causes, outcomes, and rates](/assets/research/chrome-m152-externalstring-race/03-evidence.svg)
 
 *Figure 6. One crash cannot establish a cause, a final outcome, and a repeated-run success rate. Each claim requires different evidence.*
 
-The early record of 11 UAF observations in 150 d8 trials supports the observation rate for that experiment. Research notes summarize the source and debugger observations of external native-memory effects. Local checkpoints and later completion summaries support their recorded completion cases.
-
-The final exploit's `hosts` read rests on subsequent research confirmation of the final run. [5] The full final-campaign denominator was not retained, so no general numerical success rate is established. Results from a test environment with privileges already granted are not treated as evidence of newly acquired OS privileges.
-
-In particular, `11/150` is not the end-to-end browser success rate. Observing an error in d8 and completing the browser experiment are different events. An execution group containing several attempts also differs from a single attempt.
-
-For the same reason, I did not preserve the original “100%” wording. Completion cases can be reported, but without the total number of final trials, they do not establish an absence of failures or a generally guaranteed outcome. Calculations that assume independent stages must also remain separate from measured results.
-
-The final output obtained at elevated privilege needs its own qualification. That local checkpoint came from an environment with privileges already granted. It records completion of the defined action, not acquisition of new OS privileges through the vulnerability.
-
 ### 11.1 What the hosts file read establishes
 
-The final run successfully read `hosts`. It establishes completion of the later file-read behavior in that test environment. [5] The OS judges file access against process privileges and applicable policies, so the execution environment is part of the result's interpretation.
+The successful `hosts` read establishes **completion of the final file-read behavior in that test environment**. [5] The earlier external-memory effects concern the engine's memory boundary; the file read is subsequent behavior completed by that execution.
 
-I recorded two dimensions: **what was established at the engine's memory boundary**, and **which later behavior completed in that environment**. The earlier native-memory observations and the final file read belong in the same account, but they are separate verdicts.
+The OS evaluates file access against process privileges and applicable policies. Section 1.2's local tests had the process sandbox disabled and elevated privileges granted beforehand. File output in that environment records behavior within existing privileges, rather than evidence that the vulnerability acquired new OS privileges.
 
-The filename alone does not establish privilege escalation. It also does not prove access to every arbitrary file or the same outcome in another browser's default configuration. The confirmed result is a completed `hosts` file read.
+The filename alone does not establish privilege escalation. This completion case does not guarantee access to every arbitrary file or the same result in another browser's default configuration.
 
 ### 11.2 A rate needs both an observed event and an execution unit
 
@@ -450,33 +418,31 @@ For a group containing multiple trials, count groups meeting their completion ru
 
 The material contains measurements from different experiments and calculations based on models. I do not multiply those observation rates into an overall success rate. Races, object lifetimes, observation interventions, and execution conditions may be correlated; a product without evidence of independence and matching conditions is not a measured rate.
 
-The exact final-campaign denominator remains unspecified in this material. Completed file reads and a general repeatability rate therefore remain separate claims.
+The exact final-campaign denominator was not retained. Completion cases are recorded, while the original “100%” wording is not presented as a general repeatability rate. Calculating that rate requires the complete trial count and failure records.
 
 ### 11.3 Recording approval status separately from execution outcomes
 
 According to the author's subsequent confirmation, **this research received Daybreak approval.** [18] This research status is recorded alongside the successful `hosts` file read through the final exploit.
 
-Approval concerns an external review process; the file read concerns a particular execution. Approval does not supply a final-trial count or a build-specific repeatability rate. Details of the approval's scope, reward, or publication terms are not separately established here.
+Section 9.1 records the approval confirmation's provenance and the extent of review of its detailed terms.
 
 ### 11.4 Evidence connecting the cause analysis with the final result
 
 The first part is patch source at a fixed revision. It establishes the contract that the disposed resource agrees with the exchanged entry's previous target, and shows the fixed code's data flow maintaining that relationship. Early d8 aggregates separately record UAF observations under their own execution conditions. **Source supplies a criterion for interpreting the cause; execution observations supply material for comparing that criterion with actual behavior.** [3, 8–10]
 
-Browser progress records extend that comparison to ownership, caches, consumer paths, and external native-memory effects. The judgment concerns which object-lifetime issue explains the engine observations and later browser outcomes. Recasting an engine observation rate as a browser result, or combining intermediate results from different experiments into one completed execution, would lose that connection. [3, 16]
+Browser progress records extend that comparison to ownership, caches, consumer paths, and external native-memory effects. They support reviewing which object-lifetime issue explains the engine observations and subsequent browser outcomes. [3, 16]
 
-The final part comprises local checkpoints, later completion summaries, and the author's confirmed successful `hosts` read. These concern final outcomes, interpreted within section 1.2's execution conditions and section 11.1's privilege scope. In particular, the local-test configuration, remote completion summaries, and final file-read confirmation retain their individual provenance. [3, 5]
-
-The preserved material does not contain every raw execution log. This connection organizes research records and subsequent confirmation; it does not claim that every stage was revalidated in one execution while writing the post. `EVIDENCE-MAP.md` points to report sections and checkpoints supporting individual claims. A matching ZIP manifest concerns file integrity, while Daybreak approval concerns review status. Neither supplies missing trial counts or raw execution records. [5, 16, 18]
+The final part comprises local checkpoints, remote completion summaries, and the author-confirmed successful `hosts` read. Section 9.1 records their provenance, section 11.1 interprets file access, and section 11.2 defines execution units for rates. Together they connect cause evidence with final-outcome evidence. [3, 5]
 
 ## 12. The invariant that matters for remediation
 
-The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] For this expansion, I directly checked the linked public commit and source at that revision. [8–10] That verifies the source change, not its coverage across shipping Chrome versions or execution of a fixed binary.
+The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] Comparing the public fix with source at that revision shows how the exchange path below maintains it. Section 9.1 records the source and binary verification scope. [8–10]
 
 The defensive question is whether the target established at the start remains the same target through cleanup. If shared state can change in between, the assumption that reading it again preserves the earlier meaning needs scrutiny.
 
 It is also necessary to consider what other users can observe while cleanup is underway. A well-formed reference does not make a use safe if its target is being destroyed or has already ended its lifetime.
 
-The effect of a patch requires more than a plausible source-level intention. A comparison of identified pre-fix and post-fix builds under the same regression conditions is needed. That comparison is not supplied by the retained patch review.
+Comparing the patch's execution effects requires identified pre-fix and post-fix builds under the same regression conditions. The following sections set out invariants and properties for that review.
 
 ### 12.1 Defensive pseudocode that preserves ownership
 
@@ -781,21 +747,21 @@ Research records need the same precision. A line saying “it worked” is less 
 
 ## Reference
 
-1. [V8 — The V8 Sandbox](https://v8.dev/blog/sandbox). Official background on the protection's purpose and external references, not evidence for these experiments.
+1. [V8 — The V8 Sandbox](https://v8.dev/blog/sandbox). Official background on the protection's purpose and external references.
 2. [Chromium — Sandbox](https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md). Official background on OS process isolation; the detailed design is Windows-oriented.
-3. The supplied research package: original blog draft, detailed report, initial d8 observations, browser progress records, final checkpoint, and lifetime-oriented patch review. These private records support the cases and measurements in this post. Operational code and detailed experimental material are not included in this public draft.
-4. [Clang — Control Flow Integrity](https://clang.llvm.org/docs/ControlFlowIntegrity.html). General background on CFI checks; it does not establish the configuration or results of the target Chrome build.
-5. The author's subsequent confirmation that the final exploit read `hosts`. The technical revision's `EVIDENCE-MAP.md` identifies `RESEARCH_REPORT.md` and `CHECKPOINT-issue532-jop-orw-v147.md` as retained evidence. The received revision ZIP does not contain all those original execution records; this edit does not represent direct verification of additional logs or a PoC rerun.
-6. [V8 public API header — v8-primitive.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h). Public contracts and default disposal from main, retrieved on 1 October 2026, used as structural background. This does not identify the target M152 build's source revision.
-7. [V8 — external-pointer-table.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h). EPT design documentation from main, retrieved on 1 October 2026. Background for type and temporal safety, not proof of the target build or patch coverage.
-8. [V8 fix commit — 7d1fb25](https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03). External-string disposal fix naming issue `532204454`. Its description and changes were checked directly; this does not verify public access to the issue body or coverage in a shipping Chrome version.
+3. The supplied research package: original blog draft, detailed report, initial d8 observations, browser progress records, final checkpoint, and lifetime-oriented patch review. These private records support the cases and measurements in this post.
+4. [Clang — Control Flow Integrity](https://clang.llvm.org/docs/ControlFlowIntegrity.html). General background on CFI checks.
+5. The author's subsequent confirmation that the final exploit read `hosts`. The technical revision's `EVIDENCE-MAP.md` identifies `RESEARCH_REPORT.md` and `CHECKPOINT-issue532-jop-orw-v147.md` as retained evidence. Section 9.1 records the verification scope.
+6. [V8 public API header — v8-primitive.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h). Public contracts and default disposal from main, retrieved on 1 October 2026, used as structural background.
+7. [V8 — external-pointer-table.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h). EPT design documentation from main, retrieved on 1 October 2026. Background for type and temporal safety.
+8. [V8 fix commit — 7d1fb25](https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03). External-string disposal fix naming issue `532204454`. Its description and changes were checked directly.
 9. [V8 — string-inl.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h). Source for the cleanup excerpt and role analysis. The full function is reproduced from that revision, as are the related functions below.
-10. V8's [external-pointer-inl.h](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h) and [external-pointer-table-inl.h](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h) at the fix revision. Sources for exchange delegation, EPT payload behavior, and GC mark preservation. This revision was not established as identical to the recorded target M152 binary.
-11. [V8 — assert-scope.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/common/assert-scope.h). Confirms the debug-only assertion scope behind `DisallowGarbageCollection`; its name does not establish synchronization in a release build.
+10. V8's [external-pointer-inl.h](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h) and [external-pointer-table-inl.h](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h) at the fix revision. Sources for exchange delegation, EPT payload behavior, and GC mark preservation.
+11. [V8 — assert-scope.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/common/assert-scope.h). Confirms the debug-only assertion scope behind `DisallowGarbageCollection`.
 12. [V8 — v8-primitive.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h). Source for the `Unaccount` callback contract and empty default implementation.
 13. [V8 — external-pointer.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h) and [original license](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/LICENSE). Sources for the in-class single-tag overload and code redistribution terms.
 14. [C++ working draft — atomic operations](https://eel.is/c++draft/atomics.types.operations). Background for expected-argument updates and spurious failure in weak compare-and-exchange.
-15. Target-source [Chromium VERSION](https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/chrome/VERSION), [Chromium DEPS](https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/DEPS), and [V8 version header](https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-version.h). Compared directly on 1 October 2026 to establish the relationship between versions and revisions, separately from binary fingerprints or execution outcomes.
-16. The author-supplied `m152-blog-technical-revision.zip`: `TECHNICAL-REVIEW.md`, `EVIDENCE-MAP.md`, `PUBLICATION-CHECKLIST.md`, and `SOURCE-INDEX.md`. Editorial evidence for target identifiers, provenance, and measurement interpretation. Its 15 manifest-listed files were checked for integrity; that check is not experiment reproduction.
+15. Target-source [Chromium VERSION](https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/chrome/VERSION), [Chromium DEPS](https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/DEPS), and [V8 version header](https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-version.h). Compared directly on 1 October 2026 to establish the relationship between versions and revisions.
+16. The author-supplied `m152-blog-technical-revision.zip`: `TECHNICAL-REVIEW.md`, `EVIDENCE-MAP.md`, `PUBLICATION-CHECKLIST.md`, and `SOURCE-INDEX.md`. Editorial evidence for target identifiers, provenance, and measurement interpretation. Section 9.1 records its manifest check.
 17. [string.h](https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/src/objects/string.h) and [v8-primitive.h](https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-primitive.h) at the target V8 revision. Sources checked for resource and data member types, cacheability, and lock/disposal callback contracts.
-18. The author's subsequent confirmation of Daybreak approval. The approval notice and its detailed terms were not independently audited during this edit.
+18. The author's subsequent confirmation of Daybreak approval. Section 9.1 records the verification scope.
