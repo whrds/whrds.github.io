@@ -98,3 +98,15 @@
     observer.observe(host);
   }
 })();
+
+// Resize only the isolated concept demo that sent the message.
+(() => {
+  const frames = [...document.querySelectorAll('iframe[data-concept-demo]')];
+  if (!frames.length) return;
+  window.addEventListener('message', event => {
+    if (event.data?.type !== 'whrds-lifetime-height') return;
+    const frame = frames.find(item => item.contentWindow === event.source);
+    const height = event.data.height;
+    if (frame && Number.isFinite(height) && height >= 400 && height <= 2400) frame.style.height = Math.ceil(height) + 'px';
+  });
+})();

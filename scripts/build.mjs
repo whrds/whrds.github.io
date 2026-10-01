@@ -53,6 +53,7 @@ const topics = {
 };
 
 const categoryInfo = {
+  'V8': { slug: 'v8', ko: 'V8', en: 'V8' },
   'STUDY/PWNABLE_AMD64': { slug: 'pwnable-amd64', ko: 'STUDY / PWNABLE_AMD64', en: 'STUDY / PWNABLE_AMD64' },
   'STUDY/CVE && Fuzzing': { slug: 'cve-fuzzing', ko: 'STUDY / CVE && Fuzzing', en: 'STUDY / CVE && Fuzzing' },
   'STUDY/KERNEL': { slug: 'kernel', ko: 'STUDY / KERNEL', en: 'STUDY / KERNEL' },
@@ -84,7 +85,14 @@ async function readContent(lang) {
   return Promise.all(files.map(async (file) => {
     const source = await fs.readFile(path.join(dir, file), 'utf8');
     const parsed = matter(source);
-    return { lang, slug: path.basename(file, '.md'), data: parsed.data, body: parsed.content, html: md.render(parsed.content) };
+    let html = md.render(parsed.content);
+    if (parsed.data.concept_demo === 'm152-lifetime' && file === 'chrome-m152-externalstring-race.md') {
+      const marker = md.render('<!--DEMO-->').trim();
+      if (!html.includes(marker)) throw new Error('Missing conceptual demo marker');
+      const demoTitle = lang === 'ko' ? '객체 수명 개념 데모' : 'Object lifetime concept demo';
+      html = html.replace(marker, `<div class="concept-demo-embed"><iframe data-concept-demo src="/assets/research/chrome-m152-externalstring-race/m152-lifetime-demo.html#${lang}" title="${demoTitle}" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></div>`);
+    }
+    return { lang, slug: path.basename(file, '.md'), data: parsed.data, body: parsed.content, html };
   }));
 }
 
@@ -125,7 +133,7 @@ function layout({ lang, title, description, route, alternate, body, active = 'no
   <meta property="og:type" content="${type}"><meta property="og:title" content="${pageTitle}"><meta property="og:description" content="${escapeHtml(description || t.siteDescription)}"><meta property="og:url" content="${canonical}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=${assetVersion}">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
-  ${jsonLd}
+${jsonLd}
 </head><body>
   <a class="skip-link" href="#main">${lang === 'ko' ? '본문으로 건너뛰기' : 'Skip to content'}</a>
   ${header(lang, altRoute, active)}

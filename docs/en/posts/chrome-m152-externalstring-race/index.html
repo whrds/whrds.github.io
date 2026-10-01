@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en" data-theme="dark"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[V8] Chrome M152 ExternalString race and sandbox boundary research · whrds.log</title><meta name="description" content="Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[V8] Chrome M152 ExternalString race and sandbox boundary research · whrds.log"><meta property="og:description" content="Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit."><meta property="og:url" content="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=859216932f8c">
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[V8] Chrome M152 ExternalString race and sandbox boundary research","description":"Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.","datePublished":"2026-10-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/chrome-m152-externalstring-race/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/categories/">Categories</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/chrome-m152-externalstring-race/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString race and sandbox boundary research</h1><p class="article-description">Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>16 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> race I investigated in Chrome M152.</p>
+<p>The final exploit successfully read the <code>hosts</code> file. [5] This post follows the research direction that led to that result and the assumptions I needed to revisit along the way.</p>
+<p>The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?</p>
+<p>Observing a race once and explaining its significance inside a browser turned out to be different tasks. A problem observed in d8 could appear differently in Chrome. Results obtained under a debugger also needed to be distinguished from results obtained without that intervention. Even deciding whether a result represented an intermediate observation or completion of the whole experiment required care.</p>
+<p>I will focus on the questions that guided the investigation, the assumptions behind the protection boundary, and the limits of the recorded results. Reproduction code and the operational chain are omitted. An interactive conceptual demonstration compares object and reference states instead.</p>
+<h2>1. The starting assumption</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target in the records</td>
+<td>Chrome 152.0.7977.64 / V8 M152</td>
+</tr>
+<tr>
+<td>Subject</td>
+<td>Cleanup and lifetime management of ExternalString resources</td>
+</tr>
+<tr>
+<td>Research question</td>
+<td>Can changes to sandboxed state undermine an external object’s lifetime guarantees?</td>
+</tr>
+<tr>
+<td>Starting assumption</td>
+<td>A separate preceding vulnerability already permits reads and writes inside the V8 sandbox</td>
+</tr>
+<tr>
+<td>Boundary examined</td>
+<td>V8 sandbox memory versus other native memory in the same renderer process</td>
+</tr>
+<tr>
+<td>Evidence available</td>
+<td>Source analysis notes, early observations, browser research notes, and later checkpoints</td>
+</tr>
+</tbody>
+</table>
+<p>The starting assumption matters. This post does not describe a single vulnerability that grants every capability from ordinary JavaScript. It examines whether external memory remains isolated <strong>after memory inside the sandbox can already be corrupted</strong>.</p>
+<p>The full research package contains preceding and subsequent work. The subject here is the lifetime of external string resources. How the earlier in-sandbox access was obtained is a separate question outside this post.</p>
+<p>Without that distinction, a reader could reasonably wonder whether this race alone provided OS privileges from a webpage. Explaining the scope requires stating what capabilities were already assumed.</p>
+<h2>2. ExternalString and external resources</h2>
+<p>It is easy to picture a JavaScript string as an object whose character data all lives inside the JavaScript heap. <code>ExternalString</code> instead connects a string representation to external resources. That means the state visible to V8 and the state maintained by native resource owners must be considered together.</p>
+<p>The character contents are only part of the problem. Ownership, cleanup, and the lifetime of the final user must also agree. A plausible pointer value does not establish that the object expected at that location is still alive.</p>
+<p>The V8 Sandbox limits the spread of corruption from its heap to other memory in the process. External references can use indirection through an External Pointer Table, or EPT, instead of treating a field in a sandboxed object as a raw native address. [1]</p>
+<p>This led to two separate questions: whether the <strong>reference path is permitted</strong>, and whether the <strong>referenced object is still alive</strong>. Both conditions must hold.</p>
+<p><img src="/assets/research/chrome-m152-externalstring-race/01-boundaries.svg" alt="Diagram separating V8 memory isolation from the renderer's OS resource boundary"></p>
+<p><em>Figure 1. Memory isolation inside a renderer and OS resource restrictions are separate boundaries. This diagram shows protection scope, not addresses or a bypass route.</em></p>
+<p>The V8 Sandbox also needs to be distinguished from Chrome’s process sandbox. The latter uses OS facilities to restrict process access to resources. [2] An out-of-sandbox memory error in V8 does not, by itself, establish escape from the browser’s process sandbox or a kernel privilege escalation.</p>
+<h2>3. The lifetime inconsistency under investigation</h2>
+<p>The investigation began with the <code>ExternalString::DisposeResource</code> cleanup path. The retained analysis identifies a double-fetch in that path as the central cause. [3]</p>
+<p>A double-fetch reads shared state at different times. Reading twice is not inherently a vulnerability. The important question is whether the state can change between those reads while the code continues to assume that the earlier and later operations concern the same target.</p>
+<p>Resource cleanup has at least two meanings: ending the actual object’s lifetime, and ensuring that references to that object are no longer treated as valid. If those responsibilities become inconsistent, an object may be gone while a path to it remains.</p>
+<p>That inconsistency was the focus here. The key question was whether <strong>the object being cleaned up and the reference regarded as cleaned up still represented the same target</strong>.</p>
+<p>A later use of a retained reference can lead to a use-after-free, or UAF. But retaining a reference, using that reference, and observing an effect on external memory are separate claims. Evidence of the first does not automatically prove the others.</p>
+<p><img src="/assets/research/chrome-m152-externalstring-race/02-lifetime.svg" alt="Object and reference states after normal cleanup and after a lifetime inconsistency"></p>
+<p><em>Figure 2. Normal cleanup keeps object lifetime and reference validity consistent. A lifetime error can leave a reference to an object whose lifetime has ended.</em></p>
+<h2>4. The protection assumption behind the bypass research</h2>
+<p>This raises the obvious question: how can a boundary problem exist when an EPT is present?</p>
+<p>The direction investigated was whether <strong>a mismatch between an indirect reference and its target’s lifetime could undermine native memory safety outside the sandbox</strong>. A reference following an allowed route and its target remaining valid are different guarantees.</p>
+<p>An address-book entry provides a rough analogy. Being registered in an address book does not guarantee that the same person still owns that contact information. Similarly, a reference that was valid when established does not remain safe merely because it once passed through a legitimate path. Real engines add ownership and concurrency, making the situation more complex than the analogy.</p>
+<p>The analysis therefore asked what a check actually guaranteed and what had to remain true independently. A reference can have the expected form or category while its target’s lifetime has ended. An object can also be alive without being the same object that the current operation was supposed to use.</p>
+<p>That is the high-level meaning of the bypass investigated here: a failure to preserve lifetime and identity consistency between sandboxed state and an external object. The values, timing, object combinations, and later control-flow operations needed to turn that into a working chain are outside this public account.</p>
+<p>The same distinction matters defensively. Introducing indirection is only part of the design. The guarantees about the referenced target must continue to hold while it is being cleaned up.</p>
+<h2>5. The questions that guided the investigation</h2>
+<p>Looking back through the notes, the research was not simply one program becoming progressively longer. It involved checking whether an earlier assumption remained valid in the next environment, then separating the changes when it did not.</p>
+<table>
+<thead>
+<tr>
+<th>Research question</th>
+<th>What needed to be established</th>
+<th>Why it mattered</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Is a lifetime inconsistency possible in the source?</td>
+<td>Consistency of the target expected by cleanup</td>
+<td>Distinguish a cause candidate from a generic crash</td>
+</tr>
+<tr>
+<td>Does execution show the same problem?</td>
+<td>Connection between use after release and external memory errors</td>
+<td>Connect source-level reasoning to observations</td>
+</tr>
+<tr>
+<td>Does the d8 finding retain its meaning in Chrome?</td>
+<td>Differences in ownership, caching, and allocation context</td>
+<td>Avoid generalizing a standalone engine result</td>
+</tr>
+<tr>
+<td>Does an intermediate observation support the next claim?</td>
+<td>Difference between an error and its later effects</td>
+<td>Avoid treating a crash as proof of control</td>
+</tr>
+<tr>
+<td>Are repeated runs comparable?</td>
+<td>Consistent run units, environments, and observation methods</td>
+<td>Avoid combining unrelated experiments into one rate</td>
+</tr>
+</tbody>
+</table>
+<p><img src="/assets/research/chrome-m152-externalstring-race/04-research.svg" alt="Research questions grouped by cause, observation, browser context, and interpretation"></p>
+<p><em>Figure 3. A map of research questions. It does not show executable exploit steps or their dependencies.</em></p>
+<p>When looking only at the final result, unsuccessful experiments can seem incidental. In practice, understanding which assumptions failed is necessary to explain the result. Similar-looking symptoms repeatedly had to be separated.</p>
+<h2>6. Moving from d8 to the browser</h2>
+<p>The early observations varied substantially across environments. The preserved notes describe roughly 950 runs on a shared host with no observed UAF, followed by a separate d8 test configuration with 11 observations in 150 runs. [3]</p>
+<table>
+<thead>
+<tr>
+<th>Early experiment</th>
+<th style="text-align:right">Recorded trials</th>
+<th style="text-align:right">UAF observations</th>
+<th>Meaning of the number</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shared host</td>
+<td style="text-align:right">Approximately 950</td>
+<td style="text-align:right">0</td>
+<td>No observation under those test conditions</td>
+</tr>
+<tr>
+<td>Separate d8 configuration</td>
+<td style="text-align:right">150</td>
+<td style="text-align:right">11</td>
+<td>Approximately 7.33% observed in that sample</td>
+</tr>
+</tbody>
+</table>
+<p>The first result could make the problem seem difficult to observe. However, races depend on execution order and observation timing. Failure to observe an event does not establish that a vulnerability is absent. Conversely, when several environmental conditions changed together, the difference cannot be attributed to one of them without further evidence.</p>
+<p>The d8 result justified investigating the proposed cause further. It did not establish completion of the entire browser experiment.</p>
+<p>A browser contains more surrounding state than a standalone engine. Page and Worker lifetimes, string creation and retention, caches, and native allocations interact. Even when the same class of error is involved, different surrounding conditions can change what happens afterward.</p>
+<p>The research questions therefore expanded. Initially the question was whether the lifetime error occurred. In the browser, it also became necessary to ask whether the observed symptom came from that same error, and whether the object was truly no longer owned.</p>
+<h2>7. Rechecking ownership and object identity</h2>
+<p>Ownership and lifetime recur throughout the later notes. The disappearance of one reference did not establish immediate destruction of the object. Another owner or another retention path could still keep it alive.</p>
+<p>Reference counts required the same care. A value can be interpreted as a reference count only when it belongs to the expected field of a still-identifiable object. Once the object’s identity has been lost, reading a number from the same location can mean interpreting unrelated data as the old field.</p>
+<p>Allocator behavior also affected interpretation. Changed bytes did not alone establish the intended object’s release. Seeing the same address again did not establish that the same object had remained alive. <strong>Address identity and object identity are different facts.</strong></p>
+<p>The retained research includes experiments that rejected hypotheses. If the expected end of lifetime was not established, or a later consumer did not use the expected target, the original explanation could not simply be preserved. That required revisiting the assumption even when the result was inconvenient.</p>
+<p>This applies beyond exploitation. In ordinary native debugging, “the value changed” and “this destructor ran and released the object” are different claims. Directly observed events should be distinguished from interpretations based on surrounding evidence.</p>
+<h2>8. Separating CFI from memory safety</h2>
+<p>Control-flow protections were another distinct concern when studying later effects in Chrome. Control Flow Integrity, or CFI, constrains operations such as indirect calls to permitted control-flow conditions. The exact coverage must be checked for the build being examined. [4]</p>
+<p>One easy mistake is treating influence over some memory value as immediate proof of arbitrary code execution. A lifetime error, an external memory effect, an indirect-call observation, and completion of a final action are separate results.</p>
+<p>The reverse mistake is assuming that a control-flow check also resolves every lifetime error around it. Guarantees about a call target and guarantees about an object’s continued existence require separate examination.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Question</th>
+<th>What it does not establish alone</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reference path</td>
+<td>Is the external target referenced through an allowed mechanism?</td>
+<td>Is the target still alive?</td>
+</tr>
+<tr>
+<td>Object lifetime</td>
+<td>Is the object within a valid lifetime when used?</td>
+<td>Is the call permitted by control-flow checks?</td>
+</tr>
+<tr>
+<td>Control flow</td>
+<td>Does an indirect call satisfy its required conditions?</td>
+<td>Are earlier data and ownership states correct?</td>
+</tr>
+<tr>
+<td>Process privileges</td>
+<td>Does the OS allow this process to perform the access?</td>
+<td>Were those privileges newly obtained through the vulnerability?</td>
+</tr>
+</tbody>
+</table>
+<p><img src="/assets/research/chrome-m152-externalstring-race/05-guarantees.svg" alt="Reference path, lifetime, control flow, and OS privileges as separate review dimensions"></p>
+<p><em>Figure 4. Distinct properties covered by different protections. This is not an inventory of all checks or bypass routes in a particular build.</em></p>
+<p>For that reason, this post does not collapse those properties into a claim that every protection was bypassed. The original notes include research into later effects; this public account focuses on the guarantees examined and the meaning of the recorded results.</p>
+<h2>9. Observation tools were part of the environment</h2>
+<p>Race analysis naturally creates a need to inspect intermediate state. Yet the debugger or instrumentation used for that inspection can affect execution order. The records explicitly distinguish intervention used for observation from the results of ordinary execution. [3]</p>
+<p>A state inspected at a breakpoint can help explain the cause. It does not automatically prove that the same state arises in the same way without the debugger. If a debugger forcibly changed a value, the experiment can support a claim about a later segment; it does not prove that the earlier segment completed naturally.</p>
+<p>I therefore read mechanism experiments separately from repeated-run measurements. The former help explain what happens. The latter describe what was observed, and how often, under specified conditions.</p>
+<p>Even within one run, observing a race, confirming a memory error, and completing a predefined final action were separate verdicts. Counting a whole run as successful from one early marker would hide later failures.</p>
+<p>This is also why failure records matter. Recording only a missing final output does not explain the cause. Recording only intermediate progress does not establish completion. The evidence needed for each claim must be decided explicitly.</p>
+<h2>10. A conceptual object-lifetime demonstration</h2>
+<p>The demonstration compares three ways of representing the lifetime of the same abstract object. It does not run a Chrome or V8 vulnerability. The scenes are predefined object and reference states; its timer only advances their display.</p>
+<ul>
+<li><strong>Normal cleanup:</strong> when use ends, the reference becomes invalid.</li>
+<li><strong>Lifetime mismatch:</strong> the object has ended but a reference remains. The display highlights that inconsistency without accessing freed memory.</li>
+<li><strong>Defensive invariant:</strong> a state that treats an ended object as usable is rejected. This does not implement a particular patch or run its regression test.</li>
+</ul>
+<div class="concept-demo-embed"><iframe data-concept-demo src="/assets/research/chrome-m152-externalstring-race/m152-lifetime-demo.html#en" title="Object lifetime concept demo" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></div>
+<p><a href="m152-lifetime-demo.html#en">Open the conceptual demonstration separately</a></p>
+<p>The important feature is not the warning color. It is whether <strong>object liveness and reference validity continue to describe a consistent relationship</strong>. In a real investigation, that relationship must be supported by observations rather than assumed.</p>
+<p>No fabricated terminal output or success transcript is presented. Mixing a conceptual animation with supposed evidence from a real PoC would recreate the very ambiguity this post is trying to resolve.</p>
+<h2>11. Final exploit and successful hosts file read</h2>
+<p>After the initial d8 observations, the package records research into external native memory effects and subsequent behavior in the browser. A final local checkpoint reports completion of a predefined file input/output action. Later summaries also report completed remote runs. [3]</p>
+<p>The investigation continued, and <strong>the final exploit successfully read the <code>hosts</code> file.</strong> [5] The initial observation of a UAF in d8 and the completed file read through the final exploit remain separate results. The newly confirmed outcome is a completion case for the latter.</p>
+<p>The wording needs to remain precise. The original PoC was not rerun while preparing this post. The package does not contain every raw execution log; some outcomes survive as checkpoints and reports. These are therefore <strong>descriptions grounded in the retained research records and a subsequent confirmation of the final file read</strong>.</p>
+<p><img src="/assets/research/chrome-m152-externalstring-race/03-evidence.svg" alt="Separate evidence requirements for symptoms, causes, outcomes, and rates"></p>
+<p><em>Figure 5. One crash cannot establish a cause, a final outcome, and a repeated-run success rate. Each claim requires different evidence.</em></p>
+<table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Available record</th>
+<th>Supported scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UAF observed in early d8 testing</td>
+<td>Record of 11 observations in 150 trials</td>
+<td>Observation rate for that experiment</td>
+</tr>
+<tr>
+<td>Effect on external native memory</td>
+<td>Research notes summarizing source and debugger observations</td>
+<td>Boundary violation reported in the records</td>
+</tr>
+<tr>
+<td>Completion of later behavior</td>
+<td>Local checkpoint and later completion summaries</td>
+<td>The recorded completion cases</td>
+</tr>
+<tr>
+<td>Successful hosts file read through the final exploit</td>
+<td>Subsequent research confirmation of the final run [5]</td>
+<td>Completion of the file read in that run</td>
+</tr>
+<tr>
+<td>Final overall success rate</td>
+<td>Full final-campaign denominator not retained</td>
+<td>No general numerical rate established</td>
+</tr>
+<tr>
+<td>OS privilege escalation</td>
+<td>Test environment had privileges granted beforehand</td>
+<td>No evidence of newly acquired OS privileges</td>
+</tr>
+</tbody>
+</table>
+<p>In particular, <code>11/150</code> is not the end-to-end browser success rate. Observing an error in d8 and completing the browser experiment are different events. An execution group containing several attempts also differs from a single attempt.</p>
+<p>For the same reason, I did not preserve the original “100%” wording. Completion cases can be reported, but without the total number of final trials, they do not establish an absence of failures or a generally guaranteed outcome. Calculations that assume independent stages must also remain separate from measured results.</p>
+<p>The final output obtained at elevated privilege needs its own qualification. That local checkpoint came from an environment with privileges already granted. It records completion of the defined action, not acquisition of new OS privileges through the vulnerability.</p>
+<h2>12. The invariant that matters for remediation</h2>
+<p>The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] Here I describe that review in terms of resource lifetime. The linked patch and its release coverage were not directly verified during this edit, so this post does not identify a specific fixed shipping version.</p>
+<p>The defensive question is whether the target established at the start remains the same target through cleanup. If shared state can change in between, the assumption that reading it again preserves the earlier meaning needs scrutiny.</p>
+<p>It is also necessary to consider what other users can observe while cleanup is underway. A well-formed reference does not make a use safe if its target is being destroyed or has already ended its lifetime.</p>
+<p>The effect of a patch requires more than a plausible source-level intention. A comparison of identified pre-fix and post-fix builds under the same regression conditions is needed. That comparison is not supplied by the retained patch review.</p>
+<h2>13. Closing thoughts</h2>
+<p>The question that kept returning was: does this reference still point to the same object, and is that object still alive?</p>
+<p>The investigation began with double-fetch and UAF. Moving into the browser required examining ownership, object identity, control-flow protections, and the effects of observation tools. Evidence at one stage did not substitute for the conclusion at the next.</p>
+<p>Following that investigation through to the final exploit, I successfully read the <code>hosts</code> file. The result matters, and so does the record of which assumptions held and which needed to be checked again.</p>
+<p>I wanted to preserve that progression in the public account. A final result alone hides the assumptions and the reasons for revisiting them. Listing every unsuccessful experiment would make the central lessons harder to follow. Here, I have organized the account around how the questions changed and what evidence each question required.</p>
+<p>When studying a protection, understanding the condition it is meant to preserve is more useful than remembering its name alone. Constraining references, preserving lifetimes, and restricting calls work together, but they do different jobs.</p>
+<p>Research records need the same precision. A line saying “it worked” is less useful than an account of the environment, the observation, and the limit of the conclusion. At the time, it always feels easy to remember the difference. A little later, it is surprisingly easy to forget.</p>
+<h2>Reference</h2>
+<ol>
+<li><a href="https://v8.dev/blog/sandbox">V8 — The V8 Sandbox</a>. Official background on the protection’s purpose and external references, not evidence for these experiments.</li>
+<li><a href="https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md">Chromium — Sandbox</a>. Official background on OS process isolation; the detailed design is Windows-oriented.</li>
+<li>The supplied research package: original blog draft, detailed report, initial d8 observations, browser progress records, final checkpoint, and lifetime-oriented patch review. These private records support the cases and measurements in this post. Operational code and detailed experimental material are not included in this public draft.</li>
+<li><a href="https://clang.llvm.org/docs/ControlFlowIntegrity.html">Clang — Control Flow Integrity</a>. General background on CFI checks; it does not establish the configuration or results of the target Chrome build.</li>
+<li>The author’s subsequent research confirmation that the final exploit successfully read the <code>hosts</code> file. No additional execution log was verified and the PoC was not rerun during this edit.</li>
+</ol>
+</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/chrome-m152-externalstring-race/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
+  <script src="/assets/app.js?v=859216932f8c" defer></script>
+</body></html>
