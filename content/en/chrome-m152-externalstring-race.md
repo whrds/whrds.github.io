@@ -162,6 +162,20 @@ The public fix identifies a consistency failure rather than a missing cast or nu
 
 An explanation of UAF should therefore identify which object's lifetime ends and whether a reference can still treat it as valid. That is source-level lifetime analysis. Browser outcomes remain separate observations, reported in section 11.
 
+### 3.5 Inputs, branches, and effects of cleanup
+
+The top-level function returns `void`. Its internal exchange returns a previous address, but `DisposeResource` does not return that address to its own caller. It performs cleanup using its member and the `isolate` context. [9]
+
+| Observed condition | Processing | Supported interpretation |
+|---|---|---|
+| Exchange returns null | Skip the resource callback block | No previous resource address to process |
+| Resource present; both shared-state predicates false | Call `Unaccount`, then `Dispose` | Accounting and disposal are distinct callbacks |
+| Resource present; either shared-state predicate true | Skip `Unaccount`, still call `Dispose` | This branch does not skip disposal |
+
+After exchange, `value` remains in a local variable. The cast expresses it as the pointer type needed by the callback; it neither creates an object nor checks liveness. `Unaccount` is virtual, so its empty base implementation must be distinguished from subclass behavior. [9, 12]
+
+Table reference state and resource disposal must be read together. The former changes EPT state; the latter executes the resource contract. Reading only one side is insufficient to explain the complete lifetime operation.
+
 ## 4. The protection assumption behind the bypass research
 
 This raises the obvious question: how can a boundary problem exist when an EPT is present?
@@ -418,7 +432,17 @@ inline Address exchange(IsolateForSandbox isolate, Address value)
 }
 ```
 
+**Input and output contract**
+
+| Aspect | Meaning |
+|---|---|
+| Input | `isolate` and replacement address `value` |
+| Return | The tagged member overload's return value |
+| Review point | The single-tag constraint selects `kTagRange.first` statically. |
+
 This overload is defined inside `ExternalPointerMember`. It is selected for a range containing one tag and forwards to the template overload with that tag. Its `requires` clause is a compile-time selection condition, not a liveness check or runtime synchronization.
+
+`value` is the replacement, not the value to be returned. Distinguish the `kNullAddress` supplied by cleanup from the previous resource address returned by exchange. This overload preserves those roles when delegating.
 
 #### 2. Delegation from the member to the field operation
 
@@ -435,7 +459,17 @@ inline Address ExternalPointerMember<kTagRange>::exchange(
 }
 ```
 
+**Input and output contract**
+
+| Aspect | Meaning |
+|---|---|
+| Input | Member storage location, `isolate`, replacement address |
+| Return | The previous address returned by the field exchange |
+| Review point | Distinguish a field's address from its stored value. The assertion checks static tag compatibility. |
+
 The template asserts that the tag belongs to the permitted range and delegates to the field operation. The address obtained from `storage_` identifies the field that stores a handle. Delegation does not acquire ownership of the external object.
+
+`reinterpret_cast<Address>(storage_)` identifies member storage rather than the external resource itself. Reading a handle from that location and resolving the external value belong to the next layer.
 
 #### 3. Sandbox and non-sandbox exchange paths
 
@@ -459,7 +493,17 @@ V8_INLINE Address ExchangeExternalPointerField(Address field_address,
 }
 ```
 
+**Input and output contract**
+
+| Aspect | Meaning |
+|---|---|
+| Input | Field address, `isolate`, replacement address, template tag |
+| Return | The pre-exchange address |
+| Review point | The sandbox branch targets an EPT entry; the other branch targets a field holding a direct address. |
+
 Both build branches are included. The sandbox branch passes a handle to the selected EPT exchange. The non-sandbox branch reads an address, writes the new value, and returns the old one. The shared function name does not imply identical atomicity in both branches.
+
+The sandbox branch replaces the pointer value in the selected entry. It neither overwrites the heap handle field with null nor returns the slot to a free list. A null pointer payload and a deleted table slot are different states.
 
 #### 4. The atomic handle read
 
@@ -480,7 +524,17 @@ Relaxed_ReadExternalPointerHandle(Address field_address) {
 #endif
 ```
 
+**Input and output contract**
+
+| Aspect | Meaning |
+|---|---|
+| Input | Address of a field storing a handle |
+| Return | The handle observed by one atomic read |
+| Review point | This is a handle snapshot, not an ownership token that protects a later use or publishes unrelated data. |
+
 The responsibility here is an atomic read of one handle value. The original comment explains its relaxed ordering in terms of the data dependency before table access. This does not turn several operations into a transaction or keep an object alive.
+
+Atomicity concerns a coherent observation of one handle. Memory ordering concerns relationships among accesses to data. The source's data-dependency assumption explains such a relationship; it does not track which users still own a resource.
 
 #### 5. Selecting an EPT entry
 
@@ -496,7 +550,17 @@ Address ExternalPointerTable::Exchange(ExternalPointerHandle handle,
 }
 ```
 
+**Input and output contract**
+
+| Aspect | Meaning |
+|---|---|
+| Input | Selected handle, replacement address, tag |
+| Return | The selected entry's pre-exchange address |
+| Review point | Entry selection and payload exchange are separate responsibilities. Index conversion does not retire a resource or free an entry. |
+
 The chosen handle is converted to an entry index, and the operation delegates to that entry. The `DCHECK` statements express expected invariants. Their presence alone does not establish the runtime-check coverage of the target release build.
+
+This path has an assertion excluding managed types. The earlier general discussion of `ManagedResource` does not imply that this exchange performs a managed-resource lifetime protocol. Its explicit responsibilities are entry selection and delegation.
 
 #### 6. Exchanging the entry payload
 
@@ -524,11 +588,35 @@ Address ExternalPointerTableEntry::ExchangeExternalPointer(
 }
 ```
 
+**Input and output contract**
+
+| Aspect | Meaning |
+|---|---|
+| Input | Replacement address and expected tag |
+| Return | The previous address decoded from the payload preceding the successful CAS |
+| Review point | One payload containing pointer, tag, and mark state is the atomic update unit. |
+
 This function updates the payload. It reads the old payload, preserves its GC mark in the replacement, and attempts compare-and-exchange. On failure the updated observed value is used for another attempt; on success it returns the old pointer. `MaybeUpdateRawPointerForLSan` updates auxiliary LSan-related state rather than acquiring ownership.
 
 The CAS covers one EPT entry payload. It does not synchronize all heap handle fields or several external objects as one operation.
 
+`old_payload` also supplies the CAS expected argument. A mismatch updates expected with the newly observed value; weak CAS may also fail spuriously when the comparison matches. Failure therefore requires another evaluation rather than establishing a new lifetime fault. [14]
+
+Reconstructing `new_payload` on each iteration carries forward the mark from the currently observed `old_payload`. The successful CAS can be treated as the point at which **that entry's replacement takes effect**. The atomic update and the caller's safe use of the returned resource address remain separate contracts.
+
 Source attribution: V8 project authors, Copyright 2017 / 2020 / 2021. The original copyright notices and BSD-style license are provided in the [license file](/assets/research/chrome-m152-externalstring-race/v8-source-license.txt). [13]
+
+### 12.5 Separate the protected states
+
+The update target determines the scope of the guarantee. The source review distinguishes three states.
+
+| State | Effect established by this exchange | Condition to review separately |
+|---|---|---|
+| Heap member handle | Read and used to select an entry in the sandbox branch | Do not infer synchronization of the entire field |
+| EPT entry payload | Replace pointer and tag while preserving the mark | Atomic update covers one entry |
+| Native resource object | Invoke cleanup using the returned previous address | Actual users' ownership and callback contracts |
+
+Here `kNullAddress` is the chosen replacement pointer value. It is not deletion of a slot or invalidation of all handles. Conversely, returning a previous address does not make it an owning lease. These distinctions allow EPT atomicity and external-resource lifetime safety to be reviewed separately. [9, 10]
 
 ## 13. Closing thoughts
 
@@ -559,3 +647,4 @@ Research records need the same precision. A line saying “it worked” is less 
 11. [V8 — assert-scope.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/common/assert-scope.h). Confirms the debug-only assertion scope behind `DisallowGarbageCollection`; its name does not establish synchronization in a release build.
 12. [V8 — v8-primitive.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h). Source for the `Unaccount` callback contract and empty default implementation.
 13. [V8 — external-pointer.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h) and [original license](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/LICENSE). Sources for the in-class single-tag overload and code redistribution terms.
+14. [C++ working draft — atomic operations](https://eel.is/c++draft/atomics.types.operations). Background for expected-argument updates and spurious failure in weak compare-and-exchange.

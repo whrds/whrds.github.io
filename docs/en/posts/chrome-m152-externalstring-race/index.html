@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/">
   <meta property="og:type" content="article"><meta property="og:title" content="[V8] Chrome M152 ExternalString race and sandbox boundary research · whrds.log"><meta property="og:description" content="Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit."><meta property="og:url" content="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=859216932f8c">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=4891981d7f40">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[V8] Chrome M152 ExternalString race and sandbox boundary research","description":"Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.","datePublished":"2026-10-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/chrome-m152-externalstring-race/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString race and sandbox boundary research</h1><p class="article-description">Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>28 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> race I investigated in Chrome M152.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString race and sandbox boundary research</h1><p class="article-description">Research into a Chrome M152 ExternalString race, object lifetime, and a successful hosts file read through the final exploit.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>32 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> race I investigated in Chrome M152.</p>
 <p>The final exploit successfully read the <code>hosts</code> file. [5] This post follows the research direction that led to that result and the assumptions I needed to revisit along the way.</p>
 <p>The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?</p>
 <p>Observing a race once and explaining its significance inside a browser turned out to be different tasks. A problem observed in d8 could appear differently in Chrome. Results obtained under a debugger also needed to be distinguished from results obtained without that intervention. Even deciding whether a result represented an intermediate observation or completion of the whole experiment required care.</p>
@@ -78,7 +78,7 @@
 <p>The V8 Sandbox also needs to be distinguished from Chrome’s process sandbox. The latter uses OS facilities to restrict process access to resources. [2] An out-of-sandbox memory error in V8 does not, by itself, establish escape from the browser’s process sandbox or a kernel privilege escalation.</p>
 <h3>2.1 Lifetime contracts in the public API</h3>
 <p>The public header separates character access through <code>data()</code> and <code>length()</code> from resource cleanup. Its default cleanup includes the following excerpt from the resource base class. [6]</p>
-<pre><code class="language-cpp">virtual void Dispose() { delete this; }
+<pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">Dispose</span><span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>; }
 </code></pre>
 <p>Subclasses may override disposal. Immutable character data and a live resource object are different conditions: surviving bytes do not make a call through a destroyed resource valid. [6]</p>
 <h3>2.2 Separate the string, resource, and character buffer</h3>
@@ -145,20 +145,20 @@
 <p>A double-fetch therefore needs more than a count of loads. The important question is whether the target established earlier remains the target of the later operation.</p>
 <h3>3.3 Read the complete cleanup function</h3>
 <p>This is the complete <code>DisposeResource</code> function from <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h#L1525"><code>src/objects/string-inl.h</code></a> at fix revision <code>7d1fb25</code>, including its branches, accounting callback, disposal call, and GC-related scopes. [9]</p>
-<pre><code class="language-cpp">void ExternalString::DisposeResource(Isolate* isolate) {
+<pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">ExternalString::DisposeResource</span><span class="hljs-params">(Isolate* isolate)</span> </span>{
   DisallowGarbageCollection no_gc;
 
-  Address value = resource_.exchange(isolate, kNullAddress);
+  Address value = resource_.<span class="hljs-built_in">exchange</span>(isolate, kNullAddress);
   v8::String::ExternalStringResourceBase* resource =
-      reinterpret_cast&lt;v8::String::ExternalStringResourceBase*&gt;(value);
+      <span class="hljs-keyword">reinterpret_cast</span>&lt;v8::String::ExternalStringResourceBase*&gt;(value);
 
-  // Dispose of the C++ object if it has not already been disposed.
-  if (resource != nullptr) {
-    if (!IsShared() &amp;&amp; !HeapLayout::InWritableSharedSpace(this)) {
-      resource-&gt;Unaccount(reinterpret_cast&lt;v8::Isolate*&gt;(isolate));
+  <span class="hljs-comment">// Dispose of the C++ object if it has not already been disposed.</span>
+  <span class="hljs-keyword">if</span> (resource != <span class="hljs-literal">nullptr</span>) {
+    <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">IsShared</span>() &amp;&amp; !HeapLayout::<span class="hljs-built_in">InWritableSharedSpace</span>(<span class="hljs-keyword">this</span>)) {
+      resource-&gt;<span class="hljs-built_in">Unaccount</span>(<span class="hljs-keyword">reinterpret_cast</span>&lt;v8::Isolate*&gt;(isolate));
     }
     DisableGCMole no_gc_mole;
-    resource-&gt;Dispose();
+    resource-&gt;<span class="hljs-built_in">Dispose</span>();
   }
 }
 </code></pre>
@@ -205,6 +205,36 @@
 <h3>3.4 Source facts and the cause interpretation</h3>
 <p>The public fix identifies a consistency failure rather than a missing cast or null check. The resource selected for disposal and the resulting EPT state must agree. Separate reference operations could fail to preserve that agreement; the fix binds them to an exchange on one target. [8]</p>
 <p>An explanation of UAF should therefore identify which object’s lifetime ends and whether a reference can still treat it as valid. That is source-level lifetime analysis. Browser outcomes remain separate observations, reported in section 11.</p>
+<h3>3.5 Inputs, branches, and effects of cleanup</h3>
+<p>The top-level function returns <code>void</code>. Its internal exchange returns a previous address, but <code>DisposeResource</code> does not return that address to its own caller. It performs cleanup using its member and the <code>isolate</code> context. [9]</p>
+<table>
+<thead>
+<tr>
+<th>Observed condition</th>
+<th>Processing</th>
+<th>Supported interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Exchange returns null</td>
+<td>Skip the resource callback block</td>
+<td>No previous resource address to process</td>
+</tr>
+<tr>
+<td>Resource present; both shared-state predicates false</td>
+<td>Call <code>Unaccount</code>, then <code>Dispose</code></td>
+<td>Accounting and disposal are distinct callbacks</td>
+</tr>
+<tr>
+<td>Resource present; either shared-state predicate true</td>
+<td>Skip <code>Unaccount</code>, still call <code>Dispose</code></td>
+<td>This branch does not skip disposal</td>
+</tr>
+</tbody>
+</table>
+<p>After exchange, <code>value</code> remains in a local variable. The cast expresses it as the pointer type needed by the callback; it neither creates an object nor checks liveness. <code>Unaccount</code> is virtual, so its empty base implementation must be distinguished from subclass behavior. [9, 12]</p>
+<p>Table reference state and resource disposal must be read together. The former changes EPT state; the latter executes the resource contract. Reading only one side is insufficient to explain the complete lifetime operation.</p>
 <h2>4. The protection assumption behind the bypass research</h2>
 <p>This raises the obvious question: how can a boundary problem exist when an EPT is present?</p>
 <p>The direction investigated was whether <strong>a mismatch between an indirect reference and its target’s lifetime could undermine native memory safety outside the sandbox</strong>. A reference following an allowed route and its target remaining valid are different guarantees.</p>
@@ -511,96 +541,270 @@ Retire(key):
 <p>These are the complete function definitions behind the exchange call in section 3.3, all from fix revision <code>7d1fb25</code>. Statements and original comments are preserved; only the outer indentation of the in-class overload is normalized. The functions belong to V8’s class, type, and header context. Code blocks scroll horizontally on narrow screens. [10, 13]</p>
 <h4>1. The single-tag overload</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h#L60"><code>src/sandbox/external-pointer.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">inline Address exchange(IsolateForSandbox isolate, Address value)
-  requires(kTagRange.Size() == 1)
-{
-  return exchange&lt;kTagRange.first&gt;(isolate, value);
+<pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-keyword">inline</span> Address <span class="hljs-title">exchange</span><span class="hljs-params">(IsolateForSandbox isolate, Address value)</span>
+  <span class="hljs-title">requires</span><span class="hljs-params">(kTagRange.Size() == <span class="hljs-number">1</span>)</span>
+</span>{
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">exchange</span>&lt;kTagRange.first&gt;(isolate, value);
 }
 </code></pre>
+<p><strong>Input and output contract</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td><code>isolate</code> and replacement address <code>value</code></td>
+</tr>
+<tr>
+<td>Return</td>
+<td>The tagged member overload’s return value</td>
+</tr>
+<tr>
+<td>Review point</td>
+<td>The single-tag constraint selects <code>kTagRange.first</code> statically.</td>
+</tr>
+</tbody>
+</table>
 <p>This overload is defined inside <code>ExternalPointerMember</code>. It is selected for a range containing one tag and forwards to the template overload with that tag. Its <code>requires</code> clause is a compile-time selection condition, not a liveness check or runtime synchronization.</p>
+<p><code>value</code> is the replacement, not the value to be returned. Distinguish the <code>kNullAddress</code> supplied by cleanup from the previous resource address returned by exchange. This overload preserves those roles when delegating.</p>
 <h4>2. Delegation from the member to the field operation</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L77"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">template &lt;ExternalPointerTagRange kTagRange&gt;
-template &lt;ExternalPointerTag tag&gt;
-inline Address ExternalPointerMember&lt;kTagRange&gt;::exchange(
+<pre><code class="hljs language-cpp"><span class="hljs-keyword">template</span> &lt;ExternalPointerTagRange kTagRange&gt;
+<span class="hljs-keyword">template</span> &lt;ExternalPointerTag tag&gt;
+<span class="hljs-keyword">inline</span> Address ExternalPointerMember&lt;kTagRange&gt;::<span class="hljs-built_in">exchange</span>(
     IsolateForSandbox isolate, Address value) {
-  static_assert(kTagRange.Contains(tag));
-  return ExchangeExternalPointerField&lt;tag&gt;(reinterpret_cast&lt;Address&gt;(storage_),
+  <span class="hljs-keyword">static_assert</span>(kTagRange.<span class="hljs-built_in">Contains</span>(tag));
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">ExchangeExternalPointerField</span>&lt;tag&gt;(<span class="hljs-keyword">reinterpret_cast</span>&lt;Address&gt;(storage_),
                                            isolate, value);
 }
 </code></pre>
+<p><strong>Input and output contract</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td>Member storage location, <code>isolate</code>, replacement address</td>
+</tr>
+<tr>
+<td>Return</td>
+<td>The previous address returned by the field exchange</td>
+</tr>
+<tr>
+<td>Review point</td>
+<td>Distinguish a field’s address from its stored value. The assertion checks static tag compatibility.</td>
+</tr>
+</tbody>
+</table>
 <p>The template asserts that the tag belongs to the permitted range and delegates to the field operation. The address obtained from <code>storage_</code> identifies the field that stores a handle. Delegation does not acquire ownership of the external object.</p>
+<p><code>reinterpret_cast&lt;Address&gt;(storage_)</code> identifies member storage rather than the external resource itself. Reading a handle from that location and resolving the external value belong to the next layer.</p>
 <h4>3. Sandbox and non-sandbox exchange paths</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L260"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">template &lt;ExternalPointerTag tag&gt;
-V8_INLINE Address ExchangeExternalPointerField(Address field_address,
+<pre><code class="hljs language-cpp"><span class="hljs-keyword">template</span> &lt;ExternalPointerTag tag&gt;
+<span class="hljs-function">V8_INLINE Address <span class="hljs-title">ExchangeExternalPointerField</span><span class="hljs-params">(Address field_address,
                                                IsolateForSandbox isolate,
-                                               Address value) {
-#ifdef V8_ENABLE_SANDBOX
-  static_assert(tag != kExternalPointerNullTag);
+                                               Address value)</span> </span>{
+<span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> V8_ENABLE_SANDBOX</span>
+  <span class="hljs-keyword">static_assert</span>(tag != kExternalPointerNullTag);
   ExternalPointerHandle handle =
-      Relaxed_ReadExternalPointerHandle(field_address);
-  return isolate.GetExternalPointerTableFor(tag).Exchange(handle, value, tag);
-#else
-  Address old_value = ReadMaybeUnalignedValue&lt;Address&gt;(field_address);
-  WriteMaybeUnalignedValue&lt;Address&gt;(field_address, value);
-  return old_value;
-#endif  // V8_ENABLE_SANDBOX
+      <span class="hljs-built_in">Relaxed_ReadExternalPointerHandle</span>(field_address);
+  <span class="hljs-keyword">return</span> isolate.<span class="hljs-built_in">GetExternalPointerTableFor</span>(tag).<span class="hljs-built_in">Exchange</span>(handle, value, tag);
+<span class="hljs-meta">#<span class="hljs-keyword">else</span></span>
+  Address old_value = <span class="hljs-built_in">ReadMaybeUnalignedValue</span>&lt;Address&gt;(field_address);
+  <span class="hljs-built_in">WriteMaybeUnalignedValue</span>&lt;Address&gt;(field_address, value);
+  <span class="hljs-keyword">return</span> old_value;
+<span class="hljs-meta">#<span class="hljs-keyword">endif</span>  <span class="hljs-comment">// V8_ENABLE_SANDBOX</span></span>
 }
 </code></pre>
+<p><strong>Input and output contract</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td>Field address, <code>isolate</code>, replacement address, template tag</td>
+</tr>
+<tr>
+<td>Return</td>
+<td>The pre-exchange address</td>
+</tr>
+<tr>
+<td>Review point</td>
+<td>The sandbox branch targets an EPT entry; the other branch targets a field holding a direct address.</td>
+</tr>
+</tbody>
+</table>
 <p>Both build branches are included. The sandbox branch passes a handle to the selected EPT exchange. The non-sandbox branch reads an address, writes the new value, and returns the old one. The shared function name does not imply identical atomicity in both branches.</p>
+<p>The sandbox branch replaces the pointer value in the selected entry. It neither overwrites the heap handle field with null nor returns the slot to a free list. A null pointer payload and a deleted table slot are different states.</p>
 <h4>4. The atomic handle read</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L193"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">#ifdef V8_ENABLE_SANDBOX
-V8_INLINE ExternalPointerHandle
-Relaxed_ReadExternalPointerHandle(Address field_address) {
-  // Handles may be written to objects from other threads so the handle needs
-  // to be loaded atomically. We assume that the access to the table cannot
-  // be reordered before the load of the handle due to the data dependency
-  // between the two accesses and therefore use relaxed memory ordering, but
-  // technically we should use memory_order_consume here.
-  auto location = reinterpret_cast&lt;ExternalPointerHandle*&gt;(field_address);
-  return base::AsAtomic32::Relaxed_Load(location);
+<pre><code class="hljs language-cpp"><span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> V8_ENABLE_SANDBOX</span>
+<span class="hljs-function">V8_INLINE ExternalPointerHandle
+<span class="hljs-title">Relaxed_ReadExternalPointerHandle</span><span class="hljs-params">(Address field_address)</span> </span>{
+  <span class="hljs-comment">// Handles may be written to objects from other threads so the handle needs</span>
+  <span class="hljs-comment">// to be loaded atomically. We assume that the access to the table cannot</span>
+  <span class="hljs-comment">// be reordered before the load of the handle due to the data dependency</span>
+  <span class="hljs-comment">// between the two accesses and therefore use relaxed memory ordering, but</span>
+  <span class="hljs-comment">// technically we should use memory_order_consume here.</span>
+  <span class="hljs-keyword">auto</span> location = <span class="hljs-keyword">reinterpret_cast</span>&lt;ExternalPointerHandle*&gt;(field_address);
+  <span class="hljs-keyword">return</span> base::AsAtomic32::<span class="hljs-built_in">Relaxed_Load</span>(location);
 }
-#endif
+<span class="hljs-meta">#<span class="hljs-keyword">endif</span></span>
 </code></pre>
+<p><strong>Input and output contract</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td>Address of a field storing a handle</td>
+</tr>
+<tr>
+<td>Return</td>
+<td>The handle observed by one atomic read</td>
+</tr>
+<tr>
+<td>Review point</td>
+<td>This is a handle snapshot, not an ownership token that protects a later use or publishes unrelated data.</td>
+</tr>
+</tbody>
+</table>
 <p>The responsibility here is an atomic read of one handle value. The original comment explains its relaxed ordering in terms of the data dependency before table access. This does not turn several operations into a transaction or keep an object alive.</p>
+<p>Atomicity concerns a coherent observation of one handle. Memory ordering concerns relationships among accesses to data. The source’s data-dependency assumption explains such a relationship; it does not track which users still own a resource.</p>
 <h4>5. Selecting an EPT entry</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L206"><code>src/sandbox/external-pointer-table-inl.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">Address ExternalPointerTable::Exchange(ExternalPointerHandle handle,
-                                       Address value, ExternalPointerTag tag) {
-  DCHECK_NE(kNullExternalPointerHandle, handle);
-  DCHECK(!IsManagedExternalPointerType(tag));
-  uint32_t index = HandleToIndex(handle);
-  return at(index).ExchangeExternalPointer(value, tag);
+<pre><code class="hljs language-cpp"><span class="hljs-function">Address <span class="hljs-title">ExternalPointerTable::Exchange</span><span class="hljs-params">(ExternalPointerHandle handle,
+                                       Address value, ExternalPointerTag tag)</span> </span>{
+  <span class="hljs-built_in">DCHECK_NE</span>(kNullExternalPointerHandle, handle);
+  <span class="hljs-built_in">DCHECK</span>(!<span class="hljs-built_in">IsManagedExternalPointerType</span>(tag));
+  <span class="hljs-type">uint32_t</span> index = <span class="hljs-built_in">HandleToIndex</span>(handle);
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">at</span>(index).<span class="hljs-built_in">ExchangeExternalPointer</span>(value, tag);
 }
 </code></pre>
+<p><strong>Input and output contract</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td>Selected handle, replacement address, tag</td>
+</tr>
+<tr>
+<td>Return</td>
+<td>The selected entry’s pre-exchange address</td>
+</tr>
+<tr>
+<td>Review point</td>
+<td>Entry selection and payload exchange are separate responsibilities. Index conversion does not retire a resource or free an entry.</td>
+</tr>
+</tbody>
+</table>
 <p>The chosen handle is converted to an entry index, and the operation delegates to that entry. The <code>DCHECK</code> statements express expected invariants. Their presence alone does not establish the runtime-check coverage of the target release build.</p>
+<p>This path has an assertion excluding managed types. The earlier general discussion of <code>ManagedResource</code> does not imply that this exchange performs a managed-resource lifetime protocol. Its explicit responsibilities are entry selection and delegation.</p>
 <h4>6. Exchanging the entry payload</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L70"><code>src/sandbox/external-pointer-table-inl.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">Address ExternalPointerTableEntry::ExchangeExternalPointer(
-    Address value, ExternalPointerTag tag) {
-  // The 2nd most significant byte must be empty as we store the tag in int.
-  DCHECK_EQ(0, value &amp; kExternalPointerTagAndMarkbitMask);
+<pre><code class="hljs language-cpp"><span class="hljs-function">Address <span class="hljs-title">ExternalPointerTableEntry::ExchangeExternalPointer</span><span class="hljs-params">(
+    Address value, ExternalPointerTag tag)</span> </span>{
+  <span class="hljs-comment">// The 2nd most significant byte must be empty as we store the tag in int.</span>
+  <span class="hljs-built_in">DCHECK_EQ</span>(<span class="hljs-number">0</span>, value &amp; kExternalPointerTagAndMarkbitMask);
 
-  auto old_payload = payload_.load(std::memory_order_relaxed);
-  while (true) {
-    DCHECK(old_payload.ContainsPointer());
-    Payload new_payload(value, tag);
-    if (old_payload.HasMarkBitSet()) {
-      new_payload.SetMarkBit();
+  <span class="hljs-keyword">auto</span> old_payload = payload_.<span class="hljs-built_in">load</span>(std::memory_order_relaxed);
+  <span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>) {
+    <span class="hljs-built_in">DCHECK</span>(old_payload.<span class="hljs-built_in">ContainsPointer</span>());
+    <span class="hljs-function">Payload <span class="hljs-title">new_payload</span><span class="hljs-params">(value, tag)</span></span>;
+    <span class="hljs-keyword">if</span> (old_payload.<span class="hljs-built_in">HasMarkBitSet</span>()) {
+      new_payload.<span class="hljs-built_in">SetMarkBit</span>();
     }
-    if (payload_.compare_exchange_weak(old_payload, new_payload,
+    <span class="hljs-keyword">if</span> (payload_.<span class="hljs-built_in">compare_exchange_weak</span>(old_payload, new_payload,
                                        std::memory_order_relaxed)) {
-      MaybeUpdateRawPointerForLSan(value);
-      return old_payload.Untag(tag);
+      <span class="hljs-built_in">MaybeUpdateRawPointerForLSan</span>(value);
+      <span class="hljs-keyword">return</span> old_payload.<span class="hljs-built_in">Untag</span>(tag);
     }
   }
 }
 </code></pre>
+<p><strong>Input and output contract</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td>Replacement address and expected tag</td>
+</tr>
+<tr>
+<td>Return</td>
+<td>The previous address decoded from the payload preceding the successful CAS</td>
+</tr>
+<tr>
+<td>Review point</td>
+<td>One payload containing pointer, tag, and mark state is the atomic update unit.</td>
+</tr>
+</tbody>
+</table>
 <p>This function updates the payload. It reads the old payload, preserves its GC mark in the replacement, and attempts compare-and-exchange. On failure the updated observed value is used for another attempt; on success it returns the old pointer. <code>MaybeUpdateRawPointerForLSan</code> updates auxiliary LSan-related state rather than acquiring ownership.</p>
 <p>The CAS covers one EPT entry payload. It does not synchronize all heap handle fields or several external objects as one operation.</p>
+<p><code>old_payload</code> also supplies the CAS expected argument. A mismatch updates expected with the newly observed value; weak CAS may also fail spuriously when the comparison matches. Failure therefore requires another evaluation rather than establishing a new lifetime fault. [14]</p>
+<p>Reconstructing <code>new_payload</code> on each iteration carries forward the mark from the currently observed <code>old_payload</code>. The successful CAS can be treated as the point at which <strong>that entry’s replacement takes effect</strong>. The atomic update and the caller’s safe use of the returned resource address remain separate contracts.</p>
 <p>Source attribution: V8 project authors, Copyright 2017 / 2020 / 2021. The original copyright notices and BSD-style license are provided in the <a href="/assets/research/chrome-m152-externalstring-race/v8-source-license.txt">license file</a>. [13]</p>
+<h3>12.5 Separate the protected states</h3>
+<p>The update target determines the scope of the guarantee. The source review distinguishes three states.</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Effect established by this exchange</th>
+<th>Condition to review separately</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Heap member handle</td>
+<td>Read and used to select an entry in the sandbox branch</td>
+<td>Do not infer synchronization of the entire field</td>
+</tr>
+<tr>
+<td>EPT entry payload</td>
+<td>Replace pointer and tag while preserving the mark</td>
+<td>Atomic update covers one entry</td>
+</tr>
+<tr>
+<td>Native resource object</td>
+<td>Invoke cleanup using the returned previous address</td>
+<td>Actual users’ ownership and callback contracts</td>
+</tr>
+</tbody>
+</table>
+<p>Here <code>kNullAddress</code> is the chosen replacement pointer value. It is not deletion of a slot or invalidation of all handles. Conversely, returning a previous address does not make it an owning lease. These distinctions allow EPT atomicity and external-resource lifetime safety to be reviewed separately. [9, 10]</p>
 <h2>13. Closing thoughts</h2>
 <p>The question that kept returning was: does this reference still point to the same object, and is that object still alive?</p>
 <p>The investigation began with double-fetch and UAF. Moving into the browser required examining ownership, object identity, control-flow protections, and the effects of observation tools. Evidence at one stage did not substitute for the conclusion at the next.</p>
@@ -623,8 +827,9 @@ Relaxed_ReadExternalPointerHandle(Address field_address) {
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/common/assert-scope.h">V8 — assert-scope.h at the fix revision</a>. Confirms the debug-only assertion scope behind <code>DisallowGarbageCollection</code>; its name does not establish synchronization in a release build.</li>
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h">V8 — v8-primitive.h at the fix revision</a>. Source for the <code>Unaccount</code> callback contract and empty default implementation.</li>
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h">V8 — external-pointer.h at the fix revision</a> and <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/LICENSE">original license</a>. Sources for the in-class single-tag overload and code redistribution terms.</li>
+<li><a href="https://eel.is/c++draft/atomics.types.operations">C++ working draft — atomic operations</a>. Background for expected-argument updates and spurious failure in weak compare-and-exchange.</li>
 </ol>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/chrome-m152-externalstring-race/" hreflang="ko">Read this post in Korean →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=859216932f8c" defer></script>
+  <script src="/assets/app.js?v=4891981d7f40" defer></script>
 </body></html>

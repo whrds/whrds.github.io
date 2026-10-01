@@ -469,3 +469,20 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .prose .concept-demo-embed { margin: 28px 0; width: 100%; }
 .prose .concept-demo-embed iframe { display: block; width: 100%; height: 960px; border: 1px solid var(--line); border-radius: 12px; background: #111519; }
 @media (max-width: 640px) { .prose .concept-demo-embed iframe { height: 1320px; } }
+
+/* Syntax colors for the existing dark code surface. */
+.prose pre code.hljs { color: var(--code-text); }
+.prose pre .hljs-comment, .prose pre .hljs-quote { color: #9aa8b5; }
+.prose pre .hljs-keyword, .prose pre .hljs-selector-tag,
+.prose pre .hljs-literal, .prose pre .hljs-doctag { color: #f2a7c6; }
+.prose pre .hljs-title, .prose pre .hljs-section,
+.prose pre .hljs-selector-id { color: #95c6ff; }
+.prose pre .hljs-type, .prose pre .hljs-built_in,
+.prose pre .hljs-meta { color: #c7b7ff; }
+.prose pre .hljs-string, .prose pre .hljs-regexp,
+.prose pre .hljs-addition { color: #a8dfc7; }
+.prose pre .hljs-number, .prose pre .hljs-symbol,
+.prose pre .hljs-attr, .prose pre .hljs-variable { color: #edc48b; }
+.prose pre .hljs-deletion { color: #f2a7b1; }
+.prose pre .hljs-emphasis { font-style: italic; }
+.prose pre .hljs-strong { font-weight: 700; }

@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow-with-chaining/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/aarch64-buffer-overflow-with-chaining/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/aarch64-buffer-overflow-with-chaining/">
   <meta property="og:type" content="article"><meta property="og:title" content="[AArch64] Buffer OverFlow (with chaining) · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ We will briefly cover how to use gadgets using the changed ASM and registers. #include #include #include void gift(){ write(1, &quot;/bin/sh\x00&quot;,0x8); system(&#039;ls&#039;); } void"><meta property="og:url" content="https://whrds.github.io/en/posts/aarch64-buffer-overflow-with-chaining/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=859216932f8c">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=4891981d7f40">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[AArch64] Buffer OverFlow (with chaining)","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ We will briefly cover how to use gadgets using the changed ASM and registers. #include #include #include void gift(){ write(1, \"/bin/sh\\x00\",0x8); system('ls'); } void","datePublished":"2024-03-20","inLanguage":"en","url":"https://whrds.github.io/en/posts/aarch64-buffer-overflow-with-chaining/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -117,5 +117,5 @@ payload += p64(binsh)
 </code></pre>
 </div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/aarch64-buffer-overflow-with-chaining/" hreflang="ko">Read this post in Korean →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=859216932f8c" defer></script>
+  <script src="/assets/app.js?v=4891981d7f40" defer></script>
 </body></html>

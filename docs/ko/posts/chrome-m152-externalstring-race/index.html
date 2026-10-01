@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
   <meta property="og:type" content="article"><meta property="og:title" content="[V8] Chrome M152 ExternalString 레이스와 샌드박스 경계 연구 · whrds.log"><meta property="og:description" content="Chrome M152 ExternalString 레이스의 연구 방향과 객체 수명 문제를 정리하고, 최종 익스플로잇을 통한 hosts 파일 읽기 성공을 기록한다."><meta property="og:url" content="https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=859216932f8c">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=4891981d7f40">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[V8] Chrome M152 ExternalString 레이스와 샌드박스 경계 연구","description":"Chrome M152 ExternalString 레이스의 연구 방향과 객체 수명 문제를 정리하고, 최종 익스플로잇을 통한 hosts 파일 읽기 성공을 기록한다.","datePublished":"2026-10-01","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString 레이스와 샌드박스 경계 연구</h1><p class="article-description">Chrome M152 ExternalString 레이스의 연구 방향과 객체 수명 문제를 정리하고, 최종 익스플로잇을 통한 hosts 파일 읽기 성공을 기록한다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">2026년 10월 1일</time><span>·</span><span>16 분 읽기</span></div></div></header><div class="prose"><p>이번에는 Chrome M152에서 분석했던 <code>ExternalString</code> 레이스를 정리해보겠다.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString 레이스와 샌드박스 경계 연구</h1><p class="article-description">Chrome M152 ExternalString 레이스의 연구 방향과 객체 수명 문제를 정리하고, 최종 익스플로잇을 통한 hosts 파일 읽기 성공을 기록한다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">2026년 10월 1일</time><span>·</span><span>18 분 읽기</span></div></div></header><div class="prose"><p>이번에는 Chrome M152에서 분석했던 <code>ExternalString</code> 레이스를 정리해보겠다.</p>
 <p>최종적으로는 익스플로잇을 통해 <code>hosts</code> 파일을 읽는 데 성공했다. [5] 이 글에서는 그 결과에 이르기까지 어떤 방향으로 연구했고, 중간에 어떤 가정을 다시 확인해야 했는지 함께 정리하고자 한다.</p>
 <p>처음 확인하려고 했던 것은 비교적 단순했다. V8 샌드박스 내부에서 발생한 메모리 손상이 외부 네이티브 객체의 수명 관리에 영향을 줄 수 있을까? 외부 포인터를 테이블로 관리하고 있는데, 그 테이블에 남은 참조와 실제 객체의 상태가 달라지면 어떻게 될까?</p>
 <p>막상 들어가 보니 레이스가 한 번 관측되는 것과 브라우저 안에서 그 의미를 설명하는 것은 별개의 일이었다. d8에서는 확인한 문제가 브라우저에서는 다른 모양으로 나타났고, 디버거로 들여다볼 때와 관측 도구 없이 실행할 때의 결과도 같지 않았다. 중간 단계를 확인한 것을 전체 과정의 성공으로 착각하지 않는 것부터 필요했다.</p>
@@ -78,7 +78,7 @@
 <p>V8 Sandbox와 Chrome의 프로세스 샌드박스도 구분해야 한다. 후자는 OS 기능을 이용해 프로세스가 접근할 수 있는 자원을 제한한다. [2] V8의 경계를 벗어난 메모리 오류가 관측됐다는 사실만으로 브라우저 프로세스 샌드박스 탈출이나 커널 권한 상승까지 입증되는 것은 아니다.</p>
 <h3>2.1 공개 API에서 확인할 수 있는 수명 계약</h3>
 <p>구조를 이해하기 위해 공개 헤더의 <code>ExternalStringResourceBase</code>와 <code>ExternalStringResource</code>를 먼저 보겠다. <code>data()</code>는 문자 버퍼, <code>length()</code>는 그 버퍼의 길이를 다룬다. 리소스의 기본 정리 구현에는 다음 코드가 있다. 서로 다른 클래스의 역할을 함께 설명하는 발췌다. [6]</p>
-<pre><code class="language-cpp">virtual void Dispose() { delete this; }
+<pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">Dispose</span><span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>; }
 </code></pre>
 <p>이 한 줄의 의도는 리소스가 더 이상 필요 없을 때 소유자가 정리를 수행하도록 하는 것이다. 하위 클래스는 정리 방법을 바꿀 수 있다. 문자 데이터의 불변성과 리소스 객체의 생존은 서로 다른 조건이다. 같은 문자열 내용을 계속 볼 수 있어도, 그 내용을 제공하던 리소스 객체의 수명이 끝났다면 그 객체를 다시 호출할 수는 없다. [6]</p>
 <h3>2.2 문자열 객체와 리소스 객체를 나누어 보기</h3>
@@ -145,20 +145,20 @@
 <p>그래서 double-fetch를 볼 때는 단순히 읽기 횟수를 세는 것보다 <strong>앞에서 확인한 대상의 정체성이 뒤의 작업에도 보존되는가</strong>를 봐야 한다. 이 글에서 설명하는 수명 오류도 그 일관성의 문제다.</p>
 <h3>3.3 실제 정리 함수 전체를 읽기</h3>
 <p>아래는 수정 리비전 <code>7d1fb25</code>의 <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h#L1525"><code>src/objects/string-inl.h</code></a>에 있는 <code>DisposeResource</code> 함수 전체다. 조건 분기, 메모리 집계 콜백, 정리 호출과 GC 관련 스코프를 모두 포함했다. [9]</p>
-<pre><code class="language-cpp">void ExternalString::DisposeResource(Isolate* isolate) {
+<pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">ExternalString::DisposeResource</span><span class="hljs-params">(Isolate* isolate)</span> </span>{
   DisallowGarbageCollection no_gc;
 
-  Address value = resource_.exchange(isolate, kNullAddress);
+  Address value = resource_.<span class="hljs-built_in">exchange</span>(isolate, kNullAddress);
   v8::String::ExternalStringResourceBase* resource =
-      reinterpret_cast&lt;v8::String::ExternalStringResourceBase*&gt;(value);
+      <span class="hljs-keyword">reinterpret_cast</span>&lt;v8::String::ExternalStringResourceBase*&gt;(value);
 
-  // Dispose of the C++ object if it has not already been disposed.
-  if (resource != nullptr) {
-    if (!IsShared() &amp;&amp; !HeapLayout::InWritableSharedSpace(this)) {
-      resource-&gt;Unaccount(reinterpret_cast&lt;v8::Isolate*&gt;(isolate));
+  <span class="hljs-comment">// Dispose of the C++ object if it has not already been disposed.</span>
+  <span class="hljs-keyword">if</span> (resource != <span class="hljs-literal">nullptr</span>) {
+    <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">IsShared</span>() &amp;&amp; !HeapLayout::<span class="hljs-built_in">InWritableSharedSpace</span>(<span class="hljs-keyword">this</span>)) {
+      resource-&gt;<span class="hljs-built_in">Unaccount</span>(<span class="hljs-keyword">reinterpret_cast</span>&lt;v8::Isolate*&gt;(isolate));
     }
     DisableGCMole no_gc_mole;
-    resource-&gt;Dispose();
+    resource-&gt;<span class="hljs-built_in">Dispose</span>();
   }
 }
 </code></pre>
@@ -205,6 +205,36 @@
 <h3>3.4 코드에서 확인한 사실과 원인 해석</h3>
 <p>공개 패치가 지목한 결함은 캐스팅 문법이나 null 검사의 유무가 아니다. 정리 작업이 대상으로 삼은 리소스와 EPT 상태가 끝까지 일치해야 한다는 계약의 문제다. 수정 전에는 분리된 참조 처리가 이 일치를 유지하지 못할 수 있었고, 패치는 그 연결을 한 대상의 교환 연산으로 묶었다. [8]</p>
 <p>따라서 UAF라는 이름만 붙이는 것보다 <strong>어느 객체의 수명이 끝났으며, 그 객체를 유효하다고 취급하는 참조가 남을 수 있는가</strong>를 설명하는 편이 정확하다. 이는 소스의 수명 계약에 대한 분석이다. 실제 브라우저에서 어느 결과까지 관측했는지는 11절의 실행 기록과 별도로 판단한다.</p>
+<h3>3.5 정리 함수의 입력·분기·결과</h3>
+<p>최상위 함수는 <code>void</code>를 반환한다. 내부의 교환 연산이 이전 주소를 반환하는 것과, <code>DisposeResource</code> 자체가 리소스 주소를 호출자에게 돌려주는 것은 다른 이야기다. 이 함수는 자신의 멤버와 <code>isolate</code> 문맥을 사용해 정리를 수행한다. [9]</p>
+<table>
+<thead>
+<tr>
+<th>코드에서 관측하는 조건</th>
+<th>진행하는 처리</th>
+<th>해석할 범위</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>교환 결과가 null</td>
+<td>리소스 콜백 블록을 건너뜀</td>
+<td>처리할 이전 리소스 주소가 없음</td>
+</tr>
+<tr>
+<td>이전 리소스가 있고 두 shared-state 조건이 모두 false</td>
+<td><code>Unaccount</code> 이후 <code>Dispose</code> 호출</td>
+<td>집계 콜백과 실제 정리 콜백의 역할은 구분</td>
+</tr>
+<tr>
+<td>이전 리소스가 있고 shared-state 조건 중 하나가 true</td>
+<td><code>Unaccount</code>를 건너뛰고 <code>Dispose</code> 호출</td>
+<td>이 분기가 정리 자체를 생략하는 것은 아님</td>
+</tr>
+</tbody>
+</table>
+<p>교환 이후 <code>value</code>는 지역 변수에 보관된다. 캐스팅은 이 값을 콜백 호출에 사용할 포인터 타입으로 표현하며, 별도의 객체 생성이나 생존 판정을 수행하지 않는다. 또한 <code>Unaccount</code>는 가상 콜백이므로 기본 구현이 비어 있다는 사실과 실제 하위 클래스의 동작은 구분해서 읽어야 한다. [9, 12]</p>
+<p>이 코드의 핵심은 테이블의 참조 상태를 바꾸는 연산과 리소스 객체의 정리 콜백을 함께 보는 것이다. 전자는 EPT 상태의 변화이고, 후자는 리소스 계약의 수행이다. 어느 한쪽의 코드만 보고 전체 수명 처리가 끝났다고 판단하기 어렵다.</p>
 <h2>4. 우회가 겨냥한 보호 가정</h2>
 <p>그렇다면 “EPT가 있는데 어떻게 보호 경계를 넘어서는 문제가 생길 수 있었는가?”라는 질문이 남는다.</p>
 <p>이 연구에서 살펴본 방향은 <strong>외부 포인터를 간접 참조로 관리하더라도, 그 참조와 객체의 수명이 어긋나면 외부 네이티브 메모리의 안전성이 무너질 수 있는가</strong>였다. 참조가 허용된 경로를 거친다는 사실과 그 대상이 현재도 유효하다는 사실은 같은 보장이 아니다.</p>
@@ -511,96 +541,270 @@ Retire(key):
 <p>3.3절에서 호출한 교환 연산의 정의들을 함수 단위로 모두 보겠다. 아래 코드는 같은 수정 리비전 <code>7d1fb25</code>에서 가져왔다. 함수 안의 문장과 원문 주석을 생략하지 않았고, 클래스 안의 오버로드는 바깥 들여쓰기만 정리했다. 이 함수들은 V8의 클래스·타입·헤더 문맥 안에서 사용된다. 좁은 화면에서는 코드 블록을 가로로 스크롤할 수 있다. [10, 13]</p>
 <h4>1. 단일 태그 오버로드</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h#L60"><code>src/sandbox/external-pointer.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">inline Address exchange(IsolateForSandbox isolate, Address value)
-  requires(kTagRange.Size() == 1)
-{
-  return exchange&lt;kTagRange.first&gt;(isolate, value);
+<pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-keyword">inline</span> Address <span class="hljs-title">exchange</span><span class="hljs-params">(IsolateForSandbox isolate, Address value)</span>
+  <span class="hljs-title">requires</span><span class="hljs-params">(kTagRange.Size() == <span class="hljs-number">1</span>)</span>
+</span>{
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">exchange</span>&lt;kTagRange.first&gt;(isolate, value);
 }
 </code></pre>
+<p><strong>입출력 계약</strong></p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>입력</td>
+<td><code>isolate</code>, 새 주소 값 <code>value</code></td>
+</tr>
+<tr>
+<td>반환</td>
+<td>태그를 명시한 멤버 오버로드의 반환값</td>
+</tr>
+<tr>
+<td>검토점</td>
+<td>태그 범위가 하나라는 정적 조건을 이용해 <code>kTagRange.first</code>를 선택한다.</td>
+</tr>
+</tbody>
+</table>
 <p>이 함수는 <code>ExternalPointerMember</code> 클래스 안에 정의된 오버로드다. 허용 범위에 태그가 하나일 때만 선택되며, 그 태그를 명시하는 템플릿 오버로드로 전달한다. <code>requires</code>는 컴파일 시 선택 조건이지 객체의 생존 검사나 실행 중의 동기화가 아니다.</p>
+<p>여기서 <code>value</code>는 반환받을 값이 아니라 테이블에 넣을 <strong>새 값</strong>이다. 정리 함수가 넘기는 <code>kNullAddress</code>와, 교환 연산이 반환하는 이전 리소스 주소를 구분해야 한다. 오버로드는 이 둘의 역할을 바꾸지 않고 아래 계층으로 전달한다.</p>
 <h4>2. 멤버 함수에서 필드 연산으로 전달</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L77"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">template &lt;ExternalPointerTagRange kTagRange&gt;
-template &lt;ExternalPointerTag tag&gt;
-inline Address ExternalPointerMember&lt;kTagRange&gt;::exchange(
+<pre><code class="hljs language-cpp"><span class="hljs-keyword">template</span> &lt;ExternalPointerTagRange kTagRange&gt;
+<span class="hljs-keyword">template</span> &lt;ExternalPointerTag tag&gt;
+<span class="hljs-keyword">inline</span> Address ExternalPointerMember&lt;kTagRange&gt;::<span class="hljs-built_in">exchange</span>(
     IsolateForSandbox isolate, Address value) {
-  static_assert(kTagRange.Contains(tag));
-  return ExchangeExternalPointerField&lt;tag&gt;(reinterpret_cast&lt;Address&gt;(storage_),
+  <span class="hljs-keyword">static_assert</span>(kTagRange.<span class="hljs-built_in">Contains</span>(tag));
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">ExchangeExternalPointerField</span>&lt;tag&gt;(<span class="hljs-keyword">reinterpret_cast</span>&lt;Address&gt;(storage_),
                                            isolate, value);
 }
 </code></pre>
+<p><strong>입출력 계약</strong></p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>입력</td>
+<td>멤버의 <code>storage_</code> 위치, <code>isolate</code>, 새 주소 값</td>
+</tr>
+<tr>
+<td>반환</td>
+<td>필드 교환이 반환한 이전 주소 값</td>
+</tr>
+<tr>
+<td>검토점</td>
+<td>필드가 저장한 값과 필드 자체의 주소를 구분한다. <code>static_assert</code>는 태그의 정적 적합성을 확인한다.</td>
+</tr>
+</tbody>
+</table>
 <p>태그가 멤버의 허용 범위 안에 있다는 조건을 컴파일 시 확인하고 필드 연산으로 전달한다. <code>storage_</code>에서 얻는 것은 핸들을 저장하는 필드의 주소다. 이 전달 함수가 외부 객체의 소유권을 새로 만드는 것은 아니다.</p>
+<p><code>reinterpret_cast&lt;Address&gt;(storage_)</code>를 외부 리소스 객체의 주소라고 읽으면 이 함수의 역할이 달라 보인다. 여기서는 멤버의 저장 위치를 필드 연산에 전달한다. 그 위치에서 핸들을 얻고 외부 값을 해석하는 책임은 다음 계층에 있다.</p>
 <h4>3. sandbox와 비 sandbox의 교환 경로</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L260"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">template &lt;ExternalPointerTag tag&gt;
-V8_INLINE Address ExchangeExternalPointerField(Address field_address,
+<pre><code class="hljs language-cpp"><span class="hljs-keyword">template</span> &lt;ExternalPointerTag tag&gt;
+<span class="hljs-function">V8_INLINE Address <span class="hljs-title">ExchangeExternalPointerField</span><span class="hljs-params">(Address field_address,
                                                IsolateForSandbox isolate,
-                                               Address value) {
-#ifdef V8_ENABLE_SANDBOX
-  static_assert(tag != kExternalPointerNullTag);
+                                               Address value)</span> </span>{
+<span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> V8_ENABLE_SANDBOX</span>
+  <span class="hljs-keyword">static_assert</span>(tag != kExternalPointerNullTag);
   ExternalPointerHandle handle =
-      Relaxed_ReadExternalPointerHandle(field_address);
-  return isolate.GetExternalPointerTableFor(tag).Exchange(handle, value, tag);
-#else
-  Address old_value = ReadMaybeUnalignedValue&lt;Address&gt;(field_address);
-  WriteMaybeUnalignedValue&lt;Address&gt;(field_address, value);
-  return old_value;
-#endif  // V8_ENABLE_SANDBOX
+      <span class="hljs-built_in">Relaxed_ReadExternalPointerHandle</span>(field_address);
+  <span class="hljs-keyword">return</span> isolate.<span class="hljs-built_in">GetExternalPointerTableFor</span>(tag).<span class="hljs-built_in">Exchange</span>(handle, value, tag);
+<span class="hljs-meta">#<span class="hljs-keyword">else</span></span>
+  Address old_value = <span class="hljs-built_in">ReadMaybeUnalignedValue</span>&lt;Address&gt;(field_address);
+  <span class="hljs-built_in">WriteMaybeUnalignedValue</span>&lt;Address&gt;(field_address, value);
+  <span class="hljs-keyword">return</span> old_value;
+<span class="hljs-meta">#<span class="hljs-keyword">endif</span>  <span class="hljs-comment">// V8_ENABLE_SANDBOX</span></span>
 }
 </code></pre>
+<p><strong>입출력 계약</strong></p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>입력</td>
+<td>필드 주소, <code>isolate</code>, 새 주소 값, 템플릿 태그</td>
+</tr>
+<tr>
+<td>반환</td>
+<td>교환 전 주소 값</td>
+</tr>
+<tr>
+<td>검토점</td>
+<td>sandbox 분기의 대상은 EPT 항목이다. 비 sandbox 분기의 대상은 직접 주소를 담는 필드다.</td>
+</tr>
+</tbody>
+</table>
 <p>두 빌드 분기를 모두 남겼다. sandbox 분기는 핸들을 얻어 해당 EPT의 교환 연산에 전달한다. 비 sandbox 분기는 주소 값을 읽고 새 값을 쓴 뒤 이전 값을 반환한다. 따라서 함수 이름이 같다는 이유로 두 분기의 원자성까지 같다고 해석할 수는 없다.</p>
+<p>sandbox 분기의 교환은 선택된 항목에 새 포인터 값을 반영한다. 이 코드에는 힙 객체의 핸들 필드를 null로 덮거나 항목을 free list에 돌려주는 호출이 없다. 따라서 포인터 값이 null이 되는 것과 테이블 슬롯 자체가 삭제되는 것은 구분해야 한다.</p>
 <h4>4. 핸들의 원자적 읽기</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L193"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">#ifdef V8_ENABLE_SANDBOX
-V8_INLINE ExternalPointerHandle
-Relaxed_ReadExternalPointerHandle(Address field_address) {
-  // Handles may be written to objects from other threads so the handle needs
-  // to be loaded atomically. We assume that the access to the table cannot
-  // be reordered before the load of the handle due to the data dependency
-  // between the two accesses and therefore use relaxed memory ordering, but
-  // technically we should use memory_order_consume here.
-  auto location = reinterpret_cast&lt;ExternalPointerHandle*&gt;(field_address);
-  return base::AsAtomic32::Relaxed_Load(location);
+<pre><code class="hljs language-cpp"><span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> V8_ENABLE_SANDBOX</span>
+<span class="hljs-function">V8_INLINE ExternalPointerHandle
+<span class="hljs-title">Relaxed_ReadExternalPointerHandle</span><span class="hljs-params">(Address field_address)</span> </span>{
+  <span class="hljs-comment">// Handles may be written to objects from other threads so the handle needs</span>
+  <span class="hljs-comment">// to be loaded atomically. We assume that the access to the table cannot</span>
+  <span class="hljs-comment">// be reordered before the load of the handle due to the data dependency</span>
+  <span class="hljs-comment">// between the two accesses and therefore use relaxed memory ordering, but</span>
+  <span class="hljs-comment">// technically we should use memory_order_consume here.</span>
+  <span class="hljs-keyword">auto</span> location = <span class="hljs-keyword">reinterpret_cast</span>&lt;ExternalPointerHandle*&gt;(field_address);
+  <span class="hljs-keyword">return</span> base::AsAtomic32::<span class="hljs-built_in">Relaxed_Load</span>(location);
 }
-#endif
+<span class="hljs-meta">#<span class="hljs-keyword">endif</span></span>
 </code></pre>
+<p><strong>입출력 계약</strong></p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>입력</td>
+<td>핸들을 저장하는 필드의 주소</td>
+</tr>
+<tr>
+<td>반환</td>
+<td>한 번의 원자적 읽기로 관측한 핸들 값</td>
+</tr>
+<tr>
+<td>검토점</td>
+<td>이 반환값은 핸들의 스냅샷이다. 이후 참조 대상의 수명이나 다른 데이터의 공개 순서를 보장하는 소유권 토큰은 아니다.</td>
+</tr>
+</tbody>
+</table>
 <p>이 함수의 책임은 핸들 값 하나를 원자적으로 읽는 것이다. 원문 주석은 테이블 접근과의 데이터 의존성을 근거로 relaxed 읽기를 선택했다고 설명한다. 이것만으로 여러 연산이 하나의 트랜잭션이 되거나 객체의 수명이 유지되지는 않는다.</p>
+<p>원자성은 한 핸들 값을 일관되게 관측하는 성질이고, 메모리 순서는 여러 데이터 접근 사이의 관계를 다루는 성질이다. 원문 주석에 있는 데이터 의존성 가정은 그 관계에 대한 설명이다. 리소스를 누가 사용 중인지 추적하는 계약까지 대신하지는 않는다.</p>
 <h4>5. EPT에서 항목 선택</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L206"><code>src/sandbox/external-pointer-table-inl.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">Address ExternalPointerTable::Exchange(ExternalPointerHandle handle,
-                                       Address value, ExternalPointerTag tag) {
-  DCHECK_NE(kNullExternalPointerHandle, handle);
-  DCHECK(!IsManagedExternalPointerType(tag));
-  uint32_t index = HandleToIndex(handle);
-  return at(index).ExchangeExternalPointer(value, tag);
+<pre><code class="hljs language-cpp"><span class="hljs-function">Address <span class="hljs-title">ExternalPointerTable::Exchange</span><span class="hljs-params">(ExternalPointerHandle handle,
+                                       Address value, ExternalPointerTag tag)</span> </span>{
+  <span class="hljs-built_in">DCHECK_NE</span>(kNullExternalPointerHandle, handle);
+  <span class="hljs-built_in">DCHECK</span>(!<span class="hljs-built_in">IsManagedExternalPointerType</span>(tag));
+  <span class="hljs-type">uint32_t</span> index = <span class="hljs-built_in">HandleToIndex</span>(handle);
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">at</span>(index).<span class="hljs-built_in">ExchangeExternalPointer</span>(value, tag);
 }
 </code></pre>
+<p><strong>입출력 계약</strong></p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>입력</td>
+<td>선택된 핸들, 새 주소 값, 태그</td>
+</tr>
+<tr>
+<td>반환</td>
+<td>선택된 항목의 교환 전 주소 값</td>
+</tr>
+<tr>
+<td>검토점</td>
+<td>항목 선택과 payload 교환을 분리해서 읽는다. 인덱스 변환은 자원 해제나 항목의 해제 작업이 아니다.</td>
+</tr>
+</tbody>
+</table>
 <p>선택된 핸들을 항목 인덱스로 변환하고 항목의 교환 연산으로 전달한다. <code>DCHECK</code>들은 이 경로가 기대하는 불변식을 표현한다. 그 문장만 보고 대상 release 빌드의 모든 실행 시 검증 범위를 확정할 수는 없다.</p>
+<p>이 경로에는 managed 타입을 배제하는 assertion이 있다. 앞에서 소개한 <code>ManagedResource</code>의 일반적인 EPT 설계 설명을, 이 <code>Exchange</code>가 managed 리소스의 자동 수명 프로토콜을 수행한다는 뜻으로 옮겨 읽으면 안 된다. 이 함수의 명시적 동작은 항목 선택과 위임이다.</p>
 <h4>6. 항목 payload의 교환</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L70"><code>src/sandbox/external-pointer-table-inl.h</code></a> · <code>7d1fb25</code></p>
-<pre><code class="language-cpp">Address ExternalPointerTableEntry::ExchangeExternalPointer(
-    Address value, ExternalPointerTag tag) {
-  // The 2nd most significant byte must be empty as we store the tag in int.
-  DCHECK_EQ(0, value &amp; kExternalPointerTagAndMarkbitMask);
+<pre><code class="hljs language-cpp"><span class="hljs-function">Address <span class="hljs-title">ExternalPointerTableEntry::ExchangeExternalPointer</span><span class="hljs-params">(
+    Address value, ExternalPointerTag tag)</span> </span>{
+  <span class="hljs-comment">// The 2nd most significant byte must be empty as we store the tag in int.</span>
+  <span class="hljs-built_in">DCHECK_EQ</span>(<span class="hljs-number">0</span>, value &amp; kExternalPointerTagAndMarkbitMask);
 
-  auto old_payload = payload_.load(std::memory_order_relaxed);
-  while (true) {
-    DCHECK(old_payload.ContainsPointer());
-    Payload new_payload(value, tag);
-    if (old_payload.HasMarkBitSet()) {
-      new_payload.SetMarkBit();
+  <span class="hljs-keyword">auto</span> old_payload = payload_.<span class="hljs-built_in">load</span>(std::memory_order_relaxed);
+  <span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>) {
+    <span class="hljs-built_in">DCHECK</span>(old_payload.<span class="hljs-built_in">ContainsPointer</span>());
+    <span class="hljs-function">Payload <span class="hljs-title">new_payload</span><span class="hljs-params">(value, tag)</span></span>;
+    <span class="hljs-keyword">if</span> (old_payload.<span class="hljs-built_in">HasMarkBitSet</span>()) {
+      new_payload.<span class="hljs-built_in">SetMarkBit</span>();
     }
-    if (payload_.compare_exchange_weak(old_payload, new_payload,
+    <span class="hljs-keyword">if</span> (payload_.<span class="hljs-built_in">compare_exchange_weak</span>(old_payload, new_payload,
                                        std::memory_order_relaxed)) {
-      MaybeUpdateRawPointerForLSan(value);
-      return old_payload.Untag(tag);
+      <span class="hljs-built_in">MaybeUpdateRawPointerForLSan</span>(value);
+      <span class="hljs-keyword">return</span> old_payload.<span class="hljs-built_in">Untag</span>(tag);
     }
   }
 }
 </code></pre>
+<p><strong>입출력 계약</strong></p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>입력</td>
+<td>새 주소 값과 기대 태그</td>
+</tr>
+<tr>
+<td>반환</td>
+<td>성공한 CAS 직전 payload를 태그에 맞게 해석한 이전 주소 값</td>
+</tr>
+<tr>
+<td>검토점</td>
+<td>포인터 값, 태그, mark를 포함하는 한 payload의 교체가 원자적 작업의 단위다.</td>
+</tr>
+</tbody>
+</table>
 <p>실제 payload 갱신은 이 함수에 있다. 이전 payload를 읽고, 새 payload에 기존 GC mark를 보존한 뒤 compare-and-exchange를 시도한다. 실패하면 갱신된 이전 값으로 반복하고, 성공하면 이전 포인터 값을 반환한다. <code>MaybeUpdateRawPointerForLSan</code>은 LSan 관련 보조 상태를 갱신하는 호출이며, 객체 소유권을 만드는 연산은 아니다.</p>
 <p>이 CAS가 묶는 범위는 한 EPT 항목의 payload다. 힙 객체의 핸들 필드 전체나 여러 외부 객체를 한꺼번에 동기화한다고 범위를 넓혀 읽으면 안 된다.</p>
+<p><code>old_payload</code>는 CAS의 expected 인자로도 사용된다. 값 불일치로 실패하면 새로 관측한 값이 expected에 반영되고, weak CAS는 비교 값이 같아도 일시적으로 실패할 수 있다. 따라서 실패 자체를 새로운 수명 오류로 해석하지 않고 다음 반복에서 다시 조건을 평가한다. [14]</p>
+<p>반복마다 <code>new_payload</code>를 구성하고 현재 <code>old_payload</code>의 mark를 옮기는 것은 재시도에서 관측 상태를 반영하기 위해서다. 성공한 CAS는 <strong>그 한 항목의 교체가 확정되는 지점</strong>으로 볼 수 있다. 이 원자적 갱신과 호출자가 이전 리소스 주소를 안전하게 사용하는 계약은 별도로 검토해야 한다.</p>
 <p>원문 출처: V8 project authors, Copyright 2017 / 2020 / 2021. 코드의 BSD-style 라이선스와 원문 저작권 고지는 <a href="/assets/research/chrome-m152-externalstring-race/v8-source-license.txt">라이선스 파일</a>에 함께 제공한다. [13]</p>
+<h3>12.5 보호 범위를 상태별로 정리하기</h3>
+<p>같은 교환 연산이라도 무엇이 갱신되는지에 따라 보장 범위가 달라진다. 코드 검토에서는 다음 세 상태를 분리해서 확인하겠다.</p>
+<table>
+<thead>
+<tr>
+<th>상태</th>
+<th>이번 교환에서 확인되는 변화</th>
+<th>함께 확인할 조건</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>힙 멤버의 핸들</td>
+<td>sandbox 분기에서 읽어 항목 선택에 사용</td>
+<td>이 연산이 필드 전체를 동기화한다고 확대하지 않기</td>
+</tr>
+<tr>
+<td>EPT 항목 payload</td>
+<td>새 포인터 값·태그와 보존된 mark로 교체</td>
+<td>한 항목의 원자적 갱신 범위</td>
+</tr>
+<tr>
+<td>네이티브 리소스 객체</td>
+<td>반환받은 이전 주소를 바탕으로 정리 콜백 수행</td>
+<td>실제 사용자의 소유권과 콜백 계약</td>
+</tr>
+</tbody>
+</table>
+<p><code>kNullAddress</code>를 쓰는 것은 이 함수에서 포인터 값을 비우는 선택이다. 슬롯을 삭제하는 연산이나 모든 핸들을 일괄 무효화하는 연산과 같지 않다. 반대로 포인터 값이 이전 주소로 반환됐다는 사실만으로 해당 주소가 사용권을 가진 참조가 되는 것도 아니다. 이런 구분이 있어야 EPT의 원자성과 외부 객체의 수명 안전성을 각각 검토할 수 있다. [9, 10]</p>
 <h2>13. 마무리</h2>
 <p>이번 연구에서 계속 따라간 질문은 결국 “지금 보고 있는 참조가, 지금도 살아 있는 같은 객체를 가리키고 있는가?”였다.</p>
 <p>처음에는 double-fetch와 UAF라는 원인에 집중했다. 브라우저로 넘어가면서는 소유권과 객체 정체성, 제어 흐름 보호, 관측 도구의 개입까지 함께 봐야 했다. 한 단계에서 확인한 결과가 다음 단계의 결론까지 대신해주지는 않았다.</p>
@@ -623,8 +827,9 @@ Relaxed_ReadExternalPointerHandle(Address field_address) {
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/common/assert-scope.h">V8 — assert-scope.h, 수정 리비전</a>. <code>DisallowGarbageCollection</code>이 debug-only assertion 스코프임을 확인했다. 이름만으로 release 빌드의 동기화 보장까지 추론하지 않았다.</li>
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h">V8 — v8-primitive.h, 수정 리비전</a>. 해당 리비전의 <code>Unaccount</code> 콜백 계약과 기본 구현을 확인했다.</li>
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h">V8 — external-pointer.h, 수정 리비전</a>와 <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/LICENSE">원문 라이선스</a>. 클래스 안의 단일 태그 오버로드와 코드 재사용 조건을 확인했다.</li>
+<li><a href="https://eel.is/c++draft/atomics.types.operations">C++ working draft — atomic operations</a>. compare-and-exchange의 expected 인자 갱신과 weak CAS의 일시적 실패 가능성에 관한 일반적인 언어 계약을 확인했다.</li>
 </ol>
 </div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/chrome-m152-externalstring-race/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=859216932f8c" defer></script>
+  <script src="/assets/app.js?v=4891981d7f40" defer></script>
 </body></html>

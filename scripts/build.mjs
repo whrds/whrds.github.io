@@ -4,12 +4,13 @@ import { createHash } from 'node:crypto';
 import matter from 'gray-matter';
 import MarkdownIt from 'markdown-it';
 import { build as bundle } from 'esbuild';
+import { highlightMarkdownCode } from './syntax-highlighting.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const contentDir = path.join(root, 'content');
 const outDir = path.join(root, 'docs');
 const siteUrl = (process.env.SITE_URL || 'https://whrds.github.io').replace(/\/$/, '');
-const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
+const md = new MarkdownIt({ html: false, linkify: true, typographer: true, highlight: highlightMarkdownCode });
 let assetVersion = '';
 
 const copy = {
