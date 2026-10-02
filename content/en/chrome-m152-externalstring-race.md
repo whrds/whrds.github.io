@@ -14,7 +14,9 @@ This post revisits the `ExternalString` double-fetch race I investigated in Chro
 
 The public account omits build-specific addresses and the complete PoC, while retaining the attack prerequisite, cause, object-lifetime transitions, and reliability work. The same class of follow-on primitive reached an `/etc/hosts` read in an authorized local environment and a separate remote validation environment managed by the author. Sections 1.2 and 11.1 define the security boundary of that result. [5]
 
-The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?
+> **Research Question**
+>
+> Can an existing in-sandbox memory-corruption capability disrupt the native-resource lifetime of an `ExternalString`? If so, which identity invariant fails, and how does the upstream patch restore it?
 
 A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains `11/150` UAF observations; later review compared ownership, allocator reuse, and observation interventions. This account follows public outcomes alongside their experimental units. [18]
 
@@ -275,34 +277,14 @@ Table reference state and resource disposal must be read together. The former ch
 
 ### 3.6 Target consistency and lifetime during use are separate contracts
 
-I read the fix against two questions: does the selected entry remain bound to the previous resource returned by the operation, and who preserves the lifetime of other users already accessing that resource? [8–10]
-
-Consistent target selection is visible in cleanup's use of the selected EPT entry's exchange result. Ownership held by other users of the resource requires separate review.
-
-The sandbox path clears that payload's pointer value before disposal callbacks. Other references' and caches' validity periods are separate contracts. Exchange itself does not acquire a lease or wait for outstanding users, so surrounding code's coordination of use and disposal must also be reviewed.
-
-A successful CAS establishes replacement of one payload. It does not make the later virtual callbacks part of the same atomic operation. Expressing the previous address as a C++ pointer is also not ownership acquisition. Target consistency and the whole object's lifetime contract therefore remain distinct claims.
+The patch directly resolves agreement between the selected EPT entry and the resource sent to cleanup. It takes the selected entry's exchange result into a local variable and passes only that value to `Dispose()`. The lifetime of another path already using the resource remains a separate ownership contract. [8–10]
 
 ```text
 exchange()            → identity consistency between the selected entry and returned resource
 reference ownership   → lifetime protection for a resource already in use
 ```
 
-The patch directly fixes the first problem. Reuse of the same entry, independent owners of the resource, and waiting for outstanding users remain matters for the surrounding ownership contract.
-
-The review therefore separates target consistency maintained by this function from use lifetimes coordinated by callers and resource implementations. Section 3.7 distinguishes the root cause from subsequent review questions.
-
-### 3.7 Separate the root cause from later review questions
-
-**Cleanup-target consistency** is the cause addressed directly by this public fix. The review criterion is whether disposal concerns the previous pointer from the exchanged entry. Clearing an entry and disposing a resource must refer to matching targets.
-
-**Lifetime and ownership** explain why that consistency matters for memory safety. An interpretable EPT handle does not establish resource liveness or ownership held by the current user. The same memory address also does not establish continuity of the same object's lifetime. This separates treating an ended object as valid from a generic pointer-value error.
-
-**Data caching and consumers** are conditions for interpreting browser observations. `resource_` concerns the resource object, while `resource_data_` concerns string data. A resource's disposal state alone does not establish the validity periods of every data reference. Section 7.3 uses types and API contracts to distinguish owning references from stored data addresses.
-
-**Control-flow checks** constrain permitted call relationships. Liveness of the object used by a call is a separate condition, as discussed in section 8.
-
-The six exchange helpers in Appendix A are not six separate vulnerabilities. They divide tag selection, field interpretation, entry selection, and payload exchange across one cleanup path. Complete source, contract tables, and flow graphs remain together for reviewing each layer. [9, 10, 17]
+`exchange()` neither waits for other users to finish nor acquires ownership for them. A successful CAS establishes one payload exchange; it does not make the later virtual callbacks atomic. The remaining sections therefore use **cleanup-target identity** as the root-cause model and treat ownership, data caching, and CFI only as separate conditions for judging execution results. Appendix A's helpers implement this one cleanup path; they are not separate vulnerabilities. [9, 10, 17]
 
 ## 4. The protection assumption behind the bypass research
 
@@ -342,7 +324,7 @@ A browser adds page and Worker lifetimes, string-retention paths, caches, and na
 
 ### 5.3 Separate surviving data from a live object
 
-Surviving string data did not support the assumption that the resource object remained alive. `resource_` concerns the resource object, while `resource_data_` concerns character data. Section 7.3's field types and API contracts supply the basis for separating data-retention contracts from object ownership. [17]
+Surviving string data did not support the assumption that the resource object remained alive. `resource_` concerns the resource object, while `resource_data_` concerns character data. Section 7.1's field types and API contracts supply the basis for separating data-retention contracts from object ownership. [17]
 
 If another owner retains the object, disappearance of some references does not establish the end of its lifetime. Conversely, data or address values surviving disposal do not establish that the object remains alive. Experiments that did not establish the expected lifetime ending, or whose later consumer did not use the expected target, required revisiting the original explanation. [3]
 
@@ -411,33 +393,15 @@ Only after those checks was the browser native read attributed to a follow-on pr
 
 ## 7. Rechecking ownership and object identity
 
-The disappearance of one reference does not prove immediate destruction; another owner may remain. Conversely, the same address reappearing after release does not extend the old object's lifetime. **Address identity and object identity are different evidence.**
+The browser verdict separated address, object, and data survival. A repeated address or positive reference count does not establish continuity of the same object or legitimate ownership. The records therefore treat value change, disposal, exact-address reclaim, and subsequent consumption as distinct events, excluding experiments that could not connect the expected object identity.
 
-A reference count is meaningful only when it belongs to the expected field of a still-identifiable object. Experiments that did not establish the expected destruction or consumer target were therefore rejected rather than counted as successes. The records keep “the value changed,” “the object was freed,” and “the freed object was reused” as separate events.
-
-### 7.1 Read reference counts within an ownership contract
-
-A positive reference count does not, by itself, explain a safe use. The object's identity must be established, and acquiring ownership must be synchronized correctly with retirement. Attempting to inspect a count through an already destroyed object may itself be unsafe.
-
-I therefore treated `object identity → ownership acquisition → use interval → ownership release` as an analytical contract, rather than reading only `address → field value`.
-
-### 7.2 Caching and ownership are different states
-
-A cache retains a value. Whether that value owns a resource or only observes one whose lifetime another owner guarantees requires separate inspection. Retaining a numeric address does not create a new owner.
-
-When browser results differed from d8, the existence of a cache alone did not establish the cause. It was necessary to distinguish paths that retain an object from paths that merely retain a reference value. Otherwise, a resource that was not destroyed and one that was destroyed while bytes remained could be misclassified as the same outcome.
-
-### 7.3 Reading caches through types and API contracts
+### 7.1 Reading caches through types and API contracts
 
 The target revision's `src/objects/string.h` and `include/v8-primitive.h` make the resource object and string-data address more concrete. [17]
 
 `UncachedExternalString::resource_` uses `kExternalStringResourceTag` and refers to the resource object. `ExternalString::resource_data_` uses `kExternalStringResourceDataTag` for an external data member. The data address and the resource-object reference have distinct roles.
 
-`IsCacheable()` declares whether the `data()` result may be cached and returns true by default. Cacheability does not create ownership. `Lock()` and `Unlock()` keep non-cacheable data stable during the protected interval; the API requires thread safety and support for nested calls, although their base implementations are empty.
-
-`Unaccount()` is a virtual accounting callback with an empty base implementation. Accounting state differs from destruction. `Dispose()` cleans up a resource when it is no longer needed and defaults to `delete this`; review which memory and ownership the subclass releases.
-
-The distinct tags mean that the resource object and data address have different contracts. `IsCacheable()` and `Lock`/`Unlock` describe when a data address remains stable, while immutability constrains content changes. None of those conditions creates ownership of, or proves liveness for, the resource object.
+`IsCacheable()` and `Lock()`/`Unlock()` describe whether the `data()` address may be cached and when it remains stable; they do not create ownership. `Unaccount()` is an external-memory accounting callback, while actual cleanup is performed by `Dispose()`, whose default implementation is `delete this`. Surviving data, accounting state, and resource-object liveness therefore remain separate evidence.
 
 ## 8. Separating CFI from memory safety
 
@@ -510,9 +474,7 @@ The public article omits build-specific addresses, control-flow details, and the
 
 ### 11.2 Observations and a simple probability model
 
-The early `11/150`, approximately `7.33%`, is a sample rate for d8 trials meeting section 3.2.2's UAF verdict. Calling this value `p` and making the simplifying assumption that every event is independent and equally likely gives `pⁿ` for `n` consecutive successes. Three required races model to about `1/2,536`; five model to about `1/471,512`.
-
-Real browser events depend on scheduling, allocator state, CPU placement, and earlier execution history. They are not independent and identically distributed. This calculation compares the **structural cost of repeatedly requiring a race**; it neither predicts nor measures browser completion. Appendix B retains the complete `p¹` through `p⁶` table and calculation.
+Treating the early `11/150` as independent and identical `p`, the `pⁿ` calculation compares the structural cost of repeated races; it does not predict browser completion. Section 5.5 summarizes the change from `p³ ≈ 1/2,536` and `p⁵ ≈ 1/471,512` to the final controller record, while Appendix B retains the full `p¹` through `p⁶` calculation.
 
 ### 11.3 Per-stage measurements and the final repeated record
 
@@ -528,15 +490,7 @@ The observations are grouped below by execution environment and measurement unit
 
 `5/5` is conditional, while `2/60` covers all trials, so the figures are not interchangeable. The later repeated-validation record states that **no failure was observed at the execution-group level**. Its exact final session count is unavailable, however, so it cannot provide a definite `N/N`, statistical confidence interval, or universal “100% success rate.” The absence of observed failures across execution groups does not guarantee success for an individual race. [18]
 
-### 11.4 Evidence connecting cause and result
-
-The first evidence item is patch source at a pinned revision. The data dependency from a selected entry's previous address through local `value` to disposal callbacks is directly visible. It supports the cleanup-target agreement interpretation of the cause. [8–10]
-
-The second comprises d8 aggregates and browser progress records. Aggregates record whether the defined error was observed; progress records examine which object's ownership, lifetime, and consumption explain the observation. Crashes, cause observations, intermediate validation, and completion are not counted as the same success. [3, 18]
-
-The third comprises local outcome records and subsequent confirmation in the separate remote validation environment. The report's `/etc/hosts` cases and the separate fixture checkpoint retain distinct documents and verdicts. The public summary records their sections and claim scope. [5, 18]
-
-In this connection, **source explains the cause contract, observations explain objects and execution events, and completion records explain final outcomes**. Section 9.1 collects the review scope, section 11.1 file privileges, and sections 11.2–11.3 rate units.
+These figures also have distinct evidentiary roles: source establishes the cause contract, execution records establish objects and events, and completion records establish final outcomes. Section 9.1 collects their provenance and review scope.
 
 ## 12. The invariant that matters for remediation
 
@@ -570,15 +524,7 @@ Regression review should establish the following conditions.
 
 Pre-fix and post-fix behavior should be compared in identified builds under the same regression conditions. These are source-derived test properties; this edit did not run a new fixed-binary regression.
 
-### 12.3 What the public fix is intended to guarantee
-
-The change binds resource extraction and clearing to the same EPT entry. It removes the separate cleanup operation that resolves the reference again. This is the central difference established by the commit description. [8]
-
-The member-level exchange delegates to the EPT exchange. The entry implementation uses a compare-and-exchange loop to install a new payload, return the previous pointer value, and preserve the existing GC mark. This describes the sandbox branch at the fix revision. [10]
-
-The exchanged state is the **EPT entry's payload**. It does not mean that every heap handle is erased or every external reference is invalidated together. Nor is this a direct call to JavaScript's `Atomics.exchange`. [10]
-
-The fix connects one entry's exchange result with disposal of that resource. Appendix A retains complete exchange-layer functions, six contract tables, and code flows B–C for comparing the main cause analysis with its implementation.
+The fix binds resource extraction and null exchange to the same EPT entry. The exchanged state is that entry's payload; it does not invalidate every heap handle or external reference at once. Appendix A retains the compare-and-exchange implementation, GC-mark preservation, and delegation layers. [8, 10]
 
 ## 13. Closing thoughts
 
