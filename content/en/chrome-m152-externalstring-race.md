@@ -1,6 +1,6 @@
 ---
-title: "[V8] Chrome M152 ExternalString race and sandbox boundary research"
-description: "The cause of Chrome M152's ExternalString double-fetch race, browser reproduction, reliability work, and the fix invariant."
+title: "[V8] Chrome M152 ExternalString race and the V8 Sandbox boundary"
+description: "The attack prerequisite, UAF evidence, V8 Sandbox impact, reliability work, and fix for Chrome M152's ExternalString double-fetch race."
 date: "2026-10-01"
 translation_key: "chrome-m152-externalstring-race"
 tags: ["V8", "Chrome", "Sandbox", "Race condition"]
@@ -12,13 +12,27 @@ published: true
 
 This post revisits the `ExternalString` double-fetch race I investigated in Chrome M152.
 
-The public account omits build-specific addresses and the complete PoC, while retaining the cause, object-lifetime transitions, and the work used to stabilize repeated experiments. Final impact was validated by reading `/etc/hosts` in an authorized environment, with the same file read also completed in a remote run. [5]
+The public account omits build-specific addresses and the complete PoC, while retaining the attack prerequisite, cause, object-lifetime transitions, and reliability work. The same class of follow-on primitive reached an `/etc/hosts` read in an authorized local environment and in a separate remote validation environment managed by the author. Here, **remote validation** identifies where the test ran; it does not claim general RCE or escape from Chrome's renderer OS sandbox. [5]
 
 The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?
 
 A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains `11/150` UAF observations; later review compared ownership, allocator reuse, and observation interventions. This account follows public outcomes alongside their experimental units. [18]
 
 This post connects the cleanup cause and the invariant maintained by the fix with experiments, failures, and completion records in the research report. The main text follows research questions and outcomes; Appendix A retains all six exchange helpers and their code flows. A [public evidence summary](/assets/research/chrome-m152-externalstring-race/evidence-summary.en.md) and the conceptual lifetime demonstration accompany the analysis. [18]
+
+## Executive summary
+
+| Item | Scope claimed here |
+|---|---|
+| Target | A pinned revision chain for Chrome `152.0.7977.64` and V8 `15.2.124.18` |
+| Prerequisite | The attacker can already corrupt V8 Sandbox memory sufficiently to modify an `ExternalString.resource_` handle |
+| Root cause | The resource selected by `load()` and the EPT entry cleared by the later `store()` can have different identities |
+| Observed memory-safety impact | A surviving handle reuses a freed, out-of-cage native `StringResource`, producing a UAF |
+| Boundary interpretation | A secondary primitive that turns in-sandbox corruption into a native-object lifetime violation in the same renderer |
+| Not claimed | That this race is the initial corruption entry point, general RCE, Chrome OS process-sandbox escape, or acquisition of new OS privileges |
+| Fix | `exchange()` clears the selected EPT entry and returns that same entry's prior payload, restoring identity consistency |
+
+The **V8 Sandbox boundary** and **Chrome's OS process sandbox** are separate defense layers. The first is central to this analysis; the public result does not establish an escape from the second. [1, 2]
 
 ## 1. The starting assumption
 
@@ -44,11 +58,11 @@ The patch functions reproduced here come from fix revision `7d1fb25`. The target
 
 ### 1.2 Execution conditions and what the result means
 
-The starting capability is **that memory inside the V8 Sandbox can already be corrupted**. On the M152 target in section 1.1, the investigation asks whether external-string resource lifetimes and native memory outside that boundary remain protected under this assumption. How the preceding work obtained in-sandbox access is a separate research subject.
+The starting capability is **an existing in-sandbox corruption that can modify the target `resource_` handle**. This is not a claim that normal concurrent V8 execution spontaneously changes the handle, and the race is not the initial memory-corruption entry point. It is a secondary primitive that asks whether an established in-sandbox capability can become a native-object lifetime violation outside that boundary. How the preceding capability was obtained is a separate research subject. [8]
 
 V8's memory boundary separates sandboxed state from external memory. Chrome's OS process boundary restricts accessible files and OS resources. These responsibilities frame the lifetime analysis in section 3 and the file-read result in section 11. [1, 2]
 
-The reported **local tests used Linux x86-64 with the process sandbox disabled**. Elevated privileges in the local checkpoint were granted before execution. The file read therefore validates completion within existing OS privileges; it does not mean that the chain acquired new OS privileges. Section 11.1 interprets the outcome. [3, 16]
+The reported **local tests used Linux x86-64 with the process sandbox disabled**. Elevated privileges in the local checkpoint were granted before execution. The file read therefore validates completion within existing OS privileges; it does not mean that the chain acquired new OS privileges. The remote result is likewise not used as evidence of RCE or OS-sandbox escape. Section 11.1 interprets the outcome. [3, 5, 16]
 
 ## 2. ExternalString and external resources
 
@@ -145,10 +159,10 @@ if (resource != nullptr) {
 }
 ```
 
-Let `h1` and `h2` be two valid handles. If the first read selects resource `R2` through `h2`, and another execution flow changes the heap field to `h1`, cleanup callbacks still run on `R2` while the final store can clear the EPT entry currently selected by `h1`.
+Let `h1` and `h2` be two valid handles. If an attacker uses the pre-existing in-sandbox memory-corruption capability to change the heap field from `h2` to `h1` between the first read and final store, cleanup callbacks still run on `R2` while the final store rereads `h1` and can clear a different EPT entry.
 
 ```text
-Cleanup flow                                 Concurrent flow
+Cleanup flow                                 Attacker Worker
 ────────────────────────────────────────────────────────
 read h2 from resource_ and select R2
 R2.Unaccount()/Dispose()
@@ -181,6 +195,19 @@ if (resource != nullptr) {
 ```
 
 The complete function below and Appendix A's exchange helpers retain the shared-space branch and GC-mark handling omitted from the simplified comparison.
+
+#### 3.2.2 Attack model and the UAF criterion behind `11/150`
+
+The upstream regression test makes the prerequisite explicit. Under `--sandbox-testing --use-external-strings`, it creates two `ExternalString` values and uses `Sandbox.MemoryView` to write `content2`'s handle into `content1.resource_`. A Worker then repeatedly writes `content1`'s original handle to the same field while the cleanup path for `content1` runs; the test later consumes `content2`. The Worker is not transferring ownership through a normal API. The test models an attacker who already has a cage-memory write and races a handle-field mutation. [8]
+
+The early d8 campaign counted a trial among the `11/150` UAF observations only when all of the following held:
+
+1. The first cleanup selected `h2` and freed `R2`, while the final clear applied to the changed `h1`, leaving `EPT[h2]` behind.
+2. A later `content2` consumption or teardown cleanup reused that surviving `h2` and touched the same freed object.
+3. ASan reported the subsequent access in `ExternalString::DisposeResource` as `heap-use-after-free`, connecting the allocation, free, and use stacks to the same freed address.
+4. The address was above the recorded upper bound of the V8 cage and therefore belonged to the native heap outside the cage.
+
+A crash, handle-value change, surviving address, or allocator reuse by itself did not satisfy this UAF verdict. In a release build, a controlled-address fault appeared in `4/40` exact-slot reclaim runs and `0/40` no-reclaim controls; that A/B is corroborating evidence, not part of the ASan campaign's counting rule. [3, 18]
 
 ### 3.3 Read the complete cleanup function
 
@@ -256,6 +283,13 @@ The sandbox path clears that payload's pointer value before disposal callbacks. 
 
 A successful CAS establishes replacement of one payload. It does not make the later virtual callbacks part of the same atomic operation. Expressing the previous address as a C++ pointer is also not ownership acquisition. Target consistency and the whole object's lifetime contract therefore remain distinct claims.
 
+```text
+exchange()            → identity consistency between the selected entry and returned resource
+reference ownership   → lifetime protection for a resource already in use
+```
+
+The patch directly fixes the first problem. Reuse of the same entry, independent owners of the resource, and waiting for outstanding users remain matters for the surrounding ownership contract.
+
 The review therefore separates target consistency maintained by this function from use lifetimes coordinated by callers and resource implementations. Section 3.7 distinguishes the root cause from subsequent review questions.
 
 ### 3.7 Separate the root cause from later review questions
@@ -304,7 +338,7 @@ The investigation was guided by **which judgment an observation supported, and w
 
 The starting hypothesis was that an external resource's lifetime could end while an EPT reference remained valid. The target-agreement invariant in section 3.4 supplies a criterion for examining that hypothesis. It explains why the review needed to go beyond a crash location and examine the relationship between the disposed object and a reference treating it as valid.
 
-The early d8 records contain UAF observations, providing grounds for comparing the source-level lifetime hypothesis with execution evidence. The next question was **whether the same lifetime relationship fails in the browser**. Section 6 covers the counts and environmental differences. [3]
+The early d8 records contain UAF observations satisfying the ASan criterion in section 3.2.2, providing grounds for comparing the source-level lifetime hypothesis with execution evidence. The next question was **whether the same lifetime relationship fails in the browser**. Section 6 covers the counts and environmental differences. [3]
 
 ### 5.2 From d8 outcomes to browser object lifetime
 
@@ -343,17 +377,24 @@ These changes did not make an individual race mathematically certain. They restr
 
 ## 6. Moving from d8 to the browser
 
-The early observations varied substantially across environments. Roughly 950 runs on a shared host produced no observed UAF, while a separate d8 test configuration produced 11 observations in 150 runs. [3]
+The early observations varied substantially across environments. Roughly 950 shared-host runs produced no verdict satisfying section 3.2.2, while CPU-isolated ASan d8 conditions produced 11 in 150. Each figure applies only to its test conditions and sample. [3]
 
-The shared-host configuration recorded 0 UAF observations, while the separate d8 sample's observation rate was approximately 7.33%. Each figure applies to its own test conditions and sample.
+The upstream d8 regression and browser validation target **the same source defect and `h2 → R2` dangling state**, but they do not use identical execution plumbing. The regression builds its premise directly with `Sandbox.MemoryView` and d8's `read()`. In Chrome, actual ownership of page-created external strings, Worker lifetime, cache behavior, and the renderer's native allocator all participate. “Using the same root cause” is therefore distinct from “running the d8 PoC unchanged in Chrome.”
 
-The first result could make the problem seem difficult to observe. However, races depend on execution order and observation timing. Failure to observe an event does not establish that a vulnerability is absent. Conversely, when several environmental conditions changed together, the difference cannot be attributed to one of them without further evidence.
+The browser records separate the roles as follows:
 
-Those d8 observations led to review of the same lifetime relationship in the browser.
+```text
+main isolate   : retain victim, donor, and the dangling h2 holder
+race Worker    : race resource_ handle changes using the prior in-sandbox write
+cohort Worker  : shape cache movement and 48-byte reuse at termination
+main isolate   : exact-address native allocation and stale consumer
+```
 
-A browser contains more surrounding state than a standalone engine. Page and Worker lifetimes, string creation and retention, caches, and native allocations interact. Even when the same class of error is involved, different surrounding conditions can change what happens afterward.
+When one Worker carried both the dangling holder and allocator-cleanup role, terminating it also removed the reference needed later. The final arrangement separated **the lifetime retaining the reference** from **the lifetime shaping allocator state**. Increased exact-address reuse after Worker termination, compared with a live-Worker control in which the expected dispose did not occur, supported that distinction. [3, 18]
 
-The research questions therefore expanded. Initially the question was whether the lifetime error occurred. In the browser, it also became necessary to ask whether the observed symptom came from that same error, and whether the object was truly no longer owned.
+The consumer path also required separate proof. A cached external string can use a separate `resource_data_` value, so reclaiming `resource_` does not by itself establish that a stale consumer reads through it. Follow-on validation compared the uncached external one-byte path in which the consumer actually obtains data through the resource. The browser primitive therefore required a chain of object identity across **the freed object, exact-address reclaim, and the actual consumer**, not merely a repeated address. [3, 17, 18]
+
+Only after those checks was the browser native read attributed to a follow-on primitive from the same root cause. A d8 UAF alone was not treated as proof of a browser file read or an OS-sandbox escape.
 
 ## 7. Rechecking ownership and object identity
 
@@ -397,27 +438,13 @@ The same header requires external string data to be immutable. Immutability of c
 
 ## 8. Separating CFI from memory safety
 
-Control-flow protection also mattered when reviewing later effects in Chrome. Control Flow Integrity, or CFI, constrains operations such as indirect calls to permitted control-flow conditions. Section 9.1 records the extent of the target-build configuration checks. [4]
-
-An effect on a memory value and a completed call are different events. The review distinguishes reference paths, object lifetime, and call relationships.
-
-The reverse mistake is assuming that a control-flow check also resolves every lifetime error around it. Guarantees about a call target and guarantees about an object's continued existence require separate examination.
-
-An allowed reference mechanism and the liveness of its target are separate conditions. Using an object during its valid lifetime also does not establish that the call satisfies control-flow checks.
-
-Even when an indirect call meets its control-flow conditions, the preceding data and ownership states require separate review.
+CFI constrains permitted indirect-call relationships; it does not establish that the object used by a call is still alive. This article therefore treats CFI as a separate constraint on later stages, not as the root cause. A memory effect, a call accepted by CFI, and completion of the final behavior remain different verdicts. [4]
 
 ![Reference path, lifetime, control flow, and OS privileges as separate review dimensions](/assets/research/chrome-m152-externalstring-race/05-guarantees.svg)
 
 *Figure 5. Distinct properties covered by different protections. This is not an inventory of all checks or bypass routes in a particular build.*
 
-### 8.1 Checked types and object liveness
-
-Clang distinguishes schemes such as `cfi-vcall` for virtual calls and `cfi-icall` for indirect function calls. Coverage depends on the build and the entity being checked. [4]
-
-An allowed call-type relationship and a continuously live object are different propositions. Conversely, a run stopped by a CFI check cannot count as completion of the behavior after that check.
-
-Section 9.1 distinguishes the evidence needed to compare the target build's check sites with execution results.
+The review did not independently verify every CFI check site in the target build. Section 9.1 records that limit.
 
 ## 9. Observation tools were part of the environment
 
@@ -439,7 +466,7 @@ The earlier technical revision's `EVIDENCE-MAP.md` associated claims with report
 
 **Symptom and cause observations:** call locations, object liveness, reference use, and external-memory effects require corresponding records. The new report explicitly excludes simple crashes and executions after forced intermediate state from whole-run completion verdicts. The confirmed cause here is cleanup-target consistency; ownership, caching, and CFI review questions are not additional confirmed vulnerabilities. Spatial/type faults and every CFI check site in the target build are not separately established findings either. [3, 4, 18]
 
-**Completion results and subsequent confirmation:** the report supports the local `/etc/hosts` read. Completion of the `/etc/hosts` read in a remote run is based on the author's subsequent confirmation. The v147 checkpoint concerns a separate local test output. The report also states that no failure was observed in the later repeated validation, but this edit did not audit every raw campaign log or an exact final session count. The public account therefore distinguishes execution environments and reports measurements whose denominators are available. [5, 18]
+**Completion results and subsequent confirmation:** the report supports the local `/etc/hosts` read. Completion of the same read in a separate remote validation environment managed by the author is based on the author's subsequent confirmation. That statement identifies an execution environment; it is not a verdict of general RCE or Chrome OS-sandbox escape. The v147 checkpoint concerns a separate local test output. The report also states that no failure was observed in the later repeated validation, but this edit did not audit every raw campaign log or an exact final session count. The public account therefore distinguishes execution environments and reports measurements whose denominators are available. [5, 18]
 
 **Integrity and verification scope:** all 15 manifest-listed files in the earlier technical ZIP and all 20 `SHA256SUMS` files in this full-review ZIP matched their digests. The additional original report expands the evidence available for review, while matching hashes establish file integrity. Preparing this post did not involve executing the original PoC or revalidating every stage in one run. Hashes for the public summaries identify those distributed summary files themselves. [16, 18]
 
@@ -457,9 +484,9 @@ The demonstration is a **conceptual model** comparing three object-lifetime stat
 
 The important feature is not the warning color. It is whether **object liveness and reference validity continue to describe a consistent relationship**. In a real investigation, that relationship must be supported by observations rather than assumed.
 
-## 11. Validation results and the `hosts` file read
+## 11. Validation results and security-boundary scope
 
-The investigation continued, and **the final chain completed the `/etc/hosts` read in both local and remote runs.** [5] The early d8 UAF observation, browser intermediate states, and final file read remained different success verdicts. This separation showed which changes improved the race itself and which stabilized later stages. [18]
+The investigation continued, and **the final chain completed the `/etc/hosts` read in an authorized local environment and a separate remote validation environment managed by the author.** [5] The early d8 UAF observation, browser intermediate states, and final file read remained different success verdicts. This separation showed which changes improved the race itself and which stabilized later stages. [18]
 
 ![Separate evidence requirements for symptoms, causes, outcomes, and rates](/assets/research/chrome-m152-externalstring-race/03-evidence.svg)
 
@@ -471,24 +498,20 @@ The local `/etc/hosts` read establishes **completion of a predefined file read i
 
 The OS evaluates file access against process privileges and policies. Section 1.2's tests had the process sandbox disabled and required privileges granted beforehand. The result therefore demonstrates chain completion within existing privileges, not acquisition of new OS privileges. It does not guarantee equivalent access to other files or in a default browser configuration.
 
+| Boundary | What the public evidence shows | Conclusion here |
+|---|---|---|
+| V8 Sandbox memory boundary | An in-cage handle mutation leads to an out-of-cage native `StringResource` UAF and follow-on primitive | Included in the analysis and validation scope |
+| Chrome renderer OS sandbox | The local file read ran with the process sandbox disabled | No escape established |
+| OS privilege boundary | Local privileges existed before execution | No privilege escalation established |
+| Remote validation | The same follow-on chain printed `/etc/hosts` in a separate environment | Describes execution location; not used as an RCE claim |
+
 The public article omits build-specific addresses, control-flow details, and the complete PoC. It retains the cause code, the `h1/h2` transition, size-class reuse verdicts, and rate interpretation so that the basis of the result remains reviewable.
 
 ### 11.2 Observations and a simple probability model
 
-The early `11/150`, approximately `7.33%`, is a sample rate for d8 trials meeting the defined UAF verdict. If that value is called `p` and every event is **assumed** to be independent and equally likely, consecutive successes produce the following model.
+The early `11/150`, approximately `7.33%`, is a sample rate for d8 trials meeting section 3.2.2's UAF verdict. Calling this value `p` and making the simplifying assumption that every event is independent and equally likely gives `pⁿ` for `n` consecutive successes. Three required races model to about `1/2,536`; five model to about `1/471,512`.
 
-| Consecutive successes | Model | Probability | Approximately one in |
-|---:|---:|---:|---:|
-| 1 | `p` | 7.3333% | 14 |
-| 2 | `p²` | 0.53778% | 186 |
-| 3 | `p³` | 0.039437% | 2,536 |
-| 4 | `p⁴` | 0.0028920% | 34,578 |
-| 5 | `p⁵` | 0.00021208% | 471,512 |
-| 6 | `p⁶` | 0.000015553% | 6,429,711 |
-
-The probability of consecutive independent successes is the product of their individual probabilities. If each success probability is `p`, the result is `pⁿ`. The final column shows the reciprocal, `1/pⁿ`, rounded to the nearest whole number.
-
-This table models the cost of an early design requiring several races; it is not a measured browser completion rate. Real events can be correlated through allocator state and scheduling, and different stages need not have the same probability. That is why the research reduced repeated race requirements and reused already-established state.
+Real browser events depend on scheduling, allocator state, CPU placement, and earlier execution history. They are not independent and identically distributed. This calculation compares the **structural cost of repeatedly requiring a race**; it neither predicts nor measures browser completion. Appendix B retains the complete `p¹` through `p⁶` table and calculation.
 
 ### 11.3 Per-stage measurements and the final repeated record
 
@@ -510,7 +533,7 @@ The first evidence item is patch source at a pinned revision. The data dependenc
 
 The second comprises d8 aggregates and browser progress records. Aggregates record whether the defined error was observed; progress records examine which object's ownership, lifetime, and consumption explain the observation. Crashes, cause observations, intermediate validation, and completion are not counted as the same success. [3, 18]
 
-The third comprises local outcome records and subsequent confirmation of the remote result. The report's `/etc/hosts` cases and the separate fixture checkpoint retain distinct documents and verdicts. The public summary records their sections and claim scope. [5, 18]
+The third comprises local outcome records and subsequent confirmation in the separate remote validation environment. The report's `/etc/hosts` cases and the separate fixture checkpoint retain distinct documents and verdicts. The remote result is not expanded into an RCE or OS-sandbox escape verdict. The public summary records their sections and claim scope. [5, 18]
 
 In this connection, **source explains the cause contract, observations explain objects and execution events, and completion records explain final outcomes**. Section 9.1 collects the review scope, section 11.1 file privileges, and sections 11.2–11.3 rate units.
 
@@ -596,7 +619,7 @@ The question that kept returning was: does this reference still point to the sam
 
 The investigation began with double-fetch and UAF. Moving into the browser required examining ownership, object identity, control-flow protections, and the effects of observation tools. Evidence at one stage did not substitute for the conclusion at the next.
 
-Following that investigation through to the final exploit, I completed the `hosts` file read in local and remote runs. The result matters, and so does the record of which assumptions held and which needed to be checked again.
+Following that investigation through to the final chain, I completed the `hosts` file read in an authorized local environment and a separate remote validation environment. This establishes a follow-on native primitive from in-sandbox corruption; the public evidence does not claim Chrome OS-sandbox escape or general RCE.
 
 I wanted to preserve that progression in the public account. A final result alone hides the assumptions and the reasons for revisiting them. Listing every unsuccessful experiment would make the central lessons harder to follow. Here, I have organized the account around how the questions changed and what evidence each question required.
 
@@ -606,7 +629,9 @@ Research records need the same precision. A line saying “it worked” is less 
 
 ## Appendix A. Complete exchange-path functions
 
-These are the complete function definitions behind the exchange call in section 3.3, all from fix revision `7d1fb25`. Statements and original comments are preserved; only the outer indentation of the in-class overload is normalized. The functions belong to V8's class, type, and header context. Code blocks scroll horizontally on narrow screens. [10, 13]
+Sections 3.2–3.6 are sufficient for the root cause and meaning of the fix. This appendix is optional implementation detail for readers who want to verify exactly where `exchange()` reads a handle once, selects an EPT entry, exchanges its payload, and returns the previous value.
+
+These are the complete function definitions behind the exchange call, all from fix revision `7d1fb25`. Statements and original comments are preserved; only the outer indentation of the in-class overload is normalized. The functions belong to V8's class, type, and header context. Code blocks scroll horizontally on narrow screens. [10, 13]
 
 Separate delegation from return: the replacement and tag travel down the call chain, while the previous address returns to `DisposeResource`. Graph B shows two field representations chosen at build time. Graph C details the entry CAS loop separately.
 
@@ -825,16 +850,36 @@ On failure, the next iteration uses `old_payload` as refreshed through the expec
 
 Source attribution: V8 project authors, Copyright 2017 / 2020 / 2021. The original copyright notices and BSD-style license are provided in the [license file](/assets/research/chrome-m152-externalstring-race/v8-source-license.txt). [13]
 
+## Appendix B. Simple probability model
+
+This calculation treats the isolated d8 UAF rate `p = 11/150` as independent and identical across consecutive winners.
+
+```text
+P(N consecutive winners) = (11 / 150)^N
+Mean attempts             = (150 / 11)^N
+```
+
+| Consecutive winners | Simple-model probability | Approximately |
+|---:|---:|---:|
+| 1 | 7.3333% | 1 in 14 |
+| 2 | 0.53778% | 1 in 186 |
+| 3 | 0.039437% | 1 in 2,536 |
+| 4 | 0.0028920% | 1 in 34,578 |
+| 5 | 0.00021208% | 1 in 471,512 |
+| 6 | 0.000015553% | 1 in 6,429,711 |
+
+The final value in each row is already the cumulative reciprocal `1/pⁿ`; denominators from different rows must not be multiplied together. This is an early-design comparison, not a measured browser completion rate.
+
 ## Reference
 
 1. [V8 — The V8 Sandbox](https://v8.dev/blog/sandbox). Official background on the protection's purpose and external references.
 2. [Chromium — Sandbox](https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md). Official background on OS process isolation; the detailed design is Windows-oriented.
 3. The supplied research package: original blog draft, detailed report, initial d8 observations, browser progress records, final checkpoint, and lifetime-oriented patch review. These private records support the cases and measurements in this post.
 4. [Clang — Control Flow Integrity](https://clang.llvm.org/docs/ControlFlowIntegrity.html). General background on CFI checks.
-5. The author's subsequent confirmation reports completion of the `/etc/hosts` read in a remote run. Sections 9 and 14 of `RESEARCH_REPORT.md` support the local `/etc/hosts` result. The v147 checkpoint concerns separate local test output. Reference 18 links the public evidence summary.
+5. The author's subsequent confirmation reports completion of the `/etc/hosts` read in a separate remote validation environment managed by the author. This identifies execution location and is not used as an RCE or Chrome OS-sandbox escape verdict. Sections 9 and 14 of `RESEARCH_REPORT.md` support the local `/etc/hosts` result. The v147 checkpoint concerns separate local test output. Reference 18 links the public evidence summary.
 6. [V8 public API header — v8-primitive.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h). Public contracts and default disposal from main, retrieved on 1 October 2026, used as structural background.
 7. [V8 — external-pointer-table.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h). EPT design documentation from main, retrieved on 1 October 2026. Background for type and temporal safety.
-8. [V8 fix commit — 7d1fb25](https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03). External-string disposal fix naming issue `532204454`. Its description and changes were checked directly.
+8. [V8 fix commit — 7d1fb25](https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03). External-string disposal fix naming issue `532204454`. Its description, the `exchange()` change, and `regress-532204454.js` using `--sandbox-testing`, `Sandbox.MemoryView`, and a Worker were checked directly.
 9. [V8 — string-inl.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h). Source for the cleanup excerpt and role analysis. The full function is reproduced from that revision, as are the related functions below.
 10. V8's [external-pointer-inl.h](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h) and [external-pointer-table-inl.h](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h) at the fix revision. Sources for exchange delegation, EPT payload behavior, and GC mark preservation.
 11. [V8 — assert-scope.h at the fix revision](https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/common/assert-scope.h). Confirms the debug-only assertion scope behind `DisallowGarbageCollection`.
