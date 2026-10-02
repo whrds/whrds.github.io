@@ -12,11 +12,11 @@ published: true
 
 This post revisits the `ExternalString` double-fetch race I investigated in Chrome M152.
 
-The public account omits build-specific addresses and the complete PoC, while retaining the attack prerequisite, cause, object-lifetime transitions, and reliability work. The same class of follow-on primitive reached an `/etc/hosts` read in an authorized local environment and a separate remote validation environment managed by the author. Sections 1.2 and 11.1 define the security boundary of that result. [5]
+The public account omits build-specific addresses and the complete PoC, while retaining the initial vulnerability analysis, execution model, object-lifetime transitions, and reliability work. The same class of follow-on primitive reached an `/etc/hosts` read in an authorized local environment and a separate remote validation environment managed by the author. Sections 1.2 and 11.1 define the security boundary of that result. [5]
 
 > **Research Question**
 >
-> Can an existing in-sandbox memory-corruption capability disrupt the native-resource lifetime of an `ExternalString`? If so, which identity invariant fails, and how does the upstream patch restore it?
+> Can the two separate handle resolutions in M152's `ExternalString::DisposeResource` break agreement between a native resource and its EPT entry? If so, how can that failure be reproduced and judged, and which invariant does the upstream patch restore?
 
 A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains `11/150` UAF observations; later review compared ownership, allocator reuse, and observation interventions. This account follows public outcomes alongside their experimental units. [18]
 
@@ -27,7 +27,8 @@ The central invariant is: **the native resource passed to `Dispose()` must be th
 | Item | Scope claimed here |
 |---|---|
 | Target | A pinned revision chain for Chrome `152.0.7977.64` and V8 `15.2.124.18` |
-| Prerequisite | The attacker can already corrupt V8 Sandbox memory sufficiently to modify an `ExternalString.resource_` handle |
+| Research starting point | Compare the M152 cleanup path with the fix and analyze the target mismatch between `load()` and `store()` |
+| Execution model | Producing the race interleaving requires concurrent modification of the `ExternalString.resource_` handle |
 | Root cause | The resource selected by `load()` and the EPT entry cleared by the later `store()` can have different identities |
 | Observed memory-safety impact | A surviving handle reuses a freed, out-of-cage native `StringResource`, producing a UAF |
 | Boundary interpretation | A secondary primitive that turns in-sandbox corruption into a native-object lifetime violation in the same renderer |
@@ -36,9 +37,20 @@ The central invariant is: **the native resource passed to `Dispose()` must be th
 
 The V8 Sandbox and Chrome's OS process sandbox are separate defense layers; this analysis is limited to the former. [1, 2]
 
-## 1. The starting assumption
+## 1. Initial vulnerability analysis and execution model
 
-The recorded target is Chrome 152.0.7977.64 / V8 M152. The subject is cleanup and lifetime management of ExternalString resources, and how changes to sandboxed state affect external native objects in the same renderer. Target identifiers and execution assumptions follow below; section 9.1 records the evidence available for each claim.
+This investigation did not begin by attaching issue532 to a finished preceding primitive. It first compared M152's `DisposeResource` with the fix, identified the cleanup path that resolves a handle twice, and modeled the possible interleaving and final EPT state. The work then tested the UAF hypothesis in the regression harness and d8 before connecting browser ownership, allocator behavior, and the consumer path.
+
+```text
+pin target and patch
+  → analyze the load/store target mismatch
+  → model the h1/h2 interleaving
+  → reproduce and judge the d8 UAF
+  → validate browser lifetime and reclaim
+  → reduce repeated races and stabilize the controller
+```
+
+The recorded target is Chrome 152.0.7977.64 / V8 M152, and the subject is cleanup and lifetime management of ExternalString resources. Target identifiers and execution assumptions follow below; section 9.1 records the evidence available for each claim.
 
 ### 1.1 Pinning the target build and its provenance
 
@@ -58,9 +70,11 @@ The checked public-source relationship is `Chrome VERSION → Chromium DEPS → 
 
 The patch functions reproduced here come from fix revision `7d1fb25`. The target revision identifies the investigated version; the fix revision identifies the cleanup change.
 
-### 1.2 Execution conditions and what the result means
+### 1.2 Execution model and what the result means
 
-The starting capability is **an existing in-sandbox corruption that can modify the target `resource_` handle**. This is not a claim that normal concurrent V8 execution spontaneously changes the handle, and the race is not the initial memory-corruption entry point. It is a secondary primitive that asks whether an established in-sandbox capability can become a native-object lifetime violation outside that boundary. How the preceding capability was obtained is a separate research subject. [8]
+The research chronology and the exploit chain's entry condition are different. **The investigation began with source analysis of the double fetch and the patch delta in M152.** Turning the derived interleaving into an execution, however, requires concurrent modification of the target `resource_` handle. The upstream regression test supplies that condition with `Sandbox.MemoryView`; the full chain performs the same field mutation through a separate in-cage primitive. [8]
+
+The cage-memory write is therefore not a capability assumed before this vulnerability was studied. It is the **execution model required to reproduce and chain issue532**. This article covers the issue532 work from initial source analysis through d8 reproduction, browser validation, and reliability engineering. The design and development of the separate in-cage primitive used by the full chain remain out of scope.
 
 V8's memory boundary separates sandboxed state from external memory. Chrome's OS process boundary restricts accessible files and OS resources. These responsibilities frame the lifetime analysis in section 3 and the file-read result in section 11. [1, 2]
 
@@ -161,7 +175,7 @@ if (resource != nullptr) {
 }
 ```
 
-Let `h1` and `h2` be two valid handles. If an attacker uses the pre-existing in-sandbox memory-corruption capability to change the heap field from `h2` to `h1` between the first read and final store, cleanup callbacks still run on `R2` while the final store rereads `h1` and can clear a different EPT entry.
+Let `h1` and `h2` be two valid handles. If the execution model's in-sandbox field write changes the heap field from `h2` to `h1` between the first read and final store, cleanup callbacks still run on `R2` while the final store rereads `h1` and can clear a different EPT entry.
 
 ```text
 Cleanup flow                                 Attacker Worker
@@ -198,9 +212,9 @@ if (resource != nullptr) {
 
 The complete function below and Appendix A's exchange helpers retain the shared-space branch and GC-mark handling omitted from the simplified comparison.
 
-#### 3.2.2 Attack model and the UAF criterion behind `11/150`
+#### 3.2.2 Reproduction model and the UAF criterion behind `11/150`
 
-The upstream regression test makes the prerequisite explicit. Under `--sandbox-testing --use-external-strings`, it creates two `ExternalString` values and uses `Sandbox.MemoryView` to write `content2`'s handle into `content1.resource_`. A Worker then repeatedly writes `content1`'s original handle to the same field while the cleanup path for `content1` runs; the test later consumes `content2`. The Worker is not transferring ownership through a normal API. The test models an attacker who already has a cage-memory write and races a handle-field mutation. [8]
+The upstream regression test is a minimal harness for executing the interleaving derived from source analysis. Under `--sandbox-testing --use-external-strings`, it creates two `ExternalString` values and uses `Sandbox.MemoryView` to write `content2`'s handle into `content1.resource_`. A Worker then repeatedly writes `content1`'s original handle to the same field while the cleanup path for `content1` runs; the test later consumes `content2`. This is not ownership transfer through a normal API: the harness-provided cage write reproduces the handle-field race. In the full chain, a separate in-cage primitive performs that role. [8]
 
 The early d8 campaign counted a trial among the `11/150` UAF observations only when all of the following held:
 
@@ -312,9 +326,9 @@ The investigation was guided by **which judgment an observation supported, and w
 
 ### 5.1 From a source-level cause candidate to execution observations
 
-The starting hypothesis was that an external resource's lifetime could end while an EPT reference remained valid. The target-agreement invariant in section 3.4 supplies a criterion for examining that hypothesis. It explains why the review needed to go beyond a crash location and examine the relationship between the disposed object and a reference treating it as valid.
+The initial vulnerability work placed the M152 path beside the fix and first identified the two handle resolutions in `load() → Dispose() → store()`. That produced the hypothesis that an external resource's lifetime could end while its EPT reference remained valid, along with the `h1/h2` interleaving. Section 3.4's target-agreement invariant supplies the criterion for evaluating that hypothesis.
 
-The early d8 records contain UAF observations satisfying the ASan criterion in section 3.2.2, providing grounds for comparing the source-level lifetime hypothesis with execution evidence. The next question was **whether the same lifetime relationship fails in the browser**. Section 6 covers the counts and environmental differences. [3]
+The upstream regression harness and early d8 experiments then moved the source hypothesis into execution. Roughly `0/950` shared-environment runs remained as the failure baseline; CPU-isolated ASan d8 recorded `11/150` UAF verdicts satisfying section 3.2.2. The next question was **whether the same lifetime relationship fails in the browser**. Section 6 covers the environment and verdict differences. [3, 18]
 
 ### 5.2 From d8 outcomes to browser object lifetime
 

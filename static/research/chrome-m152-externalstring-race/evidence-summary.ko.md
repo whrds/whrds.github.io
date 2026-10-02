@@ -6,9 +6,11 @@
 
 제공된 연구 묶음에는 연구보고서, 일부 체크포인트, 진행 기록과 집계 자료가 포함된다. 해시 목록의 파일 무결성은 확인했지만, 이번 편집에서 원본 PoC를 다시 실행하지는 않았다. 파일 무결성과 실험 재현은 서로 다른 확인이다.
 
-## 공격 전제와 경계
+## 연구 시작점, 실행 전제와 경계
 
-이 레이스는 공격자가 이미 V8 Sandbox 내부의 `ExternalString.resource_` 핸들을 바꿀 수 있다는 전제에서 시작한다. 공식 `regress-532204454.js`도 `--sandbox-testing`, `Sandbox.MemoryView`와 Worker를 사용해 이 쓰기 능력을 모델링한다. 정상적인 V8 동시 실행만으로 생기는 최초 진입점이 아니라, 선행 in-sandbox corruption을 외부 네이티브 객체의 수명 오류로 연결하는 2차 primitive다.
+연구는 M152의 `ExternalString::DisposeResource`와 수정 패치를 대조해 두 번의 handle 해석과 가능한 `h1/h2` interleaving을 분석하는 데서 시작했다. 이후 공식 `regress-532204454.js`가 `--sandbox-testing`, `Sandbox.MemoryView`와 Worker로 handle-field race를 재현하는 방식을 대조하고 d8에서 UAF 판정 기준을 세웠다.
+
+실행에서 그 interleaving을 만들려면 `ExternalString.resource_` 핸들을 경쟁적으로 바꿀 수 있어야 한다. 회귀 테스트에서는 harness가 cage 내부 쓰기를 제공하고, 전체 체인에서는 별도 in-cage primitive가 같은 역할을 수행한다. 이는 issue532의 실행·체인화 전제이며, 초기 취약점 분석이 이미 완성된 선행 능력에서 시작했다는 뜻은 아니다. 별도 in-cage primitive 자체의 원리와 개발 과정은 이 자료의 범위 밖이다.
 
 V8 Sandbox 메모리 경계와 Chrome renderer의 OS process sandbox는 별개의 방어 계층이다. 공개 결과는 전자의 경계를 넘는 네이티브 객체 UAF를 뒷받침하지만, 후자의 escape를 입증하지 않는다.
 

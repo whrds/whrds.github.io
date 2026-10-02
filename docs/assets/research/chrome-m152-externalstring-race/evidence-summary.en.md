@@ -6,9 +6,11 @@ Edited on 2026-10-02. Target: Chrome 152.0.7977.64, issue 532204454. This docume
 
 The supplied research bundle contains the report, selected checkpoints, progress records, and aggregates. Listed-file integrity was checked, but the original PoC was not rerun for this edit. File integrity and experimental reproduction are different claims.
 
-## Attack prerequisite and boundary
+## Research starting point, execution prerequisite, and boundary
 
-The race assumes that an attacker can already modify an `ExternalString.resource_` handle inside the V8 Sandbox. The upstream `regress-532204454.js` models that write capability with `--sandbox-testing`, `Sandbox.MemoryView`, and a Worker. This is not an initial entry point arising from normal V8 concurrency; it is a secondary primitive that turns prior in-sandbox corruption into an external native-object lifetime violation.
+The investigation began by comparing M152's `ExternalString::DisposeResource` with the fix, analyzing the two handle resolutions, and deriving the possible `h1/h2` interleaving. It then compared the official `regress-532204454.js`, which reproduces the handle-field race with `--sandbox-testing`, `Sandbox.MemoryView`, and a Worker, and established the d8 UAF verdict.
+
+Executing that interleaving requires concurrent modification of the `ExternalString.resource_` handle. The regression harness supplies the cage-memory write; the full chain uses a separate in-cage primitive for the same role. This is an execution and chaining prerequisite for issue532, not a claim that the vulnerability investigation began with a completed preceding capability. The design and development of that separate in-cage primitive are outside this summary's scope.
 
 The V8 Sandbox memory boundary and Chrome's renderer OS process sandbox are separate defense layers. The public result supports a native-object UAF across the former boundary; it does not establish escape from the latter.
 
