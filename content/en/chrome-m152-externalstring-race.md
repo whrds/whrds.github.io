@@ -12,13 +12,13 @@ published: true
 
 This post revisits the `ExternalString` double-fetch race I investigated in Chrome M152.
 
-The public account omits build-specific addresses and the complete PoC, while retaining the cause, object-lifetime transitions, and the work used to stabilize repeated experiments. Final impact was validated by reading `/etc/hosts` in an authorized local environment. [5]
+The public account omits build-specific addresses and the complete PoC, while retaining the cause, object-lifetime transitions, and the work used to stabilize repeated experiments. Final impact was validated by reading `/etc/hosts` in an authorized environment, with the same file read also completed in a remote run. [5]
 
 The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?
 
-A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains `11/150` UAF observations; later review compared ownership, allocator reuse, and observation interventions. This account follows public local outcomes alongside their experimental units. [18]
+A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains `11/150` UAF observations; later review compared ownership, allocator reuse, and observation interventions. This account follows public outcomes alongside their experimental units. [18]
 
-This post connects the cleanup cause and the invariant maintained by the fix with experiments, failures, and completion records in the preserved report. The main text follows research questions and outcomes; Appendix A retains all six exchange helpers and their code flows. A [public evidence summary](/assets/research/chrome-m152-externalstring-race/evidence-summary.en.md) and the conceptual lifetime demonstration accompany the analysis. [18]
+This post connects the cleanup cause and the invariant maintained by the fix with experiments, failures, and completion records in the research report. The main text follows research questions and outcomes; Appendix A retains all six exchange helpers and their code flows. A [public evidence summary](/assets/research/chrome-m152-externalstring-race/evidence-summary.en.md) and the conceptual lifetime demonstration accompany the analysis. [18]
 
 ## 1. The starting assumption
 
@@ -90,7 +90,7 @@ Observing `H` does not automatically prove that `R` is alive. Retained contents 
 
 ## 3. The lifetime inconsistency under investigation
 
-The investigation began with the `ExternalString::DisposeResource` cleanup path. The retained analysis identifies a double-fetch in that path as the central cause. [3] The public fix names issue `532204454` and describes inconsistent EPT state during resource disposal. [8]
+The investigation began with the `ExternalString::DisposeResource` cleanup path. The analysis identifies a double-fetch in that path as the central cause. [3] The public fix names issue `532204454` and describes inconsistent EPT state during resource disposal. [8]
 
 A double-fetch reads shared state at different times. Reading twice is not inherently a vulnerability. The important question is whether the state can change between those reads while the code continues to assume that the earlier and later operations concern the same target.
 
@@ -294,7 +294,7 @@ The focus of this analysis is external-object temporal safety and identity consi
 
 ## 5. The questions that guided the investigation
 
-The preserved notes and later summaries are organized around **which judgment an observation supported, and what needed to be checked next**. The following account connects review questions from source analysis, d8 tests, browser progress records, and completion summaries. Section 9.1 records their provenance. [3, 16]
+The investigation was guided by **which judgment an observation supported, and what needed to be checked next**. The following account connects review questions from source analysis, d8 tests, browser progress records, and completion summaries. Section 9.1 records their provenance. [3, 16]
 
 ![Research questions grouped by cause, observation, browser context, and interpretation](/assets/research/chrome-m152-externalstring-race/04-research.svg)
 
@@ -328,19 +328,7 @@ The technical revision's evidence map retains early browser results in which the
 
 The research connection therefore does not simply attach a file read to the name UAF. It fixes the source-level target, reviews lifetime relationships in execution, checks browser object identity, and distinguishes what completion records establish. Section 11 presents the final result's evidence; section 12 examines the patch implementation addressing the same cause.
 
-### 5.5 A chronology of the preserved evidence
-
-**7 September — separate conditions from observed events.** Roughly `0/950` on the shared host and `11/150` in the separate d8 test record the same class of observation under different conditions. Report section 4 preserves them as the starting point for reviewing environmental dependence. [18]
-
-**8 September — compare disposal with actual consumption.** Browser records examine which object ended its lifetime and what was subsequently used, alongside address values. Local outcomes from that day separately record `hosts` output and a test-file output, requiring distinct completion goals. [18]
-
-**10–13 September — review ownership hypotheses and observation intervention.** The report records why references remained, whether the expected lifetime ending was established, and how debugger-created states differed from natural execution observations. This strengthened explanations that had relied on changed values alone. [18]
-
-**14 September — compare conditional verdicts with overall completion.** An eligible branch recorded `5/5` for a particular intermediate installation verdict, while completed output across the same experiment group was `2/60`. Separate local `hosts` reads were reported without dependence on debugger or parent-process memory observation. Section 11.3 interprets the counts. [18]
-
-**15–16 September — fix the unit of repeated validation.** Initial browser failures and subsequent completions remain in the record. The final report's unit for no observed failure is an execution group containing several attempts, distinct from an individual race verdict. Section 11 separates that reported conclusion from the availability of its exact denominator. [18]
-
-### 5.6 Reliability improvements during roughly two weeks of research
+### 5.5 Changes that improved reliability
 
 Reliability did not improve merely by increasing the retry count. Each run was classified by the stage at which it failed, and each change was assessed against the outcome at that stage.
 
@@ -355,7 +343,7 @@ These changes did not make an individual race mathematically certain. They restr
 
 ## 6. Moving from d8 to the browser
 
-The early observations varied substantially across environments. The preserved notes describe roughly 950 runs on a shared host with no observed UAF, followed by a separate d8 test configuration with 11 observations in 150 runs. [3]
+The early observations varied substantially across environments. Roughly 950 runs on a shared host produced no observed UAF, while a separate d8 test configuration produced 11 observations in 150 runs. [3]
 
 The shared-host configuration recorded 0 UAF observations, while the separate d8 sample's observation rate was approximately 7.33%. Each figure applies to its own test conditions and sample.
 
@@ -375,7 +363,7 @@ Reference counts required the same care. A value can be interpreted as a referen
 
 Allocator behavior also affected interpretation. Changed bytes did not alone establish the intended object's release. Seeing the same address again did not establish that the same object had remained alive. **Address identity and object identity are different facts.**
 
-The retained research includes experiments that rejected hypotheses. If the expected end of lifetime was not established, or a later consumer did not use the expected target, the original explanation could not simply be preserved. That required revisiting the assumption even when the result was inconvenient.
+Some experiments required rejecting a hypothesis. If the expected end of lifetime was not established, or a later consumer did not use the expected target, the original explanation could not simply be preserved. That required revisiting the assumption even when the result was inconvenient.
 
 This applies beyond exploitation. In ordinary native debugging, “the value changed” and “this destructor ran and released the object” are different claims. Directly observed events should be distinguished from interpretations based on surrounding evidence.
 
@@ -451,7 +439,7 @@ The earlier technical revision's `EVIDENCE-MAP.md` associated claims with report
 
 **Symptom and cause observations:** call locations, object liveness, reference use, and external-memory effects require corresponding records. The new report explicitly excludes simple crashes and executions after forced intermediate state from whole-run completion verdicts. The confirmed cause here is cleanup-target consistency; ownership, caching, and CFI review questions are not additional confirmed vulnerabilities. Spatial/type faults and every CFI check site in the target build are not separately established findings either. [3, 4, 18]
 
-**Completion records and subsequent confirmation:** local completion records support the author-confirmed `hosts` read. The v147 checkpoint concerns a separate local test output. The report also states that no failure was observed in the later repeated validation, but this edit did not audit every raw campaign log or an exact final session count. The public account therefore centers on verifiable local outcomes and measurements with preserved denominators. [5, 18]
+**Completion results and subsequent confirmation:** the report supports the local `/etc/hosts` read. Completion of the `/etc/hosts` read in a remote run is based on the author's subsequent confirmation. The v147 checkpoint concerns a separate local test output. The report also states that no failure was observed in the later repeated validation, but this edit did not audit every raw campaign log or an exact final session count. The public account therefore distinguishes execution environments and reports measurements whose denominators are available. [5, 18]
 
 **Integrity and verification scope:** all 15 manifest-listed files in the earlier technical ZIP and all 20 `SHA256SUMS` files in this full-review ZIP matched their digests. The additional original report expands the evidence available for review, while matching hashes establish file integrity. Preparing this post did not involve executing the original PoC or revalidating every stage in one run. Hashes for the public summaries identify those distributed summary files themselves. [16, 18]
 
@@ -469,9 +457,9 @@ The demonstration is a **conceptual model** comparing three object-lifetime stat
 
 The important feature is not the warning color. It is whether **object liveness and reference validity continue to describe a consistent relationship**. In a real investigation, that relationship must be supported by observations rather than assumed.
 
-## 11. Local validation and the `hosts` file read
+## 11. Validation results and the `hosts` file read
 
-The investigation continued, and **the final chain successfully read local `/etc/hosts`.** [5] The early d8 UAF observation, browser intermediate states, and final file read remained different success verdicts. This separation showed which changes improved the race itself and which stabilized later stages. [18]
+The investigation continued, and **the final chain completed the `/etc/hosts` read in both local and remote runs.** [5] The early d8 UAF observation, browser intermediate states, and final file read remained different success verdicts. This separation showed which changes improved the race itself and which stabilized later stages. [18]
 
 ![Separate evidence requirements for symptoms, causes, outcomes, and rates](/assets/research/chrome-m152-externalstring-race/03-evidence.svg)
 
@@ -479,7 +467,7 @@ The investigation continued, and **the final chain successfully read local `/etc
 
 ### 11.1 Scope of the public result
 
-The successful `/etc/hosts` read establishes **completion of a predefined file read in an authorized local environment**. Report section 9 distinguishes early output from separate local test output; section 14 records local completions without dependence on debugger or parent-process memory observation. Those are preserved verdicts, not reruns performed for this edit. [5, 18]
+The local `/etc/hosts` read establishes **completion of a predefined file read in an authorized environment**. Report section 9 distinguishes early output from separate local test output; section 14 records local completions without dependence on debugger or parent-process memory observation. [5, 18]
 
 The OS evaluates file access against process privileges and policies. Section 1.2's tests had the process sandbox disabled and required privileges granted beforehand. The result therefore demonstrates chain completion within existing privileges, not acquisition of new OS privileges. It does not guarantee equivalent access to other files or in a default browser configuration.
 
@@ -504,7 +492,7 @@ This table models the cost of an early design requiring several races; it is not
 
 ### 11.3 Per-stage measurements and the final repeated record
 
-The preserved observations are grouped below by execution environment and measurement unit.
+The observations are grouped below by execution environment and measurement unit.
 
 | Stage | Observation | Meaning |
 |---|---:|---|
@@ -514,7 +502,7 @@ The preserved observations are grouped below by execution environment and measur
 | Later full experiment groups | `2/60` | completed output including the upstream race |
 | Eligible later branch | `5/5` | intermediate installation verdict after entering the condition |
 
-`5/5` is conditional, while `2/60` covers all trials, so the figures are not interchangeable. The later repeated-validation record states that **no failure was observed at the execution-group level**. Its exact final session count was not preserved, however, so it cannot provide a definite `N/N`, statistical confidence interval, or universal “100% success rate.” The absence of observed failures across execution groups does not guarantee success for an individual race. [18]
+`5/5` is conditional, while `2/60` covers all trials, so the figures are not interchangeable. The later repeated-validation record states that **no failure was observed at the execution-group level**. Its exact final session count is unavailable, however, so it cannot provide a definite `N/N`, statistical confidence interval, or universal “100% success rate.” The absence of observed failures across execution groups does not guarantee success for an individual race. [18]
 
 ### 11.4 Evidence connecting cause and result
 
@@ -522,13 +510,13 @@ The first evidence item is patch source at a pinned revision. The data dependenc
 
 The second comprises d8 aggregates and browser progress records. Aggregates record whether the defined error was observed; progress records examine which object's ownership, lifetime, and consumption explain the observation. Crashes, cause observations, intermediate validation, and completion are not counted as the same success. [3, 18]
 
-The third comprises local outcome records. The report's `/etc/hosts` cases and the separate fixture checkpoint retain distinct documents and verdicts. The public summary records their sections and claim scope. [5, 18]
+The third comprises local outcome records and subsequent confirmation of the remote result. The report's `/etc/hosts` cases and the separate fixture checkpoint retain distinct documents and verdicts. The public summary records their sections and claim scope. [5, 18]
 
 In this connection, **source explains the cause contract, observations explain objects and execution events, and completion records explain final outcomes**. Section 9.1 collects the review scope, section 11.1 file privileges, and sections 11.2–11.3 rate units.
 
 ## 12. The invariant that matters for remediation
 
-The retained patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] Comparing the public fix with source at that revision shows how the exchange path below maintains it. Section 9.1 records the source and binary verification scope. [8–10]
+The patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] Comparing the public fix with source at that revision shows how the exchange path below maintains it. Section 9.1 records the source and binary verification scope. [8–10]
 
 The defensive question is whether the target established at the start remains the same target through cleanup. If shared state can change in between, the assumption that reading it again preserves the earlier meaning needs scrutiny.
 
@@ -608,7 +596,7 @@ The question that kept returning was: does this reference still point to the sam
 
 The investigation began with double-fetch and UAF. Moving into the browser required examining ownership, object identity, control-flow protections, and the effects of observation tools. Evidence at one stage did not substitute for the conclusion at the next.
 
-Following that investigation through to the final exploit, I successfully read the `hosts` file. The result matters, and so does the record of which assumptions held and which needed to be checked again.
+Following that investigation through to the final exploit, I completed the `hosts` file read in local and remote runs. The result matters, and so does the record of which assumptions held and which needed to be checked again.
 
 I wanted to preserve that progression in the public account. A final result alone hides the assumptions and the reasons for revisiting them. Listing every unsuccessful experiment would make the central lessons harder to follow. Here, I have organized the account around how the questions changed and what evidence each question required.
 
@@ -843,7 +831,7 @@ Source attribution: V8 project authors, Copyright 2017 / 2020 / 2021. The origin
 2. [Chromium — Sandbox](https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md). Official background on OS process isolation; the detailed design is Windows-oriented.
 3. The supplied research package: original blog draft, detailed report, initial d8 observations, browser progress records, final checkpoint, and lifetime-oriented patch review. These private records support the cases and measurements in this post.
 4. [Clang — Control Flow Integrity](https://clang.llvm.org/docs/ControlFlowIntegrity.html). General background on CFI checks.
-5. The author's subsequent confirmation and the new review's `RESEARCH_REPORT.md`, sections 9 and 14, support the final exploit's `hosts` read. The v147 checkpoint concerns separate local test output. Reference 18 links the public evidence summary.
+5. The author's subsequent confirmation reports completion of the `/etc/hosts` read in a remote run. Sections 9 and 14 of `RESEARCH_REPORT.md` support the local `/etc/hosts` result. The v147 checkpoint concerns separate local test output. Reference 18 links the public evidence summary.
 6. [V8 public API header — v8-primitive.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/include/v8-primitive.h). Public contracts and default disposal from main, retrieved on 1 October 2026, used as structural background.
 7. [V8 — external-pointer-table.h](https://chromium.googlesource.com/v8/v8/+/refs/heads/main/src/sandbox/external-pointer-table.h). EPT design documentation from main, retrieved on 1 October 2026. Background for type and temporal safety.
 8. [V8 fix commit — 7d1fb25](https://github.com/v8/v8/commit/7d1fb25f99755c0380cb386e591a532efd7d2b03). External-string disposal fix naming issue `532204454`. Its description and changes were checked directly.

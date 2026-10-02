@@ -1,14 +1,14 @@
 # M152 ExternalString research — public outcome evidence summary
 
-Edited on 2026-10-02. Target: Chrome 152.0.7977.64, issue 532204454. This document summarizes public local outcomes and the scope of their numerical interpretation.
+Edited on 2026-10-02. Target: Chrome 152.0.7977.64, issue 532204454. This document summarizes public outcomes and the scope of their numerical interpretation.
 
 ## Materials and review scope
 
 The supplied research bundle contains the report, selected checkpoints, progress records, and aggregates. Listed-file integrity was checked, but the original PoC was not rerun for this edit. File integrity and experimental reproduction are different claims.
 
-## Research period and early observations
+## Early observations
 
-The intensive record period spans 7–16 September 2026. Roughly 950 shared-host runs produced no UAF verdict, while isolated d8 conditions recorded 11 in 150 trials. `11/150` is approximately 7.33%; it is not combined with a different environment or converted into a browser completion rate.
+Roughly 950 shared-host runs produced no UAF verdict, while isolated d8 conditions recorded 11 in 150 trials. `11/150` is approximately 7.33%; it is not combined with a different environment or converted into a browser completion rate.
 
 ## Reliability work
 
@@ -18,9 +18,11 @@ Putting `p = 11/150` into an independent equal-probability model gives `p² ≈ 
 
 ## Conditional verdicts and all trials
 
-An eligible branch in a later stage recorded `5/5`, while the same experiment groups produced completed output in `2/60` trials including the upstream race. Conditional `5/5` is not an overall 100% rate. Later repeated validation reports no observed failure at the execution-group level, but its exact final denominator was not preserved, so no definite `N/N` or confidence interval is claimed.
+An eligible branch in a later stage recorded `5/5`, while the same experiment groups produced completed output in `2/60` trials including the upstream race. Conditional `5/5` is not an overall 100% rate. Later repeated validation reports no observed failure at the execution-group level, but its exact final denominator is unavailable, so no definite `N/N` or confidence interval is claimed.
 
-## Local outcome and privileges
+## File-read outcomes and privileges
+
+The author confirmed completion of the `/etc/hosts` read in a remote run. This subsequent result is treated separately from the local experimental measurements.
 
 The report records local `/etc/hosts` reads without dependence on debugger or parent-process memory observation. The disabled local process sandbox and pregranted privileges are execution assumptions. The result shows chain completion within existing privileges, not acquisition of new OS privileges.
 
