@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en" data-theme="dark"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>[V8] Chrome M152 ExternalString race and the V8 Sandbox boundary · whrds.log</title><meta name="description" content="The attack prerequisite, UAF evidence, V8 Sandbox impact, reliability work, and fix for Chrome M152&#039;s ExternalString double-fetch race.">
+  <title>[V8] Chrome M152 ExternalString Race: EPT Entry Identity and Native Resource Lifetime · whrds.log</title><meta name="description" content="An analysis of the EPT entry identity mismatch, native resource lifetime violation, UAF evidence, and exchange fix in Chrome M152&#039;s ExternalString race.">
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/">
-  <meta property="og:type" content="article"><meta property="og:title" content="[V8] Chrome M152 ExternalString race and the V8 Sandbox boundary · whrds.log"><meta property="og:description" content="The attack prerequisite, UAF evidence, V8 Sandbox impact, reliability work, and fix for Chrome M152&#039;s ExternalString double-fetch race."><meta property="og:url" content="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
+  <meta property="og:type" content="article"><meta property="og:title" content="[V8] Chrome M152 ExternalString Race: EPT Entry Identity and Native Resource Lifetime · whrds.log"><meta property="og:description" content="An analysis of the EPT entry identity mismatch, native resource lifetime violation, UAF evidence, and exchange fix in Chrome M152&#039;s ExternalString race."><meta property="og:url" content="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=4891981d7f40">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[V8] Chrome M152 ExternalString race and the V8 Sandbox boundary","description":"The attack prerequisite, UAF evidence, V8 Sandbox impact, reliability work, and fix for Chrome M152's ExternalString double-fetch race.","datePublished":"2026-10-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/chrome-m152-externalstring-race/","author":{"@type":"Person","name":"whrds"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[V8] Chrome M152 ExternalString Race: EPT Entry Identity and Native Resource Lifetime","description":"An analysis of the EPT entry identity mismatch, native resource lifetime violation, UAF evidence, and exchange fix in Chrome M152's ExternalString race.","datePublished":"2026-10-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/chrome-m152-externalstring-race/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header"><div class="shell header-inner">
@@ -25,11 +25,11 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString race and the V8 Sandbox boundary</h1><p class="article-description">The attack prerequisite, UAF evidence, V8 Sandbox impact, reliability work, and fix for Chrome M152&#039;s ExternalString double-fetch race.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>50 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> double-fetch race I investigated in Chrome M152.</p>
-<p>The public account omits build-specific addresses and the complete PoC, while retaining the attack prerequisite, cause, object-lifetime transitions, and reliability work. The same class of follow-on primitive reached an <code>/etc/hosts</code> read in an authorized local environment and in a separate remote validation environment managed by the author. Here, <strong>remote validation</strong> identifies where the test ran; it does not claim general RCE or escape from Chrome’s renderer OS sandbox. [5]</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString Race: EPT Entry Identity and Native Resource Lifetime</h1><p class="article-description">An analysis of the EPT entry identity mismatch, native resource lifetime violation, UAF evidence, and exchange fix in Chrome M152&#039;s ExternalString race.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>46 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> double-fetch race I investigated in Chrome M152.</p>
+<p>The public account omits build-specific addresses and the complete PoC, while retaining the attack prerequisite, cause, object-lifetime transitions, and reliability work. The same class of follow-on primitive reached an <code>/etc/hosts</code> read in an authorized local environment and a separate remote validation environment managed by the author. Sections 1.2 and 11.1 define the security boundary of that result. [5]</p>
 <p>The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?</p>
 <p>A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains <code>11/150</code> UAF observations; later review compared ownership, allocator reuse, and observation interventions. This account follows public outcomes alongside their experimental units. [18]</p>
-<p>This post connects the cleanup cause and the invariant maintained by the fix with experiments, failures, and completion records in the research report. The main text follows research questions and outcomes; Appendix A retains all six exchange helpers and their code flows. A <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.en.md">public evidence summary</a> and the conceptual lifetime demonstration accompany the analysis. [18]</p>
+<p>The central invariant is: <strong>the native resource passed to <code>Dispose()</code> must be the previous payload of the EPT entry cleared by that cleanup.</strong> The main text connects the violation and restoration of this invariant to experimental records; Appendix A retains the exchange-helper implementation. [18]</p>
 <h2>Executive summary</h2>
 <table>
 <thead>
@@ -60,8 +60,8 @@
 <td>A secondary primitive that turns in-sandbox corruption into a native-object lifetime violation in the same renderer</td>
 </tr>
 <tr>
-<td>Not claimed</td>
-<td>That this race is the initial corruption entry point, general RCE, Chrome OS process-sandbox escape, or acquisition of new OS privileges</td>
+<td>Out of scope</td>
+<td>Initial memory-corruption entry, general RCE, Chrome OS process-sandbox escape, or acquisition of new OS privileges</td>
 </tr>
 <tr>
 <td>Fix</td>
@@ -69,12 +69,12 @@
 </tr>
 </tbody>
 </table>
-<p>The <strong>V8 Sandbox boundary</strong> and <strong>Chrome’s OS process sandbox</strong> are separate defense layers. The first is central to this analysis; the public result does not establish an escape from the second. [1, 2]</p>
+<p>The V8 Sandbox and Chrome’s OS process sandbox are separate defense layers; this analysis is limited to the former. [1, 2]</p>
 <h2>1. The starting assumption</h2>
 <p>The recorded target is Chrome 152.0.7977.64 / V8 M152. The subject is cleanup and lifetime management of ExternalString resources, and how changes to sandboxed state affect external native objects in the same renderer. Target identifiers and execution assumptions follow below; section 9.1 records the evidence available for each claim.</p>
 <h3>1.1 Pinning the target build and its provenance</h3>
 <p>The technical revision identifies the target by source revisions and a binary fingerprint as well as its version name. This account separates relationships checked in the public repositories from values reported by the research material. [15, 16]</p>
-<p>The <code>chrome/VERSION</code> file at Chromium revision <code>506c834eccea</code> identifies Chrome <code>152.0.7977.64</code>. DEPS at the same revision pins <code>v8_revision</code> to <code>6aacaf6256a0</code>, whose <code>include/v8-version.h</code> defines V8 <code>15.2.124.18</code>.</p>
+<p>The <code>chrome/VERSION</code> file at Chromium revision <code>506c834eccea</code> identifies Chrome <code>152.0.7977.64</code>. DEPS at the same revision pins <code>v8_revision</code> to <code>6aacaf6256a0</code>, whose <code>include/v8-version.h</code> defines V8 <code>15.2.124.18</code>. The upstream tag <code>15.2.124.18</code> points to the same full commit and is dated 24 August 2026. [15]</p>
 <p>The full identifiers follow. The Chrome SHA-256 is <strong>reported by the research material</strong>.</p>
 <pre><code class="language-text">Chromium revision: 506c834ecceaa943c5f41e6cfe7f68acb5c45346
 V8 revision:       6aacaf6256a069ee455142333b7d38cad1c8d6e0
@@ -275,12 +275,9 @@ reference ownership   → lifetime protection for a resource already in use
 <p><strong>Control-flow checks</strong> constrain permitted call relationships. Liveness of the object used by a call is a separate condition, as discussed in section 8.</p>
 <p>The six exchange helpers in Appendix A are not six separate vulnerabilities. They divide tag selection, field interpretation, entry selection, and payload exchange across one cleanup path. Complete source, contract tables, and flow graphs remain together for reviewing each layer. [9, 10, 17]</p>
 <h2>4. The protection assumption behind the bypass research</h2>
-<p>This raises the obvious question: how can a boundary problem exist when an EPT is present?</p>
-<p>The direction investigated was whether <strong>a mismatch between an indirect reference and its target’s lifetime could undermine native memory safety outside the sandbox</strong>. A reference following an allowed route and its target remaining valid are different guarantees.</p>
-<p>EPT design includes temporal safety as well as type checks. The official source describes table management that keeps valid entries tied to live objects. Its <code>Verify()</code> and <code>ManagedResource</code> explanations likewise emphasize agreement between table state and resource lifetime. [7]</p>
-<p>The research question is consequently whether cleanup can break the consistency needed to sustain that guarantee. Verifying that indirection and type checks exist does not finish the lifetime analysis.</p>
-<p>The analysis therefore asked what a check actually guaranteed and what had to remain true independently. A reference can have the expected form or category while its target’s lifetime has ended. An object can also be alive without being the same object that the current operation was supposed to use.</p>
-<p>The same distinction matters defensively. Introducing indirection is only part of the design. The guarantees about the referenced target must continue to hold while it is being cleaned up.</p>
+<p>The EPT prevents a sandboxed handle from being used directly as an external pointer, but it is more than a type-checking device. The official source describes a temporal-safety design in which valid entries remain associated with live objects; the <code>Verify()</code> and <code>ManagedResource</code> comments likewise emphasize agreement between table state and resource lifetime. [7]</p>
+<p>The research question was <strong>whether cleanup could split the selected entry from the resource actually disposed</strong>. If <code>h2</code> resolves to <code>R2</code> but cleanup later clears <code>h1</code>, indirection and tag checks still leave <code>EPT[h2] → freed R2</code> behind.</p>
+<p>The defensive criterion is therefore concrete: in addition to validating reference form, verify that cleanup preserves the same entry-to-resource relationship from selection through disposal.</p>
 <h3>4.1 Spatial and temporal safety</h3>
 <p>Type consistency asks whether the expected kind of target is being used and constrains reference interpretation. Spatial safety concerns access within the permitted object’s bounds: the location and extent of an access.</p>
 <p>Temporal safety concerns whether the object is alive when used, linking release and use. Identity consistency asks whether a multi-operation task continues processing the same object established earlier.</p>
@@ -325,13 +322,10 @@ main isolate   : exact-address native allocation and stale consumer
 </code></pre>
 <p>When one Worker carried both the dangling holder and allocator-cleanup role, terminating it also removed the reference needed later. The final arrangement separated <strong>the lifetime retaining the reference</strong> from <strong>the lifetime shaping allocator state</strong>. Increased exact-address reuse after Worker termination, compared with a live-Worker control in which the expected dispose did not occur, supported that distinction. [3, 18]</p>
 <p>The consumer path also required separate proof. A cached external string can use a separate <code>resource_data_</code> value, so reclaiming <code>resource_</code> does not by itself establish that a stale consumer reads through it. Follow-on validation compared the uncached external one-byte path in which the consumer actually obtains data through the resource. The browser primitive therefore required a chain of object identity across <strong>the freed object, exact-address reclaim, and the actual consumer</strong>, not merely a repeated address. [3, 17, 18]</p>
-<p>Only after those checks was the browser native read attributed to a follow-on primitive from the same root cause. A d8 UAF alone was not treated as proof of a browser file read or an OS-sandbox escape.</p>
+<p>Only after those checks was the browser native read attributed to a follow-on primitive from the same root cause. The d8 UAF and browser completion remained separate measurements.</p>
 <h2>7. Rechecking ownership and object identity</h2>
-<p>Ownership and lifetime recur throughout the later notes. The disappearance of one reference did not establish immediate destruction of the object. Another owner or another retention path could still keep it alive.</p>
-<p>Reference counts required the same care. A value can be interpreted as a reference count only when it belongs to the expected field of a still-identifiable object. Once the object’s identity has been lost, reading a number from the same location can mean interpreting unrelated data as the old field.</p>
-<p>Allocator behavior also affected interpretation. Changed bytes did not alone establish the intended object’s release. Seeing the same address again did not establish that the same object had remained alive. <strong>Address identity and object identity are different facts.</strong></p>
-<p>Some experiments required rejecting a hypothesis. If the expected end of lifetime was not established, or a later consumer did not use the expected target, the original explanation could not simply be preserved. That required revisiting the assumption even when the result was inconvenient.</p>
-<p>This applies beyond exploitation. In ordinary native debugging, “the value changed” and “this destructor ran and released the object” are different claims. Directly observed events should be distinguished from interpretations based on surrounding evidence.</p>
+<p>The disappearance of one reference does not prove immediate destruction; another owner may remain. Conversely, the same address reappearing after release does not extend the old object’s lifetime. <strong>Address identity and object identity are different evidence.</strong></p>
+<p>A reference count is meaningful only when it belongs to the expected field of a still-identifiable object. Experiments that did not establish the expected destruction or consumer target were therefore rejected rather than counted as successes. The records keep “the value changed,” “the object was freed,” and “the freed object was reused” as separate events.</p>
 <h3>7.1 Read reference counts within an ownership contract</h3>
 <p>A positive reference count does not, by itself, explain a safe use. The object’s identity must be established, and acquiring ownership must be synchronized correctly with retirement. Attempting to inspect a count through an already destroyed object may itself be unsafe.</p>
 <p>I therefore treated <code>object identity → ownership acquisition → use interval → ownership release</code> as an analytical contract, rather than reading only <code>address → field value</code>.</p>
@@ -343,9 +337,7 @@ main isolate   : exact-address native allocation and stale consumer
 <p><code>UncachedExternalString::resource_</code> uses <code>kExternalStringResourceTag</code> and refers to the resource object. <code>ExternalString::resource_data_</code> uses <code>kExternalStringResourceDataTag</code> for an external data member. The data address and the resource-object reference have distinct roles.</p>
 <p><code>IsCacheable()</code> declares whether the <code>data()</code> result may be cached and returns true by default. Cacheability does not create ownership. <code>Lock()</code> and <code>Unlock()</code> keep non-cacheable data stable during the protected interval; the API requires thread safety and support for nested calls, although their base implementations are empty.</p>
 <p><code>Unaccount()</code> is a virtual accounting callback with an empty base implementation. Accounting state differs from destruction. <code>Dispose()</code> cleans up a resource when it is no longer needed and defaults to <code>delete this</code>; review which memory and ownership the subclass releases.</p>
-<p>The distinct tags show that the two members have different meanings. Correct tag interpretation does not establish liveness: type, data stability, and resource lifetime are separate properties.</p>
-<p><code>IsCacheable()</code> governs whether a returned data address can be retained. The header says non-cacheable data is not expected to remain stable beyond the current top-level task, and requires stability between <code>Lock</code> and <code>Unlock</code>. Empty base lock methods also mean their names alone do not establish an actual mutex.</p>
-<p>The same header requires external string data to be immutable. Immutability of contents and lifetime of the object containing those contents are distinct contracts. Unchanging contents do not permit continued use of an address after its owner has been destroyed.</p>
+<p>The distinct tags mean that the resource object and data address have different contracts. <code>IsCacheable()</code> and <code>Lock</code>/<code>Unlock</code> describe when a data address remains stable, while immutability constrains content changes. None of those conditions creates ownership of, or proves liveness for, the resource object.</p>
 <h2>8. Separating CFI from memory safety</h2>
 <p>CFI constrains permitted indirect-call relationships; it does not establish that the object used by a call is still alive. This article therefore treats CFI as a separate constraint on later stages, not as the root cause. A memory effect, a call accepted by CFI, and completion of the final behavior remain different verdicts. [4]</p>
 <p><img src="/assets/research/chrome-m152-externalstring-race/05-guarantees.svg" alt="Reference path, lifetime, control flow, and OS privileges as separate review dimensions"></p>
@@ -361,7 +353,7 @@ main isolate   : exact-address native allocation and stale consumer
 <p>The earlier technical revision’s <code>EVIDENCE-MAP.md</code> associated claims with report sections. The new full-review ZIP actually includes the <strong>research report and some original checkpoints and aggregate records</strong> named by that map. Reference 18 links a public summary of the materials compared here. [16, 18]</p>
 <p><strong>Source checked directly:</strong> the <code>Chrome VERSION → Chromium DEPS → V8 VERSION</code> relationship, target API contracts, and cleanup/exchange functions at fix revision <code>7d1fb25</code>. Target and fix sources are different revisions. The executed binary was not obtained to recalculate its SHA-256 or inspect build options, so identity with the target source remains unestablished. No fixed-binary regression run was performed. Shipping-version coverage, including M153, and public access to the issue body were not separately verified. [8–10, 15, 17]</p>
 <p><strong>Symptom and cause observations:</strong> call locations, object liveness, reference use, and external-memory effects require corresponding records. The new report explicitly excludes simple crashes and executions after forced intermediate state from whole-run completion verdicts. The confirmed cause here is cleanup-target consistency; ownership, caching, and CFI review questions are not additional confirmed vulnerabilities. Spatial/type faults and every CFI check site in the target build are not separately established findings either. [3, 4, 18]</p>
-<p><strong>Completion results and subsequent confirmation:</strong> the report supports the local <code>/etc/hosts</code> read. Completion of the same read in a separate remote validation environment managed by the author is based on the author’s subsequent confirmation. That statement identifies an execution environment; it is not a verdict of general RCE or Chrome OS-sandbox escape. The v147 checkpoint concerns a separate local test output. The report also states that no failure was observed in the later repeated validation, but this edit did not audit every raw campaign log or an exact final session count. The public account therefore distinguishes execution environments and reports measurements whose denominators are available. [5, 18]</p>
+<p><strong>Completion results and subsequent confirmation:</strong> the report supports the local <code>/etc/hosts</code> read. The same read in a separate remote validation environment is based on the author’s subsequent confirmation, while the v147 checkpoint concerns separate local test output. This edit did not audit every raw campaign log or an exact final session count, so only measurements with known denominators are stated as fixed rates. Section 11.1 collects the security-boundary interpretation. [5, 18]</p>
 <p><strong>Integrity and verification scope:</strong> all 15 manifest-listed files in the earlier technical ZIP and all 20 <code>SHA256SUMS</code> files in this full-review ZIP matched their digests. The additional original report expands the evidence available for review, while matching hashes establish file integrity. Preparing this post did not involve executing the original PoC or revalidating every stage in one run. Hashes for the public summaries identify those distributed summary files themselves. [16, 18]</p>
 <h2>10. A conceptual object-lifetime demonstration</h2>
 <p>The demonstration is a <strong>conceptual model</strong> comparing three object-lifetime states. It displays predefined object and reference states; its timer advances the scenes. It does not execute a Chrome/V8 vulnerability or a particular patch’s regression test.</p>
@@ -379,7 +371,6 @@ main isolate   : exact-address native allocation and stale consumer
 <p><em>Figure 6. One crash cannot establish a cause, a final outcome, and a repeated-run success rate. Each claim requires different evidence.</em></p>
 <h3>11.1 Scope of the public result</h3>
 <p>The local <code>/etc/hosts</code> read establishes <strong>completion of a predefined file read in an authorized environment</strong>. Report section 9 distinguishes early output from separate local test output; section 14 records local completions without dependence on debugger or parent-process memory observation. [5, 18]</p>
-<p>The OS evaluates file access against process privileges and policies. Section 1.2’s tests had the process sandbox disabled and required privileges granted beforehand. The result therefore demonstrates chain completion within existing privileges, not acquisition of new OS privileges. It does not guarantee equivalent access to other files or in a default browser configuration.</p>
 <table>
 <thead>
 <tr>
@@ -457,62 +448,38 @@ main isolate   : exact-address native allocation and stale consumer
 <h3>11.4 Evidence connecting cause and result</h3>
 <p>The first evidence item is patch source at a pinned revision. The data dependency from a selected entry’s previous address through local <code>value</code> to disposal callbacks is directly visible. It supports the cleanup-target agreement interpretation of the cause. [8–10]</p>
 <p>The second comprises d8 aggregates and browser progress records. Aggregates record whether the defined error was observed; progress records examine which object’s ownership, lifetime, and consumption explain the observation. Crashes, cause observations, intermediate validation, and completion are not counted as the same success. [3, 18]</p>
-<p>The third comprises local outcome records and subsequent confirmation in the separate remote validation environment. The report’s <code>/etc/hosts</code> cases and the separate fixture checkpoint retain distinct documents and verdicts. The remote result is not expanded into an RCE or OS-sandbox escape verdict. The public summary records their sections and claim scope. [5, 18]</p>
+<p>The third comprises local outcome records and subsequent confirmation in the separate remote validation environment. The report’s <code>/etc/hosts</code> cases and the separate fixture checkpoint retain distinct documents and verdicts. The public summary records their sections and claim scope. [5, 18]</p>
 <p>In this connection, <strong>source explains the cause contract, observations explain objects and execution events, and completion records explain final outcomes</strong>. Section 9.1 collects the review scope, section 11.1 file privileges, and sections 11.2–11.3 rate units.</p>
 <h2>12. The invariant that matters for remediation</h2>
-<p>The patch review identifies agreement between the entry used to obtain the resource and the entry invalidated during cleanup as the central invariant. [3] Comparing the public fix with source at that revision shows how the exchange path below maintains it. Section 9.1 records the source and binary verification scope. [8–10]</p>
-<p>The defensive question is whether the target established at the start remains the same target through cleanup. If shared state can change in between, the assumption that reading it again preserves the earlier meaning needs scrutiny.</p>
-<p>It is also necessary to consider what other users can observe while cleanup is underway. A well-formed reference does not make a use safe if its target is being destroyed or has already ended its lifetime.</p>
-<p>Comparing the patch’s execution effects requires identified pre-fix and post-fix builds under the same regression conditions. The following sections set out invariants and properties for that review.</p>
-<h3>12.1 Defensive pseudocode that preserves ownership</h3>
-<p>The lifetime contract can be illustrated by a <strong>generic resource registry with locking and leases</strong>. This is a design model, not a V8 patch or an actual engine class. A lease keeps the resource alive until its use finishes.</p>
-<pre><code class="language-text">AcquireForUse(key):
-    with registry_lock:
-        record = registry.lookup(key)
-        if record is absent or record.state != LIVE:
-            return no_lease
-        lease = record.acquire_lease()
-        return lease
-
-Retire(key):
-    with registry_lock:
-        record = registry.detach(key)
-        if record is absent:
-            return
-        record.state = RETIRING
-    record.wait_until_no_leases()
-    record.destroy_resource()
-    record.state = RETIRED
+<p>The invariant restored directly by the patch is:</p>
+<pre><code class="language-text">disposed resource == previous payload of the EPT entry cleared by this cleanup
 </code></pre>
-<p>Three properties matter. Checking liveness and acquiring a lease share one synchronization scope. Retirement blocks new acquisition through the registered reference. Existing leases finish before the resource belonging to that same <code>record</code> is destroyed.</p>
-<p>The model assumes the record itself remains stable until retirement completes, with correctly synchronized lease acquisition, release, and waiting. Waiting while holding a lock needed by a lease holder can deadlock, so changing registry state and waiting for users are separate regions.</p>
-<p>An engine can use a different synchronization design. The review question is how it guarantees <strong>no new uses, completion of existing uses, and cleanup of one consistent target</strong>, rather than whether this exact pseudocode is copied into it.</p>
+<p>Before the fix, <code>load()</code> and <code>store()</code> could select different handles. After the fix, cleanup applies <code>exchange(null)</code> to one selected entry and passes only the returned previous payload to <code>Dispose()</code>. [8–10]</p>
+<h3>12.1 Reduced pseudocode for the patch</h3>
+<pre><code class="language-text">old_resource = exchange(selected_entry, null)
+if old_resource != null:
+    Dispose(old_resource)
+</code></pre>
+<p>The critical data dependency is <code>selected_entry → old_resource → Dispose</code>. <code>exchange()</code> supplies this identity consistency; it does not replace the broader ownership protocol that coordinates other users of the resource.</p>
 <h3>12.2 Properties for regression verification</h3>
 <p>Regression review should establish the following conditions.</p>
 <ul>
-<li><strong>While a lease remains outstanding:</strong> resource destruction has not completed. Review ownership intervals against destruction callbacks.</li>
-<li><strong>When retirement begins:</strong> new lease acquisition is rejected. Review synchronization of registry state and ownership acquisition.</li>
-<li><strong>When selecting the cleanup target:</strong> the same object is processed through completion. Check agreement of the selected entry, returned value, and disposal target.</li>
-<li><strong>After retirement completes:</strong> no valid remaining reference can use the ended resource. Review reference validity periods against resource-ending conditions.</li>
-<li><strong>On duplicate retirement requests:</strong> the resource is not destroyed twice. Review handling of already cleared entries and callback counts.</li>
+<li>The handle field is read once when selecting the entry.</li>
+<li>The entry cleared to null is the same entry that returns the previous payload.</li>
+<li><code>Unaccount()</code> and <code>Dispose()</code> use only that returned value.</li>
+<li>Repeating cleanup on an already-cleared entry does not dispose the same resource twice.</li>
+<li>Tags and the existing GC mark survive CAS retries. [10]</li>
 </ul>
-<p>Lease terminology belongs to the general design model in section 12.1. It does not claim that the V8 function contains such a lease object. Review the equivalent properties through the ownership model of the actual engine.</p>
-<p>The pinned EPT exchange path also calls for review of tags and GC mark preservation. Clearing a pointer must still respect that implementation’s payload format and marking contract. <code>DCHECK</code> expresses a developer’s expected invariant; its presence alone does not establish an equivalent release-build check. [10]</p>
-<p>These are proposed defensive review and regression properties, not claims that five new tests were executed. They translate the lifetime concern in the records into properties an implementation should establish.</p>
+<p>Pre-fix and post-fix behavior should be compared in identified builds under the same regression conditions. These are source-derived test properties; this edit did not run a new fixed-binary regression.</p>
 <h3>12.3 What the public fix is intended to guarantee</h3>
 <p>The change binds resource extraction and clearing to the same EPT entry. It removes the separate cleanup operation that resolves the reference again. This is the central difference established by the commit description. [8]</p>
 <p>The member-level exchange delegates to the EPT exchange. The entry implementation uses a compare-and-exchange loop to install a new payload, return the previous pointer value, and preserve the existing GC mark. This describes the sandbox branch at the fix revision. [10]</p>
 <p>The exchanged state is the <strong>EPT entry’s payload</strong>. It does not mean that every heap handle is erased or every external reference is invalidated together. Nor is this a direct call to JavaScript’s <code>Atomics.exchange</code>. [10]</p>
 <p>The fix connects one entry’s exchange result with disposal of that resource. Appendix A retains complete exchange-layer functions, six contract tables, and code flows B–C for comparing the main cause analysis with its implementation.</p>
-<h3>12.4 Separate the protected states</h3>
-<p>The update target determines the scope of the guarantee. The source review distinguishes three states.</p>
-<p>The heap member handle is read and used to select an entry in the sandbox branch. This does not establish synchronization of the entire field.</p>
-<p>The EPT entry payload is replaced with the new pointer and tag while preserving its mark; the atomic update covers that one entry. Native resource cleanup uses the returned previous address and must be read alongside actual users’ ownership and callback contracts.</p>
-<p>Here <code>kNullAddress</code> is the chosen replacement pointer value. It is not deletion of a slot or invalidation of all handles. Conversely, returning a previous address does not make it an owning lease. These distinctions allow EPT atomicity and external-resource lifetime safety to be reviewed separately. [9, 10]</p>
 <h2>13. Closing thoughts</h2>
 <p>The question that kept returning was: does this reference still point to the same object, and is that object still alive?</p>
 <p>The investigation began with double-fetch and UAF. Moving into the browser required examining ownership, object identity, control-flow protections, and the effects of observation tools. Evidence at one stage did not substitute for the conclusion at the next.</p>
-<p>Following that investigation through to the final chain, I completed the <code>hosts</code> file read in an authorized local environment and a separate remote validation environment. This establishes a follow-on native primitive from in-sandbox corruption; the public evidence does not claim Chrome OS-sandbox escape or general RCE.</p>
+<p>Following that investigation through to the final chain, I completed the <code>hosts</code> file read in an authorized local environment and a separate remote validation environment. The scope of that result is the boundary table in section 11.1.</p>
 <p>I wanted to preserve that progression in the public account. A final result alone hides the assumptions and the reasons for revisiting them. Listing every unsuccessful experiment would make the central lessons harder to follow. Here, I have organized the account around how the questions changed and what evidence each question required.</p>
 <p>When studying a protection, understanding the condition it is meant to preserve is more useful than remembering its name alone. Constraining references, preserving lifetimes, and restricting calls work together, but they do different jobs.</p>
 <p>Research records need the same precision. A line saying “it worked” is less useful than an account of the environment, the observation, and the limit of the conclusion. At the time, it always feels easy to remember the difference. A little later, it is surprisingly easy to forget.</p>
@@ -834,7 +801,7 @@ Mean attempts             = (150 / 11)^N
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/include/v8-primitive.h">V8 — v8-primitive.h at the fix revision</a>. Source for the <code>Unaccount</code> callback contract and empty default implementation.</li>
 <li><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h">V8 — external-pointer.h at the fix revision</a> and <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/LICENSE">original license</a>. Sources for the in-class single-tag overload and code redistribution terms.</li>
 <li><a href="https://eel.is/c++draft/atomics.types.operations">C++ working draft — atomic operations</a>. Background for expected-argument updates and spurious failure in weak compare-and-exchange.</li>
-<li>Target-source <a href="https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/chrome/VERSION">Chromium VERSION</a>, <a href="https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/DEPS">Chromium DEPS</a>, and <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-version.h">V8 version header</a>. Compared directly on 1 October 2026 to establish the relationship between versions and revisions.</li>
+<li>Target-source <a href="https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/chrome/VERSION">Chromium VERSION</a>, <a href="https://github.com/chromium/chromium/blob/506c834ecceaa943c5f41e6cfe7f68acb5c45346/DEPS">Chromium DEPS</a>, <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-version.h">V8 version header</a>, and <a href="https://chromium.googlesource.com/v8/v8/+/refs/tags/15.2.124.18">upstream tag 15.2.124.18</a>. Compared directly to establish the version–revision relationship and the tag’s 24 August 2026 date.</li>
 <li>The author-supplied <code>m152-blog-technical-revision.zip</code>: <code>TECHNICAL-REVIEW.md</code>, <code>EVIDENCE-MAP.md</code>, <code>PUBLICATION-CHECKLIST.md</code>, and <code>SOURCE-INDEX.md</code>. Editorial evidence for target identifiers, provenance, and measurement interpretation. Section 9.1 records its manifest check.</li>
 <li><a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/src/objects/string.h">string.h</a> and <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-primitive.h">v8-primitive.h</a> at the target V8 revision. Sources checked for resource and data member types, cacheability, and lock/disposal callback contracts.</li>
 <li>The author-supplied <code>m152-blog-full-review-20261001.zip</code>: full revision review, <code>RESEARCH_REPORT.md</code>, local checkpoints/progress records, and final archive description. <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.en.md">Public evidence summary</a> · <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.ko.md">Korean summary</a> · <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.SHA256SUMS">Summary-file SHA-256</a>. The summary separates the original documents’ claims from this edit’s review scope.</li>
