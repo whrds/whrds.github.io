@@ -334,16 +334,17 @@ reference ownership   → lifetime protection for a resource already in use
 <tr>
 <td>Final controller campaign</td>
 <td style="text-align:right">No failure observed per execution group</td>
-<td>Exact final <code>N/N</code> denominator was not retained</td>
+<td>Exact final <code>N/N</code> denominator is unavailable</td>
 </tr>
 </tbody>
 </table>
-<p>The middle two probabilities are not directly measured browser completion rates. They compare designs under the simplifying assumption that <code>p = 11/150</code> is independent and identically distributed. Only the final row states the execution outcome recorded by the later repeated validation.</p>
-<pre><code class="language-text">fixed-delay timing          → native-state verdicts
-repeated races              → first winner plus state reuse
-probabilistic spray         → measured exact-address reclaim
-reuse of a contaminated renderer → bounded retry in a fresh renderer
-</code></pre>
+<p>The first two rows report d8 observations. The middle two rows are model estimates assuming that each race is independent and has the same success probability, <code>p = 11/150</code>. The final row reports observations from the final controller execution groups. The model estimates must be distinguished from directly measured browser completion rates.</p>
+<ul>
+<li><strong>Fixed-delay timing</strong> → native-state verdicts</li>
+<li><strong>Repeated races</strong> → first winner plus state reuse</li>
+<li><strong>Probabilistic spray</strong> → measured exact-address reclaim</li>
+<li><strong>Reuse of a contaminated renderer</strong> → bounded retry in a fresh renderer</li>
+</ul>
 <p>Reliability did not improve merely by increasing the retry count. Each run was classified by the stage at which it failed, and each change was assessed against the outcome at that stage.</p>
 <ol>
 <li><strong>Separate execution environments:</strong> roughly <code>0/950</code> on the shared host and <code>11/150</code> under CPU-isolated d8 conditions were treated as different populations. The work first established a baseline in which the race could be observed.</li>
@@ -353,11 +354,11 @@ reuse of a contaminated renderer → bounded retry in a fresh renderer
 <li><strong>Reduce the number of required races:</strong> the early design recreated a native-read condition several times. The later <code>read1</code> design connected the first genuine resource directly to the read primitive, reducing three consecutive race requirements to one.</li>
 <li><strong>Isolate attempts:</strong> a failed renderer was not reused for the next attempt. A fresh renderer recreated heap and allocator state, while the controller was limited to launch, timeout, and result collection.</li>
 </ol>
-<p>These changes did not make an individual race mathematically certain. They restructured the chain so that a later stage did not repeatedly demand the same accidental state. Under the simple model <code>p = 11/150</code>, reducing three consecutive races to one changes the modeled prefix from <code>p³ ≈ 1/2,536</code> to <code>p ≈ 1/14</code>.</p>
-<p>The result was a change from a design whose simple model implied one success in thousands to hundreds of thousands of attempts, to one with no observed failure in the final controller execution groups. In this article, <strong>“observed 100%” means that the final controller campaign recorded no failure at the execution-group level</strong>. It does not mean that a single race or a single renderer became 100% reliable, and the missing exact final <code>N/N</code> denominator prevents treating it as statistical or universal 100%. Section 11.3 gives the stage-by-stage observations, and Appendix B contains the complete simple-model table.</p>
+<p>These changes did not make an individual race mathematically certain. They restructured the chain so that a later stage did not repeatedly demand the same accidental state. Under a simple model with independent races and the same success probability <code>p = 11/150</code>, reducing three consecutive races to one changes the modeled prefix from <code>p³ ≈ 1/2,536</code> to <code>p ≈ 1/14</code>.</p>
+<p>The early design’s complexity was compared using the simple model above, while the final reliability result was assessed from controller execution-group observations. In this article, <strong>“observed 100%” means that the final controller campaign recorded no failure at the execution-group level</strong>. It does not mean that a single race or a single renderer became 100% reliable, and the missing exact final <code>N/N</code> denominator prevents treating it as statistical or universal 100%. Section 11.3 gives the stage-by-stage observations, and Appendix B contains the complete simple-model table.</p>
 <h2>6. Moving from d8 to the browser</h2>
 <p>The early observations varied substantially across environments. Roughly 950 shared-host runs produced no verdict satisfying section 3.2.2, while CPU-isolated ASan d8 conditions produced 11 in 150. Each figure applies only to its test conditions and sample. [3]</p>
-<p>The upstream d8 regression and browser validation target <strong>the same source defect and <code>h2 → R2</code> dangling state</strong>, but they do not use identical execution plumbing. The regression builds its premise directly with <code>Sandbox.MemoryView</code> and d8’s <code>read()</code>. In Chrome, actual ownership of page-created external strings, Worker lifetime, cache behavior, and the renderer’s native allocator all participate. “Using the same root cause” is therefore distinct from “running the d8 PoC unchanged in Chrome.”</p>
+<p>The upstream d8 regression and browser validation target <strong>the same source defect and <code>h2 → R2</code> dangling state</strong>, but they do not use identical execution paths. The regression builds its premise directly with <code>Sandbox.MemoryView</code> and d8’s <code>read()</code>. In Chrome, actual ownership of page-created external strings, Worker lifetime, cache behavior, and the renderer’s native allocator all participate. “Using the same root cause” is therefore distinct from “running the d8 PoC unchanged in Chrome.”</p>
 <p>The browser records separate the roles as follows:</p>
 <pre><code class="language-text">main isolate   : retain victim, donor, and the dangling h2 holder
 race Worker    : race resource_ handle changes using the prior in-sandbox write

@@ -366,16 +366,14 @@ The early chain did not merely contain one difficult race. It required the same 
 | CPU-isolated single race | `11/150` (`7.33%`) | Reproducible single-UAF baseline |
 | Early three-winner prefix | about `1/2,536` | Simple model requiring the same `p` three times |
 | Early five-winner core chain | about `1/471,512` | Simple model requiring the same `p` five times |
-| Final controller campaign | No failure observed per execution group | Exact final `N/N` denominator was not retained |
+| Final controller campaign | No failure observed per execution group | Exact final `N/N` denominator is unavailable |
 
-The middle two probabilities are not directly measured browser completion rates. They compare designs under the simplifying assumption that `p = 11/150` is independent and identically distributed. Only the final row states the execution outcome recorded by the later repeated validation.
+The first two rows report d8 observations. The middle two rows are model estimates assuming that each race is independent and has the same success probability, `p = 11/150`. The final row reports observations from the final controller execution groups. The model estimates must be distinguished from directly measured browser completion rates.
 
-```text
-fixed-delay timing          → native-state verdicts
-repeated races              → first winner plus state reuse
-probabilistic spray         → measured exact-address reclaim
-reuse of a contaminated renderer → bounded retry in a fresh renderer
-```
+- **Fixed-delay timing** → native-state verdicts
+- **Repeated races** → first winner plus state reuse
+- **Probabilistic spray** → measured exact-address reclaim
+- **Reuse of a contaminated renderer** → bounded retry in a fresh renderer
 
 Reliability did not improve merely by increasing the retry count. Each run was classified by the stage at which it failed, and each change was assessed against the outcome at that stage.
 
@@ -386,15 +384,15 @@ Reliability did not improve merely by increasing the retry count. Each run was c
 5. **Reduce the number of required races:** the early design recreated a native-read condition several times. The later `read1` design connected the first genuine resource directly to the read primitive, reducing three consecutive race requirements to one.
 6. **Isolate attempts:** a failed renderer was not reused for the next attempt. A fresh renderer recreated heap and allocator state, while the controller was limited to launch, timeout, and result collection.
 
-These changes did not make an individual race mathematically certain. They restructured the chain so that a later stage did not repeatedly demand the same accidental state. Under the simple model `p = 11/150`, reducing three consecutive races to one changes the modeled prefix from `p³ ≈ 1/2,536` to `p ≈ 1/14`.
+These changes did not make an individual race mathematically certain. They restructured the chain so that a later stage did not repeatedly demand the same accidental state. Under a simple model with independent races and the same success probability `p = 11/150`, reducing three consecutive races to one changes the modeled prefix from `p³ ≈ 1/2,536` to `p ≈ 1/14`.
 
-The result was a change from a design whose simple model implied one success in thousands to hundreds of thousands of attempts, to one with no observed failure in the final controller execution groups. In this article, **“observed 100%” means that the final controller campaign recorded no failure at the execution-group level**. It does not mean that a single race or a single renderer became 100% reliable, and the missing exact final `N/N` denominator prevents treating it as statistical or universal 100%. Section 11.3 gives the stage-by-stage observations, and Appendix B contains the complete simple-model table.
+The early design's complexity was compared using the simple model above, while the final reliability result was assessed from controller execution-group observations. In this article, **“observed 100%” means that the final controller campaign recorded no failure at the execution-group level**. It does not mean that a single race or a single renderer became 100% reliable, and the missing exact final `N/N` denominator prevents treating it as statistical or universal 100%. Section 11.3 gives the stage-by-stage observations, and Appendix B contains the complete simple-model table.
 
 ## 6. Moving from d8 to the browser
 
 The early observations varied substantially across environments. Roughly 950 shared-host runs produced no verdict satisfying section 3.2.2, while CPU-isolated ASan d8 conditions produced 11 in 150. Each figure applies only to its test conditions and sample. [3]
 
-The upstream d8 regression and browser validation target **the same source defect and `h2 → R2` dangling state**, but they do not use identical execution plumbing. The regression builds its premise directly with `Sandbox.MemoryView` and d8's `read()`. In Chrome, actual ownership of page-created external strings, Worker lifetime, cache behavior, and the renderer's native allocator all participate. “Using the same root cause” is therefore distinct from “running the d8 PoC unchanged in Chrome.”
+The upstream d8 regression and browser validation target **the same source defect and `h2 → R2` dangling state**, but they do not use identical execution paths. The regression builds its premise directly with `Sandbox.MemoryView` and d8's `read()`. In Chrome, actual ownership of page-created external strings, Worker lifetime, cache behavior, and the renderer's native allocator all participate. “Using the same root cause” is therefore distinct from “running the d8 PoC unchanged in Chrome.”
 
 The browser records separate the roles as follows:
 
