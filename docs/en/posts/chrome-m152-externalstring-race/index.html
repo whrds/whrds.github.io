@@ -25,7 +25,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString Race: EPT Entry Identity and Native Resource Lifetime</h1><p class="article-description">An analysis of the EPT entry identity mismatch, native resource lifetime violation, UAF evidence, and exchange fix in Chrome M152&#039;s ExternalString race.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>46 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> double-fetch race I investigated in Chrome M152.</p>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString Race: EPT Entry Identity and Native Resource Lifetime</h1><p class="article-description">An analysis of the EPT entry identity mismatch, native resource lifetime violation, UAF evidence, and exchange fix in Chrome M152&#039;s ExternalString race.</p><div class="article-meta"><a class="post-category" href="/en/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">Oct 1, 2026</time><span>·</span><span>47 min read</span></div></div></header><div class="prose"><p>This post revisits the <code>ExternalString</code> double-fetch race I investigated in Chrome M152.</p>
 <p>The public account omits build-specific addresses and the complete PoC, while retaining the attack prerequisite, cause, object-lifetime transitions, and reliability work. The same class of follow-on primitive reached an <code>/etc/hosts</code> read in an authorized local environment and a separate remote validation environment managed by the author. Sections 1.2 and 11.1 define the security boundary of that result. [5]</p>
 <p>The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?</p>
 <p>A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains <code>11/150</code> UAF observations; later review compared ownership, allocator reuse, and observation interventions. This account follows public outcomes alongside their experimental units. [18]</p>
@@ -300,7 +300,50 @@ reference ownership   → lifetime protection for a resource already in use
 <p>The browser records continue into review of external native-memory effects and subsequent behavior. Native-memory errors, observations at indirect calls, and completed file I/O remained separate verdicts. Section 8’s separation of CFI call relationships from liveness, and section 9’s separation of debugger intervention from execution outcomes, supply conditions for those verdicts. [3]</p>
 <p>The technical revision’s evidence map retains early browser results in which the final action was not completed. They provide a failure baseline for comparing intermediate observations with completion verdicts. Later local completion summaries and confirmation of the <code>hosts</code> read establish <strong>cases completing the final file read</strong>. Sections 11.2–11.3 discuss execution units and denominators for rates. [5, 16]</p>
 <p>The research connection therefore does not simply attach a file read to the name UAF. It fixes the source-level target, reviews lifetime relationships in execution, checks browser object identity, and distinguishes what completion records establish. Section 11 presents the final result’s evidence; section 12 examines the patch implementation addressing the same cause.</p>
-<h3>5.5 Changes that improved reliability</h3>
+<h3>5.5 From a 7.33% baseline to no observed controller-level failure</h3>
+<p>The early chain did not merely contain one difficult race. It required the same favorable accident again at later stages. The central reliability result was not turning a single-race probability <code>p</code> into 100%; it was reducing the number of timing-sensitive winners and absorbing the remaining failures through isolated retries.</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th style="text-align:right">Observation or simple model</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shared-host baseline</td>
+<td style="text-align:right"><code>0/roughly 950</code></td>
+<td>No UAF verdict observed in that environment</td>
+</tr>
+<tr>
+<td>CPU-isolated single race</td>
+<td style="text-align:right"><code>11/150</code> (<code>7.33%</code>)</td>
+<td>Reproducible single-UAF baseline</td>
+</tr>
+<tr>
+<td>Early three-winner prefix</td>
+<td style="text-align:right">about <code>1/2,536</code></td>
+<td>Simple model requiring the same <code>p</code> three times</td>
+</tr>
+<tr>
+<td>Early five-winner core chain</td>
+<td style="text-align:right">about <code>1/471,512</code></td>
+<td>Simple model requiring the same <code>p</code> five times</td>
+</tr>
+<tr>
+<td>Final controller campaign</td>
+<td style="text-align:right">No failure observed per execution group</td>
+<td>Exact final <code>N/N</code> denominator was not retained</td>
+</tr>
+</tbody>
+</table>
+<p>The middle two probabilities are not directly measured browser completion rates. They compare designs under the simplifying assumption that <code>p = 11/150</code> is independent and identically distributed. Only the final row states the execution outcome recorded by the later repeated validation.</p>
+<pre><code class="language-text">fixed-delay timing          → native-state verdicts
+repeated races              → first winner plus state reuse
+probabilistic spray         → measured exact-address reclaim
+reuse of a contaminated renderer → bounded retry in a fresh renderer
+</code></pre>
 <p>Reliability did not improve merely by increasing the retry count. Each run was classified by the stage at which it failed, and each change was assessed against the outcome at that stage.</p>
 <ol>
 <li><strong>Separate execution environments:</strong> roughly <code>0/950</code> on the shared host and <code>11/150</code> under CPU-isolated d8 conditions were treated as different populations. The work first established a baseline in which the race could be observed.</li>
@@ -310,7 +353,8 @@ reference ownership   → lifetime protection for a resource already in use
 <li><strong>Reduce the number of required races:</strong> the early design recreated a native-read condition several times. The later <code>read1</code> design connected the first genuine resource directly to the read primitive, reducing three consecutive race requirements to one.</li>
 <li><strong>Isolate attempts:</strong> a failed renderer was not reused for the next attempt. A fresh renderer recreated heap and allocator state, while the controller was limited to launch, timeout, and result collection.</li>
 </ol>
-<p>These changes did not make an individual race mathematically certain. They restructured the chain so that a later stage did not repeatedly demand the same accidental state. Under the simple model <code>p = 11/150</code>, reducing three consecutive races to one changes the modeled prefix from <code>p³ ≈ 1/2,536</code> to <code>p ≈ 1/14</code>. Browser events are not actually independent and identically distributed, so this compares design complexity rather than reporting a measured completion rate.</p>
+<p>These changes did not make an individual race mathematically certain. They restructured the chain so that a later stage did not repeatedly demand the same accidental state. Under the simple model <code>p = 11/150</code>, reducing three consecutive races to one changes the modeled prefix from <code>p³ ≈ 1/2,536</code> to <code>p ≈ 1/14</code>.</p>
+<p>The result was a change from a design whose simple model implied one success in thousands to hundreds of thousands of attempts, to one with no observed failure in the final controller execution groups. In this article, <strong>“observed 100%” means that the final controller campaign recorded no failure at the execution-group level</strong>. It does not mean that a single race or a single renderer became 100% reliable, and the missing exact final <code>N/N</code> denominator prevents treating it as statistical or universal 100%. Section 11.3 gives the stage-by-stage observations, and Appendix B contains the complete simple-model table.</p>
 <h2>6. Moving from d8 to the browser</h2>
 <p>The early observations varied substantially across environments. Roughly 950 shared-host runs produced no verdict satisfying section 3.2.2, while CPU-isolated ASan d8 conditions produced 11 in 150. Each figure applies only to its test conditions and sample. [3]</p>
 <p>The upstream d8 regression and browser validation target <strong>the same source defect and <code>h2 → R2</code> dangling state</strong>, but they do not use identical execution plumbing. The regression builds its premise directly with <code>Sandbox.MemoryView</code> and d8’s <code>read()</code>. In Chrome, actual ownership of page-created external strings, Worker lifetime, cache behavior, and the renderer’s native allocator all participate. “Using the same root cause” is therefore distinct from “running the d8 PoC unchanged in Chrome.”</p>

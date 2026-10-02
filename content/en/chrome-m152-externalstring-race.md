@@ -356,7 +356,26 @@ The technical revision's evidence map retains early browser results in which the
 
 The research connection therefore does not simply attach a file read to the name UAF. It fixes the source-level target, reviews lifetime relationships in execution, checks browser object identity, and distinguishes what completion records establish. Section 11 presents the final result's evidence; section 12 examines the patch implementation addressing the same cause.
 
-### 5.5 Changes that improved reliability
+### 5.5 From a 7.33% baseline to no observed controller-level failure
+
+The early chain did not merely contain one difficult race. It required the same favorable accident again at later stages. The central reliability result was not turning a single-race probability `p` into 100%; it was reducing the number of timing-sensitive winners and absorbing the remaining failures through isolated retries.
+
+| Stage | Observation or simple model | Meaning |
+|---|---:|---|
+| Shared-host baseline | `0/roughly 950` | No UAF verdict observed in that environment |
+| CPU-isolated single race | `11/150` (`7.33%`) | Reproducible single-UAF baseline |
+| Early three-winner prefix | about `1/2,536` | Simple model requiring the same `p` three times |
+| Early five-winner core chain | about `1/471,512` | Simple model requiring the same `p` five times |
+| Final controller campaign | No failure observed per execution group | Exact final `N/N` denominator was not retained |
+
+The middle two probabilities are not directly measured browser completion rates. They compare designs under the simplifying assumption that `p = 11/150` is independent and identically distributed. Only the final row states the execution outcome recorded by the later repeated validation.
+
+```text
+fixed-delay timing          → native-state verdicts
+repeated races              → first winner plus state reuse
+probabilistic spray         → measured exact-address reclaim
+reuse of a contaminated renderer → bounded retry in a fresh renderer
+```
 
 Reliability did not improve merely by increasing the retry count. Each run was classified by the stage at which it failed, and each change was assessed against the outcome at that stage.
 
@@ -367,7 +386,9 @@ Reliability did not improve merely by increasing the retry count. Each run was c
 5. **Reduce the number of required races:** the early design recreated a native-read condition several times. The later `read1` design connected the first genuine resource directly to the read primitive, reducing three consecutive race requirements to one.
 6. **Isolate attempts:** a failed renderer was not reused for the next attempt. A fresh renderer recreated heap and allocator state, while the controller was limited to launch, timeout, and result collection.
 
-These changes did not make an individual race mathematically certain. They restructured the chain so that a later stage did not repeatedly demand the same accidental state. Under the simple model `p = 11/150`, reducing three consecutive races to one changes the modeled prefix from `p³ ≈ 1/2,536` to `p ≈ 1/14`. Browser events are not actually independent and identically distributed, so this compares design complexity rather than reporting a measured completion rate.
+These changes did not make an individual race mathematically certain. They restructured the chain so that a later stage did not repeatedly demand the same accidental state. Under the simple model `p = 11/150`, reducing three consecutive races to one changes the modeled prefix from `p³ ≈ 1/2,536` to `p ≈ 1/14`.
+
+The result was a change from a design whose simple model implied one success in thousands to hundreds of thousands of attempts, to one with no observed failure in the final controller execution groups. In this article, **“observed 100%” means that the final controller campaign recorded no failure at the execution-group level**. It does not mean that a single race or a single renderer became 100% reliable, and the missing exact final `N/N` denominator prevents treating it as statistical or universal 100%. Section 11.3 gives the stage-by-stage observations, and Appendix B contains the complete simple-model table.
 
 ## 6. Moving from d8 to the browser
 
