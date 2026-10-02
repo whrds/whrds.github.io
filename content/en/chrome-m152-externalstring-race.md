@@ -16,7 +16,7 @@ The public account omits build-specific addresses and the complete PoC, while re
 
 The initial question was fairly simple. Could memory corruption inside the V8 sandbox affect the lifetime of an external native object? If external pointers are managed through a table, what happens when a retained reference and the object it represents no longer agree?
 
-A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains `11/150` UAF observations; later review compared ownership, allocator reuse, and observation interventions. The preserved intensive research records span **7–16 September 2026**. This account follows public local outcomes alongside their experimental units. [18]
+A race observation and completion of subsequent browser behavior were different outcomes. The early d8 record contains `11/150` UAF observations; later review compared ownership, allocator reuse, and observation interventions. This account follows public local outcomes alongside their experimental units. [18]
 
 This post connects the cleanup cause and the invariant maintained by the fix with experiments, failures, and completion records in the preserved report. The main text follows research questions and outcomes; Appendix A retains all six exchange helpers and their code flows. A [public evidence summary](/assets/research/chrome-m152-externalstring-race/evidence-summary.en.md) and the conceptual lifetime demonstration accompany the analysis. [18]
 
