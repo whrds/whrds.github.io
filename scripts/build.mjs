@@ -236,7 +236,8 @@ async function writeRoute(route, html) {
 
 function feed(lang, posts) {
   const t = copy[lang];
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>whrds.log</title><link>${absolute(`/${lang}/`)}</link><description>${escapeHtml(t.siteDescription)}</description><language>${lang}</language>${posts.map((post) => `<item><title>${escapeHtml(post.data.title)}</title><link>${absolute(routeFor(post))}</link><guid>${absolute(routeFor(post))}</guid><pubDate>${new Date(`${post.data.date}T00:00:00Z`).toUTCString()}</pubDate><description>${escapeHtml(post.data.description)}</description></item>`).join('')}</channel></rss>`;
+  // Imported descriptions may contain characters forbidden by XML 1.0.
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>whrds.log</title><link>${absolute(`/${lang}/`)}</link><description>${escapeHtml(t.siteDescription)}</description><language>${lang}</language>${posts.map((post) => `<item><title>${escapeHtml(post.data.title)}</title><link>${absolute(routeFor(post))}</link><guid>${absolute(routeFor(post))}</guid><pubDate>${new Date(`${post.data.date}T00:00:00Z`).toUTCString()}</pubDate><description>${escapeHtml(post.data.description)}</description></item>`).join('')}</channel></rss>`.replace(/[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu, '');
 }
 
 async function build() {

@@ -65,7 +65,9 @@ test('external counters remain disabled and generated pages expose working RSS c
       'docs/' + language + '/categories/v8/index.html',
       'docs/' + language + '/posts/chrome-m152-externalstring-race/index.html'
     ];
-    const feed = load(await read('docs/' + language + '/feed.xml'), { xml: true });
+    const rawFeed = await read('docs/' + language + '/feed.xml');
+    assert.doesNotMatch(rawFeed, /[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u, 'RSS must use only valid XML 1.0 characters');
+    const feed = load(rawFeed, { xml: true });
     assert.ok(feed('rss channel item').length > 0);
     assert.equal(feed('rss channel language').text(), language);
     for (const route of routes) {
