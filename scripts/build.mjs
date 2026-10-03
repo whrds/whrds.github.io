@@ -5,9 +5,12 @@ import matter from 'gray-matter';
 import MarkdownIt from 'markdown-it';
 import { build as bundle } from 'esbuild';
 import { highlightMarkdownCode } from './syntax-highlighting.mjs';
+import { subscribeButton, subscribeCard, viewCount, siteDialogs } from './site-features.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const contentDir = path.join(root, 'content');
+const features = JSON.parse(await fs.readFile(path.join(root, 'site-features.json'), 'utf8'));
+const viewsEnabled = features.views?.enabled === true && typeof features.views.endpoint === 'string' && features.views.endpoint.startsWith('https://');
 const outDir = path.join(root, 'docs');
 const siteUrl = (process.env.SITE_URL || 'https://whrds.github.io').replace(/\/$/, '');
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true, highlight: highlightMarkdownCode });
@@ -109,6 +112,7 @@ function header(lang, alternate, active = 'notes') {
       <a href="/${lang}/about/"${active === 'about' ? ' aria-current="page"' : ''}>${t.navAbout}</a>
     </nav>
     <div class="header-tools">
+      ${subscribeButton(lang)}
       <div class="language-switch" aria-label="Language">
         <a href="${lang === 'ko' ? '#' : otherUrl}" class="${lang === 'ko' ? 'active' : ''}" lang="ko"${lang === 'ko' ? ' aria-current="true"' : ''}>KO</a>
         <a href="${lang === 'en' ? '#' : otherUrl}" class="${lang === 'en' ? 'active' : ''}" lang="en"${lang === 'en' ? ' aria-current="true"' : ''}>EN</a>
@@ -118,10 +122,11 @@ function header(lang, alternate, active = 'notes') {
   </div></header>`;
 }
 
-function layout({ lang, title, description, route, alternate, body, active = 'notes', type = 'website', date }) {
+function layout({ lang, title, description, route, alternate, body, active = 'notes', type = 'website', date, countKey }) {
   const t = copy[lang];
   const pageTitle = title ? `${escapeHtml(title)} · whrds.log` : 'whrds.log';
   const canonical = absolute(route);
+  const counterPage = absolute(countKey ? `/posts/${encodeURIComponent(countKey)}/` : route.replace(/^\/(ko|en)(?=\/)/, '') || '/');
   const altLang = lang === 'ko' ? 'en' : 'ko';
   const altRoute = alternate || `/${altLang}/`;
   const jsonLd = type === 'article' ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'BlogPosting', headline: title, description, datePublished: date, inLanguage: lang, url: canonical, author: { '@type': 'Person', name: 'whrds' } })}</script>` : '';
@@ -131,16 +136,19 @@ function layout({ lang, title, description, route, alternate, body, active = 'no
   <title>${pageTitle}</title><meta name="description" content="${escapeHtml(description || t.siteDescription)}">
   <meta name="theme-color" content="#101215"><link rel="canonical" href="${canonical}">
   <link rel="alternate" hreflang="${lang}" href="${canonical}"><link rel="alternate" hreflang="${altLang}" href="${absolute(altRoute)}">
+  <link rel="alternate" type="application/rss+xml" title="whrds.log · ${lang.toUpperCase()}" href="/${lang}/feed.xml">
   <meta property="og:type" content="${type}"><meta property="og:title" content="${pageTitle}"><meta property="og:description" content="${escapeHtml(description || t.siteDescription)}"><meta property="og:url" content="${canonical}">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=${assetVersion}">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=${assetVersion}"><link rel="stylesheet" href="/assets/site-tools.css?v=${assetVersion}">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 ${jsonLd}
-</head><body>
+</head><body${viewsEnabled && route !== '/404.html' ? ` data-view-endpoint="${escapeHtml(features.views.endpoint)}" data-view-page="${escapeHtml(counterPage)}"` : ''}>
   <a class="skip-link" href="#main">${lang === 'ko' ? '본문으로 건너뛰기' : 'Skip to content'}</a>
   ${header(lang, altRoute, active)}
   <main id="main">${body}</main>
-  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© ${new Date().getUTCFullYear()} whrds.log</span></span><span>${t.footer}</span><a href="/${lang}/feed.xml">RSS ↗</a></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© ${new Date().getUTCFullYear()} whrds.log</span></span><span>${t.footer}</span><div class="footer-tools">${viewsEnabled ? viewCount(lang, 'site') : ''}<a href="/${lang}/feed.xml" data-subscribe-open>RSS ${lang === 'ko' ? '구독' : 'subscribe'} ↗</a></div></div></footer>
+  ${siteDialogs(lang, siteUrl)}
   <script src="/assets/app.js?v=${assetVersion}" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=${assetVersion}"></script>
 </body></html>`;
 }
 
@@ -215,8 +223,8 @@ function articlePage(item, translation) {
   const t = copy[lang];
   const route = routeFor(item);
   const alternate = translation ? routeFor(translation) : `/${lang === 'ko' ? 'en' : 'ko'}/`;
-  const inner = `<article class="article-wrap${data.page ? ' about-page' : ''}"><header class="article-header${data.page ? ' about-heading' : ''}"><div class="article-heading-copy"><p class="eyebrow">${data.page ? t.navAbout : t.eyebrow}</p><h1>${escapeHtml(data.title)}</h1><p class="article-description">${escapeHtml(data.description)}</p>${data.page ? '' : `<div class="article-meta"><a class="post-category" href="${categoryRoute(lang, data.category)}">${escapeHtml(categoryLabel(lang, data.category))}</a><span>·</span><time datetime="${escapeHtml(data.date)}">${formatDate(data.date, lang)}</time><span>·</span><span>${readingTime(body, lang)} ${t.minRead}</span></div>`}</div>${data.page ? mascot(lang, 'about') : ''}</header><div class="prose">${html}</div><div class="article-end"><a href="/${lang}/">← ${t.back}</a>${translation ? `<a href="${alternate}" hreflang="${translation.lang}">${t.readIn} →</a>` : ''}</div></article>`;
-  return layout({ lang, title: data.title, description: data.description, route, alternate, body: inner, active: data.page ? 'about' : 'notes', type: data.page ? 'website' : 'article', date: data.date });
+  const inner = `<article class="article-wrap${data.page ? ' about-page' : ''}"><header class="article-header${data.page ? ' about-heading' : ''}"><div class="article-heading-copy"><p class="eyebrow">${data.page ? t.navAbout : t.eyebrow}</p><h1>${escapeHtml(data.title)}</h1><p class="article-description">${escapeHtml(data.description)}</p>${data.page ? '' : `<div class="article-meta"><a class="post-category" href="${categoryRoute(lang, data.category)}">${escapeHtml(categoryLabel(lang, data.category))}</a><span>·</span><time datetime="${escapeHtml(data.date)}">${formatDate(data.date, lang)}</time><span>·</span><span>${readingTime(body, lang)} ${t.minRead}</span>${viewsEnabled ? `<span aria-hidden="true">·</span>${viewCount(lang)}` : ''}</div>`}</div>${data.page ? mascot(lang, 'about') : ''}</header><div class="prose">${html}</div>${data.page ? '' : subscribeCard(lang)}<div class="article-end"><a href="/${lang}/">← ${t.back}</a>${translation ? `<a href="${alternate}" hreflang="${translation.lang}">${t.readIn} →</a>` : ''}</div></article>`;
+  return layout({ lang, title: data.title, description: data.description, route, alternate, body: inner, active: data.page ? 'about' : 'notes', type: data.page ? 'website' : 'article', date: data.date, countKey: data.page ? undefined : data.translation_key || item.slug });
 }
 
 async function writeRoute(route, html) {
@@ -238,7 +246,7 @@ async function build() {
   await bundle({ entryPoints: [path.join(root, 'frontend/hero3d.js')], outfile: path.join(outDir, 'assets/hero3d.js'), bundle: true, minify: true, format: 'esm', target: ['es2022'], legalComments: 'eof' });
   await fs.copyFile(path.join(root, 'node_modules/three/LICENSE'), path.join(outDir, 'assets/three-LICENSE.txt'));
   const versionHash = createHash('sha256');
-  for (const name of ['hero3d.js', 'app.js', 'styles.css']) versionHash.update(await fs.readFile(path.join(outDir, 'assets', name)));
+  for (const name of ['hero3d.js', 'app.js', 'styles.css', 'site-tools.js', 'site-tools.css']) versionHash.update(await fs.readFile(path.join(outDir, 'assets', name)));
   assetVersion = versionHash.digest('hex').slice(0, 12);
   const all = [...await readContent('ko'), ...await readContent('en')];
   const translations = new Map(all.map((item) => [`${item.lang}:${item.data.translation_key}`, item]));

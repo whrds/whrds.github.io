@@ -4,8 +4,9 @@
   <title>[V8] Chrome M152 ExternalString Race: EPT Entry Identity and Native Resource Lifetime · whrds.log</title><meta name="description" content="An analysis of the EPT entry identity mismatch, native resource lifetime violation, UAF evidence, and exchange fix in Chrome M152&#039;s ExternalString race.">
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/">
+  <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[V8] Chrome M152 ExternalString Race: EPT Entry Identity and Native Resource Lifetime · whrds.log"><meta property="og:description" content="An analysis of the EPT entry identity mismatch, native resource lifetime violation, UAF evidence, and exchange fix in Chrome M152&#039;s ExternalString race."><meta property="og:url" content="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=4891981d7f40">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=1fc732d5bd58"><link rel="stylesheet" href="/assets/site-tools.css?v=1fc732d5bd58">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[V8] Chrome M152 ExternalString Race: EPT Entry Identity and Native Resource Lifetime","description":"An analysis of the EPT entry identity mismatch, native resource lifetime violation, UAF evidence, and exchange fix in Chrome M152's ExternalString race.","datePublished":"2026-10-01","inLanguage":"en","url":"https://whrds.github.io/en/posts/chrome-m152-externalstring-race/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -18,6 +19,7 @@
       <a href="/en/about/">About</a>
     </nav>
     <div class="header-tools">
+      <a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a>
       <div class="language-switch" aria-label="Language">
         <a href="/ko/posts/chrome-m152-externalstring-race/" class="" lang="ko">KO</a>
         <a href="#" class="active" lang="en" aria-current="true">EN</a>
@@ -256,7 +258,6 @@ EPT[h1] is cleared while EPT[h2] retains disposed R2
 </code></pre>
 <p><img src="/assets/research/chrome-m152-externalstring-race/07-dispose-flow.en.svg" alt="Null, accounting, and disposal branches in the fixed DisposeResource"></p>
 <p><em>Code flow A. Cleanup at the fix revision. A null result skips callbacks; shared-state predicates govern the accounting callback.</em></p>
-<p><a href="/assets/research/chrome-m152-externalstring-race/07-dispose-flow.en.svg">View at full size</a></p>
 <p><code>DisallowGarbageCollection</code> is a debug assertion scope marking where GC must not occur, rather than a synchronization lock. <code>DisableGCMole</code> skips GCMole verification around raw resource work; it also does not synchronize shared references. [11]</p>
 <p><code>resource_.exchange</code> obtains the selected EPT entry’s previous value while clearing its pointer value. [10] <code>reinterpret_cast</code> expresses that address as a resource pointer without checking liveness. The null check skips callbacks when no resource is present; a non-null pointer does not establish that its target is alive.</p>
 <p><code>Unaccount</code> is an external-memory accounting callback with an empty default implementation. Subclass behavior remains distinct from disposal. [12] <code>Dispose()</code> calls the resource’s cleanup implementation; its default behavior and subclass contract are described in section 2.1.</p>
@@ -522,7 +523,6 @@ if old_resource != null:
 <p>Separate delegation from return: the replacement and tag travel down the call chain, while the previous address returns to <code>DisposeResource</code>. Graph B shows two field representations chosen at build time. Graph C details the entry CAS loop separately.</p>
 <p><img src="/assets/research/chrome-m152-externalstring-race/08-exchange-flow.en.svg" alt="Exchange-helper delegation and sandbox build branch"></p>
 <p><em>Code flow B. Overload delegation and the build branch. Both paths return a previous address but update different storage.</em></p>
-<p><a href="/assets/research/chrome-m152-externalstring-race/08-exchange-flow.en.svg">View at full size</a></p>
 <h4>1. The single-tag overload</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h#L60"><code>src/sandbox/external-pointer.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-keyword">inline</span> Address <span class="hljs-title">exchange</span><span class="hljs-params">(IsolateForSandbox isolate, Address value)</span>
@@ -740,7 +740,6 @@ if old_resource != null:
 </code></pre>
 <p><img src="/assets/research/chrome-m152-externalstring-race/09-entry-cas.en.svg" alt="EPT-entry mark preservation and weak-CAS retry flow"></p>
 <p><em>Code flow C. Failure rebuilds the candidate from expected state; success returns the previous payload address. Retries stay within the selected entry.</em></p>
-<p><a href="/assets/research/chrome-m152-externalstring-race/09-entry-cas.en.svg">View at full size</a></p>
 <p><strong>Input and output contract</strong></p>
 <table>
 <thead>
@@ -839,7 +838,23 @@ Mean attempts             = (150 / 11)^N
 <li><a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/src/objects/string.h">string.h</a> and <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-primitive.h">v8-primitive.h</a> at the target V8 revision. Sources checked for resource and data member types, cacheability, and lock/disposal callback contracts.</li>
 <li>The author-supplied <code>m152-blog-full-review-20261001.zip</code>: full revision review, <code>RESEARCH_REPORT.md</code>, local checkpoints/progress records, and final archive description. <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.en.md">Public evidence summary</a> · <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.ko.md">Korean summary</a> · <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.SHA256SUMS">Summary-file SHA-256</a>. The summary separates the original documents’ claims from this edit’s review scope.</li>
 </ol>
-</div><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/chrome-m152-externalstring-race/" hreflang="ko">Read this post in Korean →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><a href="/en/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=4891981d7f40" defer></script>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/chrome-m152-externalstring-race/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
+  <dialog class="site-dialog subscribe-dialog" id="subscribe-dialog" aria-labelledby="subscribe-title" aria-describedby="subscribe-description">
+    <div class="dialog-heading"><div><p class="subscribe-kicker">RSS / WHRDS.LOG</p><h2 id="subscribe-title">Subscribe to new posts</h2></div><button class="dialog-close" type="button" data-dialog-close aria-label="Close">×</button></div>
+    <p id="subscribe-description">Add this feed to your RSS reader to follow new posts. Choose your preferred language.</p>
+    <div class="feed-languages" role="group" aria-label="Feed language"><button type="button" data-feed-language="ko" aria-pressed="false">한국어</button><button type="button" data-feed-language="en" aria-pressed="true">English</button></div>
+    <label class="feed-label" for="feed-url">Feed URL</label>
+    <div class="feed-copy-row"><input id="feed-url" type="url" readonly spellcheck="false" value="https://whrds.github.io/en/feed.xml" data-feed-origin="https://whrds.github.io"><button class="tool-button" type="button" data-copy-feed>Copy URL</button></div>
+    <p class="feed-status" data-feed-status role="status" aria-live="polite"></p>
+    <div class="feed-actions"><a class="tool-button" data-reader-link href="https://www.inoreader.com/?add_feed=https%3A%2F%2Fwhrds.github.io%2Fen%2Ffeed.xml" target="_blank" rel="noopener noreferrer">Subscribe in Inoreader ↗</a><a class="feed-raw-link" data-feed-link href="https://whrds.github.io/en/feed.xml">Open RSS feed ↗</a></div>
+    <p class="dialog-note">This feed URL works with other RSS readers too.</p>
+  </dialog>
+  <dialog class="site-dialog image-lightbox" id="image-lightbox" aria-labelledby="image-lightbox-title">
+    <div class="image-toolbar"><h2 id="image-lightbox-title">Image viewer</h2><div><button class="tool-button" type="button" data-image-scale aria-pressed="false">Zoom in</button><button class="dialog-close" type="button" data-dialog-close aria-label="Close">×</button></div></div>
+    <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
+    <p class="image-caption" data-image-caption></p>
+  </dialog>
+  <script src="/assets/app.js?v=1fc732d5bd58" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=1fc732d5bd58"></script>
 </body></html>

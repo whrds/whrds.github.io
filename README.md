@@ -66,3 +66,33 @@ Rebuild after regenerating the poster. Temporary QA screenshots are saved outsid
 ## GitHub Pages
 
 Use the repository name `whrds.github.io`. In **Settings → Pages → Build and deployment**, choose **Deploy from a branch**, then select **main** and **/docs**.
+
+## Subscription, image viewer, and view counts
+
+The header and article footer offer RSS subscription in Korean or English.
+The dialog copies the selected feed URL and can open Inoreader; no email address
+or account is collected by the blog. RSS discovery links are included in each page.
+
+Click an article image to open the keyboard-accessible viewer. Use Zoom in / Fit
+to screen for large diagrams, and Escape or the close button to return to the post.
+Ordinary image dragging, image/code context menus, and copying selected code are
+restricted. These are UI deterrents only: public HTML, code and image files remain
+accessible through developer tools, HTTP requests, screenshots, or disabled JavaScript.
+Feed URLs and normal prose can still be copied.
+
+View-count rendering and the client are prepared, but external collection is
+disabled in `site-features.json`: `enabled: false`, `endpoint: null`.
+The deployed pages make no counter-service requests while this is disabled.
+Enabling a provider requires the owner's explicit approval of the provider and
+visitor information transmitted, plus a matching on-site privacy explanation.
+The prepared client uses JSON over HTTPS, sends no cookies or additional visitor
+identifier, omits the browser referrer, and strips query strings and fragments from
+the counted page. The network provider still receives the connection IP.
+Korean and English posts share a key based on `translation_key`. Repeat views in
+the same tab are reduced within 30 minutes when sessionStorage is available.
+Counts begin at activation and do not reconstruct historical visits. They are
+approximate; blockers and network failures may cause undercounting. Previews do
+not record visits, and failures display an unavailable state instead of a fake zero.
+
+Run `node --test scripts/site-tools.test.mjs` after `npm run build` to check the
+feed, generated markup and counter contract without sending any analytics traffic.

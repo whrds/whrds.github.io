@@ -4,8 +4,9 @@
   <title>[IPTIME] FIRMWARE ANALYZE #2 · whrds.log</title><meta name="description" content="#1에 이어서 작성을 해보겠다. QEMU이제 추출한 파일들을 이용하여 분석해보겠다.KERNEL IMG는 일단 정적 분석을 메인으로 하고, ROOTFS을 에뮬레이팅하고 분석하는 것을 다음 과제로 선정했다. 집안의 WIFI 설정 혹은 어릴 때 마인크래프트 서버를 열기 위해서 아래와 같은 창이 뜨는 페이지를 접속해 보았을 것이">
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/iptime-firmware-analyze-2/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/iptime-firmware-analyze-2/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/iptime-firmware-analyze-2/">
+  <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[IPTIME] FIRMWARE ANALYZE #2 · whrds.log"><meta property="og:description" content="#1에 이어서 작성을 해보겠다. QEMU이제 추출한 파일들을 이용하여 분석해보겠다.KERNEL IMG는 일단 정적 분석을 메인으로 하고, ROOTFS을 에뮬레이팅하고 분석하는 것을 다음 과제로 선정했다. 집안의 WIFI 설정 혹은 어릴 때 마인크래프트 서버를 열기 위해서 아래와 같은 창이 뜨는 페이지를 접속해 보았을 것이"><meta property="og:url" content="https://whrds.github.io/ko/posts/iptime-firmware-analyze-2/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=4891981d7f40">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=1fc732d5bd58"><link rel="stylesheet" href="/assets/site-tools.css?v=1fc732d5bd58">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[IPTIME] FIRMWARE ANALYZE #2","description":"#1에 이어서 작성을 해보겠다. QEMU이제 추출한 파일들을 이용하여 분석해보겠다.KERNEL IMG는 일단 정적 분석을 메인으로 하고, ROOTFS을 에뮬레이팅하고 분석하는 것을 다음 과제로 선정했다. 집안의 WIFI 설정 혹은 어릴 때 마인크래프트 서버를 열기 위해서 아래와 같은 창이 뜨는 페이지를 접속해 보았을 것이","datePublished":"2025-02-13","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/iptime-firmware-analyze-2/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -18,6 +19,7 @@
       <a href="/ko/about/">소개</a>
     </nav>
     <div class="header-tools">
+      <a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a>
       <div class="language-switch" aria-label="Language">
         <a href="#" class="active" lang="ko" aria-current="true">KO</a>
         <a href="/en/posts/iptime-firmware-analyze-2/" class="" lang="en">EN</a>
@@ -259,7 +261,23 @@ Auth /main /home/fuzzing/firm/iptime/again/squashfs-root/etc/httpd.passwd
 <p>한 부분만 살펴보면 이 부분! 웹 페이지를 구축하는 cgi 부분인데 아무리 봐도 PWNABLE 취약점으로는 FSB, WEB 취약점으로는 XSS가 발생할 것 같다!!</p>
 <p>근데 직접적인 입력을 받는 부분은 아니지만 방법은 있을 것 같다…</p>
 <p>정확한 분석과 실제로 터지는지 확인을 위해서는 결국 에뮬레이팅 혹은 내 라우터를 뜯어봐야 한다…   이걸 위해서는 이제 다른 서비들의 동작 순서를 알아내고 동작하게 하는 삽질을 할 시간…</p>
-</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/iptime-firmware-analyze-2/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=4891981d7f40" defer></script>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/iptime-firmware-analyze-2/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
+  <dialog class="site-dialog subscribe-dialog" id="subscribe-dialog" aria-labelledby="subscribe-title" aria-describedby="subscribe-description">
+    <div class="dialog-heading"><div><p class="subscribe-kicker">RSS / WHRDS.LOG</p><h2 id="subscribe-title">새 글 구독</h2></div><button class="dialog-close" type="button" data-dialog-close aria-label="닫기">×</button></div>
+    <p id="subscribe-description">RSS 앱에 피드를 추가하면 새 글을 모아볼 수 있어요. 원하는 언어를 선택하세요.</p>
+    <div class="feed-languages" role="group" aria-label="구독 언어"><button type="button" data-feed-language="ko" aria-pressed="true">한국어</button><button type="button" data-feed-language="en" aria-pressed="false">English</button></div>
+    <label class="feed-label" for="feed-url">RSS 주소</label>
+    <div class="feed-copy-row"><input id="feed-url" type="url" readonly spellcheck="false" value="https://whrds.github.io/ko/feed.xml" data-feed-origin="https://whrds.github.io"><button class="tool-button" type="button" data-copy-feed>주소 복사</button></div>
+    <p class="feed-status" data-feed-status role="status" aria-live="polite"></p>
+    <div class="feed-actions"><a class="tool-button" data-reader-link href="https://www.inoreader.com/?add_feed=https%3A%2F%2Fwhrds.github.io%2Fko%2Ffeed.xml" target="_blank" rel="noopener noreferrer">Inoreader에서 구독 ↗</a><a class="feed-raw-link" data-feed-link href="https://whrds.github.io/ko/feed.xml">RSS 피드 열기 ↗</a></div>
+    <p class="dialog-note">RSS 주소는 다른 구독 앱에서도 사용할 수 있어요.</p>
+  </dialog>
+  <dialog class="site-dialog image-lightbox" id="image-lightbox" aria-labelledby="image-lightbox-title">
+    <div class="image-toolbar"><h2 id="image-lightbox-title">이미지 확대</h2><div><button class="tool-button" type="button" data-image-scale aria-pressed="false">더 확대</button><button class="dialog-close" type="button" data-dialog-close aria-label="닫기">×</button></div></div>
+    <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
+    <p class="image-caption" data-image-caption></p>
+  </dialog>
+  <script src="/assets/app.js?v=1fc732d5bd58" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=1fc732d5bd58"></script>
 </body></html>

@@ -252,7 +252,6 @@ void ExternalString::DisposeResource(Isolate* isolate) {
 
 *Code flow A. Cleanup at the fix revision. A null result skips callbacks; shared-state predicates govern the accounting callback.*
 
-[View at full size](/assets/research/chrome-m152-externalstring-race/07-dispose-flow.en.svg)
 
 
 `DisallowGarbageCollection` is a debug assertion scope marking where GC must not occur, rather than a synchronization lock. `DisableGCMole` skips GCMole verification around raw resource work; it also does not synchronize shared references. [11]
@@ -566,7 +565,6 @@ Separate delegation from return: the replacement and tag travel down the call ch
 
 *Code flow B. Overload delegation and the build branch. Both paths return a previous address but update different storage.*
 
-[View at full size](/assets/research/chrome-m152-externalstring-race/08-exchange-flow.en.svg)
 
 #### 1. The single-tag overload
 
@@ -752,7 +750,6 @@ Address ExternalPointerTableEntry::ExchangeExternalPointer(
 
 *Code flow C. Failure rebuilds the candidate from expected state; success returns the previous payload address. Retries stay within the selected entry.*
 
-[View at full size](/assets/research/chrome-m152-externalstring-race/09-entry-cas.en.svg)
 
 
 **Input and output contract**

@@ -252,7 +252,6 @@ void ExternalString::DisposeResource(Isolate* isolate) {
 
 *코드 흐름 A. 수정 리비전의 정리 경로다. null 결과는 콜백을 건너뛰고, shared-state 분기는 집계 콜백의 호출 여부를 정한다.*
 
-[확대해서 보기](/assets/research/chrome-m152-externalstring-race/07-dispose-flow.ko.svg)
 
 
 `DisallowGarbageCollection`은 GC가 일어나지 않아야 하는 구간을 표시하는 디버그 assertion 스코프다. 공유 참조를 동기화하는 잠금은 아니다. 뒤의 `DisableGCMole` 역시 raw 리소스 작업 구간의 GCMole 검증을 건너뛰는 디버그 스코프이며, 공유 참조의 잠금으로 해석할 수 없다. [11]
@@ -566,7 +565,6 @@ if old_resource != null:
 
 *코드 흐름 B. 단일 태그 오버로드에서 필드 연산으로 이어지는 호출과 빌드 분기다. 두 분기 모두 이전 주소를 반환하지만 갱신하는 저장소가 다르다.*
 
-[확대해서 보기](/assets/research/chrome-m152-externalstring-race/08-exchange-flow.ko.svg)
 
 #### 1. 단일 태그 오버로드
 
@@ -752,7 +750,6 @@ Address ExternalPointerTableEntry::ExchangeExternalPointer(
 
 *코드 흐름 C. 실패 시 expected 상태로 후보를 다시 구성하고, 성공 시 이전 payload의 주소를 반환한다. 반복은 선택된 한 entry 안에서 이루어진다.*
 
-[확대해서 보기](/assets/research/chrome-m152-externalstring-race/09-entry-cas.ko.svg)
 
 
 **입출력 계약**

@@ -4,8 +4,9 @@
   <title>[PWNABLE] NX bit · whrds.log</title><meta name="description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ BOF 하면서 포스팅했어야 하는데 순서가 좀 틀렸네요;; No eXecute bit의 약자로 스택 영역에 실행권한을 부여하지 않는 것이다. 비교를 위해 같은 c파일을 2가지 방법으로 컴파일 했다. non_ex 파일은 NX bit가 비활성화 된 상태이">
   <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/pwnable-nx-bit/">
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-nx-bit/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-nx-bit/">
+  <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] NX bit · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ BOF 하면서 포스팅했어야 하는데 순서가 좀 틀렸네요;; No eXecute bit의 약자로 스택 영역에 실행권한을 부여하지 않는 것이다. 비교를 위해 같은 c파일을 2가지 방법으로 컴파일 했다. non_ex 파일은 NX bit가 비활성화 된 상태이"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-nx-bit/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=4891981d7f40">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=1fc732d5bd58"><link rel="stylesheet" href="/assets/site-tools.css?v=1fc732d5bd58">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] NX bit","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ BOF 하면서 포스팅했어야 하는데 순서가 좀 틀렸네요;; No eXecute bit의 약자로 스택 영역에 실행권한을 부여하지 않는 것이다. 비교를 위해 같은 c파일을 2가지 방법으로 컴파일 했다. non_ex 파일은 NX bit가 비활성화 된 상태이","datePublished":"2023-10-22","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-nx-bit/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -18,6 +19,7 @@
       <a href="/ko/about/">소개</a>
     </nav>
     <div class="header-tools">
+      <a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a>
       <div class="language-switch" aria-label="Language">
         <a href="#" class="active" lang="ko" aria-current="true">KO</a>
         <a href="/en/posts/pwnable-nx-bit/" class="" lang="en">EN</a>
@@ -46,7 +48,23 @@
 <p>어셈블리어에서 NOP의 기능은 다음 명령어로 넘기는 것이다.</p>
 <p>즉, 셸코드 앞뒤로 NOP을 패치해준다면 셸코드를 실행하는데 있어서</p>
 <p>방해되는 요소들을 예방할 수 있다.</p>
-</div><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-nx-bit/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
-  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><a href="/ko/feed.xml">RSS ↗</a></div></footer>
-  <script src="/assets/app.js?v=4891981d7f40" defer></script>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-nx-bit/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
+  <dialog class="site-dialog subscribe-dialog" id="subscribe-dialog" aria-labelledby="subscribe-title" aria-describedby="subscribe-description">
+    <div class="dialog-heading"><div><p class="subscribe-kicker">RSS / WHRDS.LOG</p><h2 id="subscribe-title">새 글 구독</h2></div><button class="dialog-close" type="button" data-dialog-close aria-label="닫기">×</button></div>
+    <p id="subscribe-description">RSS 앱에 피드를 추가하면 새 글을 모아볼 수 있어요. 원하는 언어를 선택하세요.</p>
+    <div class="feed-languages" role="group" aria-label="구독 언어"><button type="button" data-feed-language="ko" aria-pressed="true">한국어</button><button type="button" data-feed-language="en" aria-pressed="false">English</button></div>
+    <label class="feed-label" for="feed-url">RSS 주소</label>
+    <div class="feed-copy-row"><input id="feed-url" type="url" readonly spellcheck="false" value="https://whrds.github.io/ko/feed.xml" data-feed-origin="https://whrds.github.io"><button class="tool-button" type="button" data-copy-feed>주소 복사</button></div>
+    <p class="feed-status" data-feed-status role="status" aria-live="polite"></p>
+    <div class="feed-actions"><a class="tool-button" data-reader-link href="https://www.inoreader.com/?add_feed=https%3A%2F%2Fwhrds.github.io%2Fko%2Ffeed.xml" target="_blank" rel="noopener noreferrer">Inoreader에서 구독 ↗</a><a class="feed-raw-link" data-feed-link href="https://whrds.github.io/ko/feed.xml">RSS 피드 열기 ↗</a></div>
+    <p class="dialog-note">RSS 주소는 다른 구독 앱에서도 사용할 수 있어요.</p>
+  </dialog>
+  <dialog class="site-dialog image-lightbox" id="image-lightbox" aria-labelledby="image-lightbox-title">
+    <div class="image-toolbar"><h2 id="image-lightbox-title">이미지 확대</h2><div><button class="tool-button" type="button" data-image-scale aria-pressed="false">더 확대</button><button class="dialog-close" type="button" data-dialog-close aria-label="닫기">×</button></div></div>
+    <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
+    <p class="image-caption" data-image-caption></p>
+  </dialog>
+  <script src="/assets/app.js?v=1fc732d5bd58" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=1fc732d5bd58"></script>
 </body></html>
