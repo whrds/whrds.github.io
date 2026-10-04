@@ -55,7 +55,7 @@ test('invalid counters and network failures never become fabricated zeros', asyn
   await assert.rejects(requestViewCounts({ ...input, endpoint: 'http://counter.invalid/api', fetcher: async () => { throw new Error('must not be called'); } }));
 });
 
-test('external counters remain disabled and generated pages expose working RSS controls', async () => {
+test('external counters remain disabled and generated pages preserve RSS and protection controls', async () => {
   const settings = JSON.parse(await read('site-features.json'));
   assert.equal(settings.views.enabled, false);
   assert.equal(settings.views.endpoint, null);
@@ -73,8 +73,9 @@ test('external counters remain disabled and generated pages expose working RSS c
     for (const route of routes) {
       const $ = load(await read(route));
       assert.equal($('link[type="application/rss+xml"]').attr('href'), '/' + language + '/feed.xml');
-      assert.equal($('[data-view-endpoint]').length, 0);
-      assert.equal($('[data-view-kind]').length, 0);
+      assert.equal($('[data-view-endpoint], [data-view-kind], .counter-info').length, 0);
+      assert.equal($('[data-content-notice][hidden]').length, 1);
+      assert.equal($('.print-notice').length, 1);
       assert.equal($('#subscribe-dialog').length, 1);
       assert.equal($('#image-lightbox').length, 1);
       assert.equal($('#subscribe-dialog[open], #image-lightbox[open]').length, 0);
@@ -89,4 +90,6 @@ test('external counters remain disabled and generated pages expose working RSS c
     assert.equal(article('.prose img').length, 9);
     assert.equal(article('.prose a').toArray().filter(node => /확대해서 보기|View at full size/.test(article(node).text())).length, 0);
   }
+  const missing = load(await read('docs/404.html'));
+  assert.equal(missing('[data-view-endpoint], [data-view-kind], .counter-info').length, 0);
 });

@@ -5,7 +5,7 @@ import matter from 'gray-matter';
 import MarkdownIt from 'markdown-it';
 import { build as bundle } from 'esbuild';
 import { highlightMarkdownCode } from './syntax-highlighting.mjs';
-import { subscribeButton, subscribeCard, viewCount, siteDialogs } from './site-features.mjs';
+import { subscribeButton, subscribeCard, viewCount, siteDialogs, counterNotice } from './site-features.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const contentDir = path.join(root, 'content');
@@ -124,6 +124,7 @@ function header(lang, alternate, active = 'notes') {
 
 function layout({ lang, title, description, route, alternate, body, active = 'notes', type = 'website', date, countKey }) {
   const t = copy[lang];
+  const countViews = viewsEnabled && route !== '/404.html';
   const pageTitle = title ? `${escapeHtml(title)} · whrds.log` : 'whrds.log';
   const canonical = absolute(route);
   const counterPage = absolute(countKey ? `/posts/${encodeURIComponent(countKey)}/` : route.replace(/^\/(ko|en)(?=\/)/, '') || '/');
@@ -141,11 +142,14 @@ function layout({ lang, title, description, route, alternate, body, active = 'no
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=${assetVersion}"><link rel="stylesheet" href="/assets/site-tools.css?v=${assetVersion}">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 ${jsonLd}
-</head><body${viewsEnabled && route !== '/404.html' ? ` data-view-endpoint="${escapeHtml(features.views.endpoint)}" data-view-page="${escapeHtml(counterPage)}"` : ''}>
+</head><body${countViews ? ` data-view-endpoint="${escapeHtml(features.views.endpoint)}" data-view-page="${escapeHtml(counterPage)}"` : ''}>
   <a class="skip-link" href="#main">${lang === 'ko' ? '본문으로 건너뛰기' : 'Skip to content'}</a>
   ${header(lang, altRoute, active)}
   <main id="main">${body}</main>
-  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© ${new Date().getUTCFullYear()} whrds.log</span></span><span>${t.footer}</span><div class="footer-tools">${viewsEnabled ? viewCount(lang, 'site') : ''}<a href="/${lang}/feed.xml" data-subscribe-open>RSS ${lang === 'ko' ? '구독' : 'subscribe'} ↗</a></div></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© ${new Date().getUTCFullYear()} whrds.log</span></span><span>${t.footer}</span><div class="footer-tools">${countViews ? viewCount(lang, 'site') : ''}<a href="/${lang}/feed.xml" data-subscribe-open>RSS ${lang === 'ko' ? '구독' : 'subscribe'} ↗</a></div></div></footer>
+${countViews ? counterNotice(lang) : ''}
+  <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>${lang === 'ko' ? '이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.' : 'Copying and saving this page’s text, images, and code is restricted.'}</p>
+  <p class="print-notice">${lang === 'ko' ? 'whrds.log · 이 페이지의 인쇄 및 PDF 저장은 제한되어 있습니다. 블로그에서 내용을 확인해 주세요.' : 'whrds.log · Printing and saving this page as PDF is restricted. Please read it on the blog.'}</p>
   ${siteDialogs(lang, siteUrl)}
   <script src="/assets/app.js?v=${assetVersion}" defer></script>
   <script type="module" src="/assets/site-tools.js?v=${assetVersion}"></script>

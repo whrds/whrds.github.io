@@ -13,7 +13,7 @@ export function feedLinks(origin, language) {
   return { feed, reader: 'https://www.inoreader.com/?add_feed=' + encodeURIComponent(feed) };
 }
 
-// The shipped configuration is disabled. No request is made without an explicitly configured endpoint.
+// No request is made without an explicitly configured endpoint.
 export async function requestViewCounts({ endpoint, pageUrl, increment, signal, fetcher = globalThis.fetch }) {
   const target = new URL(endpoint);
   const page = new URL(pageUrl);
@@ -113,17 +113,16 @@ function setupImageViewer(ko) {
   };
   document.querySelectorAll('.prose img').forEach(image => {
     image.draggable = false;
-    let trigger = image.closest('a');
-    if (!trigger) {
-      trigger = document.createElement('button');
-      trigger.type = 'button';
+    if (image.closest('.image-zoom')) return;
+    const link = image.closest('a');
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    if (link) {
+      link.replaceWith(trigger);
+      trigger.append(...link.childNodes);
+    } else {
       image.replaceWith(trigger);
       trigger.append(image);
-    } else {
-      trigger.setAttribute('role', 'button');
-      trigger.addEventListener('keydown', event => {
-        if (event.key === ' ') { event.preventDefault(); trigger.click(); }
-      });
     }
     trigger.classList.add('image-zoom');
     trigger.setAttribute('aria-haspopup', 'dialog');
@@ -156,24 +155,50 @@ function setupImageViewer(ko) {
 
 export function isProtectedTarget(target) {
   const element = target?.nodeType === 1 ? target : target?.parentElement;
-  return Boolean(element?.closest?.('img, .prose pre, .prose code, .image-zoom, .image-lightbox'));
+  return Boolean(element?.closest?.('img, .prose, .article-header, .image-zoom, .image-lightbox'));
 }
 
 function setupCopyRestrictions() {
+  const notice = document.querySelector('[data-content-notice]');
+  let noticeTimer;
+  const deny = event => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (notice) {
+      notice.hidden = false;
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(() => { notice.hidden = true; }, 2600);
+    }
+  };
+  const isInput = target => {
+    const element = target?.nodeType === 1 ? target : target?.parentElement;
+    return Boolean(element?.closest?.('input, textarea') || element?.isContentEditable);
+  };
+  const protectedNodes = [...document.querySelectorAll('.prose, .article-header, img')];
   document.querySelectorAll('img').forEach(image => { image.draggable = false; });
   document.querySelectorAll('.prose pre').forEach(block => { block.tabIndex = 0; });
-  for (const type of ['contextmenu', 'dragstart']) {
+  for (const type of ['contextmenu', 'dragstart', 'selectstart', 'auxclick']) {
     document.addEventListener(type, event => {
-      if (isProtectedTarget(event.target)) event.preventDefault();
-    });
+      if (!isInput(event.target) && isProtectedTarget(event.target)) deny(event);
+    }, true);
   }
+  // These cancel only shortcuts delivered to the page, never browser-owned menus.
+  document.addEventListener('keydown', event => {
+    const key = event.key.toLowerCase();
+    const modifier = event.ctrlKey || event.metaKey;
+    const devtools = key === 'f12'
+      || ((event.ctrlKey && event.shiftKey) || (event.metaKey && event.altKey)) && ['i', 'j', 'c', 'k'].includes(key);
+    const sourceOrSave = modifier && ['s', 'u', 'p'].includes(key);
+    if (devtools || sourceOrSave) { deny(event); return; }
+    if (isInput(event.target) || isInput(document.activeElement)) return;
+    if (modifier && ((key === 'a' && protectedNodes.length) || (['c', 'x'].includes(key) && isProtectedTarget(event.target)))) deny(event);
+  }, true);
   const guard = event => {
-    if (document.activeElement?.matches('input, textarea, [contenteditable="true"]')) return;
+    if (isInput(event.target) || isInput(document.activeElement)) return;
     const selection = window.getSelection();
     let protectedSelection = isProtectedTarget(event.target);
     if (selection && !selection.isCollapsed) {
-      const protectedNodes = document.querySelectorAll('.prose pre, .prose code, .prose img');
-      protectedSelection ||= [...protectedNodes].some(node => {
+      protectedSelection ||= protectedNodes.some(node => {
         for (let index = 0; index < selection.rangeCount; index++) {
           try { if (selection.getRangeAt(index).intersectsNode(node)) return true; } catch {}
         }
@@ -181,12 +206,12 @@ function setupCopyRestrictions() {
       });
     }
     if (protectedSelection) {
-      event.preventDefault();
       event.clipboardData?.setData('text/plain', '');
+      deny(event);
     }
   };
-  document.addEventListener('copy', guard);
-  document.addEventListener('cut', guard);
+  document.addEventListener('copy', guard, true);
+  document.addEventListener('cut', guard, true);
 }
 
 async function setupViewCounts(ko) {

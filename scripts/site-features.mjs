@@ -16,6 +16,11 @@ export function subscribeCard(lang) {
   return `<aside class="subscribe-card" aria-label="${ko ? '새 글 구독' : 'Follow new posts'}"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>${ko ? '다음 기록도 함께 읽어요.' : 'Keep up with the next field note.'}</h2><p>${ko ? 'RSS 앱에서 새 글을 받아보세요.' : 'Get new posts in your RSS reader.'}</p></div>${subscribeButton(lang)}</aside>`;
 }
 
+export function counterNotice(lang) {
+  const ko = lang === 'ko';
+  return `<details class="counter-info"><summary>${ko ? '조회수 집계 안내' : 'About view counts'}</summary><p>${ko ? '조회수는 <a href="https://busuanzi.9420.ltd/" target="_blank" rel="noopener noreferrer">Busuanzi</a>로 집계합니다. 집계 요청 시 페이지 식별 주소, 접속 IP와 브라우저 정보가 해당 서비스에 전달됩니다. 쿠키나 별도의 방문자 식별자는 보내지 않으며, 주소의 검색 매개변수와 # 뒤의 정보는 제외합니다. 조회수는 기능 활성화 이후의 한영 합산 값이며, 차단 설정이나 연결 상태에 따라 실제 방문 횟수와 차이가 있을 수 있습니다.' : 'Views are counted by <a href="https://busuanzi.9420.ltd/" target="_blank" rel="noopener noreferrer">Busuanzi</a>. Requests disclose the page identifier URL, connection IP address, and browser information to that service. No cookies or additional visitor identifiers are sent, and URL query strings and fragments are excluded. Counts combine Korean and English visits since activation; blockers and connection failures can affect accuracy.'}</p></details>`;
+}
+
 export function siteDialogs(lang, siteUrl) {
   const ko = lang === 'ko';
   const feed = `${siteUrl}/${lang}/feed.xml`;

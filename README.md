@@ -75,19 +75,25 @@ or account is collected by the blog. RSS discovery links are included in each pa
 
 Click an article image to open the keyboard-accessible viewer. Use Zoom in / Fit
 to screen for large diagrams, and Escape or the close button to return to the post.
-Ordinary image dragging, image/code context menus, and copying selected code are
-restricted. These are UI deterrents only: public HTML, code and image files remain
-accessible through developer tools, HTTP requests, screenshots, or disabled JavaScript.
-Feed URLs and normal prose can still be copied.
+Image links become viewer buttons so a middle click cannot open the original file.
+Article text, code, and images restrict ordinary selection, copy/cut, context menus,
+and dragging. Page-delivered DevTools, source-view, save, and print shortcuts are
+cancelled; print styles show a notice instead of the page. RSS URLs and input fields
+still support copying, while browser zoom, Find, dialog Escape, and navigation work.
+These are UI deterrents only: browser menus, direct HTTP requests, screenshots,
+disabled JavaScript, and developer tools can still access public content. No
+debugger loops, window-size detection, or browser-freezing code is used.
 
-View-count rendering and the client are prepared, but external collection is
-disabled in `site-features.json`: `enabled: false`, `endpoint: null`.
-The deployed pages make no counter-service requests while this is disabled.
-Enabling a provider requires the owner's explicit approval of the provider and
-visitor information transmitted, plus a matching on-site privacy explanation.
+View counts remain disabled in `site-features.json`: `enabled: false`,
+`endpoint: null`. No counter-service request is made in the deployed site.
+Activating `https://busuanzi.9420.ltd/api` requires explicit approval of that
+provider receiving visitors' connection IPs and page identifier URLs. The prepared
+Korean/English “About view counts” notice describes the data sent and appears only
+when counters are enabled. Set `enabled` to `false` and rebuild to disable it.
 The prepared client uses JSON over HTTPS, sends no cookies or additional visitor
 identifier, omits the browser referrer, and strips query strings and fragments from
-the counted page. The network provider still receives the connection IP.
+the counted page. Busuanzi still receives the connection IP and browser information;
+this integration does not hide IPs from the receiving service or control its logs.
 Korean and English posts share a key based on `translation_key`. Repeat views in
 the same tab are reduced within 30 minutes when sessionStorage is available.
 Counts begin at activation and do not reconstruct historical visits. They are
@@ -96,3 +102,5 @@ not record visits, and failures display an unavailable state instead of a fake z
 
 Run `node --test scripts/site-tools.test.mjs` after `npm run build` to check the
 feed, generated markup and counter contract without sending any analytics traffic.
+Run `node scripts/verify-site-tools.mjs` for browser checks using local built files
+and mocked counter responses; this also sends no real analytics traffic.

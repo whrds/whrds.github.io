@@ -39,8 +39,11 @@
 .prose .image-zoom { display: inline-block; max-width: 100%; padding: 0; border: 0; border-radius: 10px; background: transparent; color: inherit; line-height: 0; vertical-align: middle; cursor: zoom-in; }
 .prose .image-zoom img { display: block; max-width: 100%; height: auto; margin: 0; }
 .prose .image-zoom:hover { outline: 1px solid var(--accent); outline-offset: 4px; }
-img, .prose pre, .prose code { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+img, .prose, .prose *, .article-header, .article-header *, .image-zoom, .image-lightbox { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.prose input, .prose textarea, .prose [contenteditable="true"], .prose [contenteditable="true"] * { user-select: text; -webkit-user-select: text; -webkit-touch-callout: default; }
 img { -webkit-user-drag: none; }
+.content-notice { position: fixed; z-index: 100; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); width: max-content; max-width: calc(100vw - 32px); margin: 0; padding: 12px 18px; transform: translateX(-50%); border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); box-shadow: 0 8px 30px #0005; font-size: 13px; line-height: 1.6; text-align: center; pointer-events: none; }
+.content-notice[hidden], .print-notice { display: none; }
 .image-lightbox { width: min(1600px, calc(100vw - 32px)); max-width: none; height: calc(100dvh - 32px); padding: 0; }
 .image-lightbox[open] { display: flex; flex-direction: column; }
 .image-toolbar { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
@@ -71,5 +74,6 @@ img { -webkit-user-drag: none; }
   .counter-info { padding: 0 18px; }
 }
 @media print {
-  .subscribe-button, .subscribe-card, .site-dialog, .footer-tools, .counter-info { display: none !important; }
+  body > * { display: none !important; }
+  body > .print-notice { display: block !important; padding: 24px; color: #111; background: #fff; font: 16px/1.8 sans-serif; }
 }
