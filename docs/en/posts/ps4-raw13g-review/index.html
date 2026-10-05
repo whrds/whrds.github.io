@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en" data-theme="dark"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PS4] Reading the raw13g Code · whrds.log</title><meta name="description" content="Following raw13g from its file structure through the main functions, Worker communication, and logging.">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/ps4-raw13g-review/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/ps4-raw13g-review/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/ps4-raw13g-review/">
+  <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PS4] Reading the raw13g Code · whrds.log"><meta property="og:description" content="Following raw13g from its file structure through the main functions, Worker communication, and logging."><meta property="og:url" content="https://whrds.github.io/en/posts/ps4-raw13g-review/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PS4] Reading the raw13g Code","description":"Following raw13g from its file structure through the main functions, Worker communication, and logging.","datePublished":"2026-10-05","inLanguage":"en","url":"https://whrds.github.io/en/posts/ps4-raw13g-review/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/categories/">Categories</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a>
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/ps4-raw13g-review/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PS4] Reading the raw13g Code</h1><p class="article-description">Following raw13g from its file structure through the main functions, Worker communication, and logging.</p><div class="article-meta"><a class="post-category" href="/en/categories/firmware/">STUDY / Firmware Analysis</a><span>·</span><time datetime="2026-10-05">Oct 5, 2026</time><span>·</span><span>18 min read</span></div></div></header><div class="prose"><p>This time, I will work through the <code>raw13g</code> code used on PS4.</p>
+<p>The execution notes reported that GoldHEN appeared, but the screen alone did not explain what each file was doing. There were several JavaScript files, along with separate binaries loaded by the page. I started by looking at how those files fit together, then followed the values passed between the main functions.</p>
+<p>The version parsing and logging code also caught my attention. These are easy to overlook when checking only the final result, so I will go through them as well.</p>
+<h2>1. The analysis target</h2>
+<p>The code comes from <code>raw13g/raw13g.github.io</code>. Since the repository can change, this is the commit used for the analysis. [1]</p>
+<pre><code class="language-text">Repository: raw13g/raw13g.github.io
+Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
+</code></pre>
+<p>I first compared the source with the deployment files collected alongside it. The point was to check whether the code being read and the collected deployment files contained the same bytes.</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Result</th>
+<th>What it tells us</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MANIFEST.sha256</code></td>
+<td><strong>All 48 listed files match</strong></td>
+<td>Files agree with the accompanying hash list</td>
+</tr>
+<tr>
+<td><code>source/</code> and <code>deployed/</code></td>
+<td><strong>All 15 corresponding files match</strong></td>
+<td>Collected source and deployment copies are identical</td>
+</tr>
+<tr>
+<td>JavaScript syntax</td>
+<td>Existing record has <strong>6 PASS results</strong></td>
+<td>A syntax check, separate from checking runtime behavior</td>
+</tr>
+</tbody>
+</table>
+<p>The count of 48 includes documents and inspection records, while the 15 pairs cover web deployment files. The manifest itself and Git internals are excluded from the 48.</p>
+<p>This establishes agreement between the files. It does not identify their publisher: someone able to replace the files could also replace the accompanying hash list. That distinction comes up again when looking at the binaries.</p>
+<p><img src="/assets/research/ps4-raw13g-review/01-evidence-en.svg" alt="What file comparisons, execution observations, and publisher checks establish"></p>
+<p><em>Figure 1. Whether files match, whether they ran, and who produced them are separate questions.</em></p>
+<h2>2. Structure and main functions</h2>
+<p>Let us start with the role of each file. <code>index.html</code> is the entry screen, and <code>jb.html</code> displays progress. The JavaScript module connecting the rest is <code>jb.js</code>. It imports the other modules, communicates with Workers, and receives the external files it needs. [2]</p>
+<p><img src="/assets/research/ps4-raw13g-review/04-modules-en.svg" alt="Connections between the entry pages and JavaScript modules"></p>
+<p><em>Figure 2. How the files connect, starting from the interface.</em></p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Input or state</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>index.html</code></td>
+<td>User-Agent, cache state</td>
+<td>Firmware display and navigation</td>
+</tr>
+<tr>
+<td><code>jb.html</code></td>
+<td>DOM elements, module script</td>
+<td>Progress UI and the context for <code>jb.js</code></td>
+</tr>
+<tr>
+<td><code>ps4_offsets.js</code></td>
+<td>User-Agent string</td>
+<td>Look up a version key and configuration object</td>
+</tr>
+<tr>
+<td><code>int64.js</code></td>
+<td>Low and high 32-bit words</td>
+<td>Represent, calculate, and format 64-bit values</td>
+</tr>
+<tr>
+<td><code>core.js</code></td>
+<td>Browser environment, options, event callback</td>
+<td>Construct a carrier of browser memory functionality</td>
+</tr>
+<tr>
+<td><code>mem.js</code></td>
+<td>Carrier, installation options</td>
+<td>Provide a common memory interface to other code</td>
+</tr>
+<tr>
+<td><code>rpc_worker.js</code></td>
+<td>Message containing an ID, function name, and arguments</td>
+<td>Return a result or error with the same ID</td>
+</tr>
+<tr>
+<td><code>jb.js</code></td>
+<td>Configuration, module results, Worker replies, file responses</td>
+<td>Coordinate the flow and record diagnostics</td>
+</tr>
+<tr>
+<td><code>cache.appcache</code></td>
+<td>Resource paths, cache rules</td>
+<td>Define offline resources and network handling</td>
+</tr>
+</tbody>
+</table>
+<p>The following sections go through the main functions with source excerpts. Where an excerpt is only part of a function, I describe that block’s role. For <code>core.js</code> and <code>mem.js</code>, the focus is on the objects and interfaces passed between the modules.</p>
+<h3>2.1 <code>index.html</code> and <code>jb.html</code>: what the entry page does</h3>
+<p>The version parser in <code>index.html</code> was an early point of interest. It finds two groups of digits in the User-Agent and produces <code>key</code> and <code>fwnum</code>.</p>
+<p><em><code>index.html</code> · L49–L56</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">var</span> key = <span class="hljs-literal">null</span>, fwnum = <span class="hljs-literal">null</span>;
+<span class="hljs-keyword">var</span> m = <span class="hljs-regexp">/PlayStation\s+4[\/ ](\d+)\.(\d+)/</span>.<span class="hljs-title function_">exec</span>(navigator.<span class="hljs-property">userAgent</span>);
+<span class="hljs-keyword">if</span> (m) {
+    <span class="hljs-keyword">var</span> ms = <span class="hljs-built_in">parseInt</span>(m[<span class="hljs-number">2</span>], <span class="hljs-number">16</span>).<span class="hljs-title function_">toString</span>(<span class="hljs-number">16</span>);
+    <span class="hljs-keyword">if</span> (ms.<span class="hljs-property">length</span> &lt; <span class="hljs-number">2</span>) ms = <span class="hljs-string">&quot;0&quot;</span> + ms;
+    key = m[<span class="hljs-number">1</span>] + <span class="hljs-string">&quot;.&quot;</span> + ms;
+    fwnum = <span class="hljs-built_in">parseInt</span>(m[<span class="hljs-number">1</span>], <span class="hljs-number">10</span>) * <span class="hljs-number">100</span> + <span class="hljs-built_in">parseInt</span>(ms, <span class="hljs-number">10</span>);
+}
+</code></pre>
+<p>Take <code>13.52</code> as an example. The second group is <code>&quot;52&quot;</code>. Parsing it as hexadecimal and converting it back to a hexadecimal string leaves <code>ms</code> as <code>&quot;52&quot;</code>. The later decimal calculation produces <code>fwnum = 1352</code>.</p>
+<p>Why make two values from one version? <code>key</code> is the string used for configuration lookup and display, while <code>fwnum</code> is the number compared with the entry screen’s support list. Each represents the same input in the form its caller needs.</p>
+<p>The input is still the User-Agent. This code does not inspect firmware files or read the console’s kernel version. Its job here is <strong>normalizing a version string</strong>.</p>
+<p>Next is the module entry point in <code>jb.html</code>.</p>
+<p><em><code>jb.html</code> · L156–L158</em></p>
+<pre><code class="hljs language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;module&quot;</span>&gt;</span><span class="language-javascript">
+  <span class="hljs-keyword">import</span> <span class="hljs-string">&quot;./jb.js?v=19&quot;</span>;
+</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+</code></pre>
+<p>The HTML contains plenty of styling and interface elements, but this declaration shows where the behavior begins. <code>jb.html</code> prepares the status DOM and loads <code>jb.js</code> as a module. The <code>?v=19</code> suffix distinguishes the resource URL; it does not verify the file’s contents or publisher.</p>
+<h3>2.2 <code>offsetsFor()</code>: finding configuration for a version</h3>
+<p>Once there is a version string, the code needs the corresponding configuration. Here is the lookup function from <code>ps4_offsets.js</code>.</p>
+<p><em><code>ps4_offsets.js</code> · L647–L653</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">offsetsFor</span>(<span class="hljs-params">uaString</span>) {
+  <span class="hljs-keyword">const</span> m = (uaString || <span class="hljs-string">&quot;&quot;</span>).<span class="hljs-title function_">match</span>(<span class="hljs-regexp">/PlayStation\s+4[\/ ](\d+)\.(\d+)/</span>);
+  <span class="hljs-keyword">if</span> (!m) <span class="hljs-keyword">return</span> { <span class="hljs-attr">key</span>: <span class="hljs-literal">null</span>, <span class="hljs-attr">off</span>: <span class="hljs-literal">null</span> };
+
+  <span class="hljs-keyword">const</span> key = m[<span class="hljs-number">1</span>] + <span class="hljs-string">&quot;.&quot;</span> + <span class="hljs-built_in">parseInt</span>(m[<span class="hljs-number">2</span>], <span class="hljs-number">16</span>).<span class="hljs-title function_">toString</span>(<span class="hljs-number">16</span>).<span class="hljs-title function_">padStart</span>(<span class="hljs-number">2</span>, <span class="hljs-string">&quot;0&quot;</span>);
+  <span class="hljs-keyword">return</span> { key, <span class="hljs-attr">off</span>: <span class="hljs-title class_">PS4</span>[key] || <span class="hljs-literal">null</span> };
+}
+</code></pre>
+<p>It returns <code>{ key, off }</code>. If the string has the wrong shape, both fields are <code>null</code>. If the shape matches but the <code>PS4</code> table has no entry, <code>key</code> remains available and only <code>off</code> becomes <code>null</code>.</p>
+<p>The caller can therefore distinguish a version it could not parse from a version with no configuration. That explains why this short function returns two fields.</p>
+<p>Its job ends at lookup. An entry in the table does not establish that the values are correct on hardware. The support list is in <code>index.html</code>, while the configuration is in <code>ps4_offsets.js</code>, so their descriptions also need to be read together. I return to this in Section 4.</p>
+<h3>2.3 <code>core.js</code> and <code>mem.js</code>: building functionality and wrapping it</h3>
+<p>These imports appear at the start of <code>jb.js</code>.</p>
+<p><em><code>jb.js</code> · L1–L4</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">import</span> { establishPrimitive } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;./core.js?v=10&quot;</span>;
+<span class="hljs-keyword">import</span> { installWindowP, pairStatus } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;./mem.js&quot;</span>;
+<span class="hljs-keyword">import</span> { int64 } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;./int64.js&quot;</span>;
+<span class="hljs-keyword">import</span> { offsetsFor } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;./ps4_offsets.js&quot;</span>;
+</code></pre>
+<p><code>establishPrimitive()</code> returns a carrier through an asynchronous operation. Here, a carrier is an object grouping the browser-side memory functionality used by later code. <code>installWindowP()</code> takes that object, builds a common interface, and exposes it through the global <code>p</code>. <code>pairStatus</code> describes state in the same module.</p>
+<p>The names become easier to follow when their roles are separated.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th><code>core.js</code></th>
+<th><code>mem.js</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Job</td>
+<td>Build the browser-dependent foundation</td>
+<td>Wrap it in an API for other code</td>
+</tr>
+<tr>
+<td>What it exposes</td>
+<td>Preparation result and events</td>
+<td>Consistently shaped functions and state</td>
+</tr>
+<tr>
+<td>Reason for the split</td>
+<td>Keep the underlying implementation together</td>
+<td>Avoid making every caller handle its internal representation</td>
+</tr>
+</tbody>
+</table>
+<p>This arrangement lets callers use the functionality without repeatedly dealing with its implementation. An API wrapper does not, however, add a sandbox restricting the addresses a caller can access. Other scripts in the page can also access <code>globalThis.p</code>, so the trust placed in those scripts matters.</p>
+<p>I read this split as a way to organize the code that constructs functionality and the code that uses it. The presence of an interface does not by itself establish that everything underneath behaves correctly.</p>
+<h3>2.4 <code>int64.js</code>: why the value is stored in two parts</h3>
+<p>JavaScript’s ordinary <code>Number</code> cannot represent every 64-bit integer exactly. This file therefore stores the low 32 bits in <code>low</code> and the high 32 bits in <code>hi</code>. This excerpt initializes the constructor’s fields.</p>
+<p><em><code>int64.js</code> · L12–L16</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-variable language_">this</span>.<span class="hljs-property">low</span> = low &gt;&gt;&gt; <span class="hljs-number">0</span>;
+
+<span class="hljs-variable language_">this</span>.<span class="hljs-property">hi</span> = hi &gt;&gt;&gt; <span class="hljs-number">0</span>;
+
+<span class="hljs-variable language_">this</span>.<span class="hljs-property">backing</span> = <span class="hljs-literal">null</span>;
+</code></pre>
+<p><code>&gt;&gt;&gt; 0</code> converts each input to an unsigned 32-bit value. Together, the fields represent <code>hi × 2³² + low</code>. <code>backing</code> is a separate field for an associated byte view rather than part of that number.</p>
+<p>The arithmetic method names also distinguish behavior. Methods containing <code>inplace</code> change the current object, while methods such as <code>add32()</code> return a new result. When reading callers, it matters whether the original value changes.</p>
+<p>There is another detail worth examining in the string conversion. Here is the complete <code>toString()</code> method.</p>
+<p><em><code>int64.js</code> · L100–L112</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-variable language_">this</span>.<span class="hljs-property">toString</span> = <span class="hljs-keyword">function</span> (<span class="hljs-params">radix = <span class="hljs-number">16</span></span>) {
+  <span class="hljs-keyword">let</span> lo_str = (<span class="hljs-variable language_">this</span>.<span class="hljs-property">low</span> &gt;&gt;&gt; <span class="hljs-number">0</span>).<span class="hljs-title function_">toString</span>(radix);
+  <span class="hljs-keyword">let</span> hi_str = (<span class="hljs-variable language_">this</span>.<span class="hljs-property">hi</span> &gt;&gt;&gt; <span class="hljs-number">0</span>).<span class="hljs-title function_">toString</span>(radix);
+
+  <span class="hljs-keyword">if</span> (<span class="hljs-variable language_">this</span>.<span class="hljs-property">hi</span> == <span class="hljs-number">0</span>) {
+    <span class="hljs-keyword">return</span> lo_str;
+  } <span class="hljs-keyword">else</span> {
+    <span class="hljs-keyword">const</span> width = radix === <span class="hljs-number">16</span> ? <span class="hljs-number">8</span> : <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">ceil</span>(<span class="hljs-number">32</span> / <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">log2</span>(radix));
+    lo_str = <span class="hljs-title function_">zeroFill</span>(lo_str, width);
+  }
+
+  <span class="hljs-keyword">return</span> hi_str + lo_str;
+};
+</code></pre>
+<p>For its default hexadecimal format, it pads the low word to eight digits and appends it to the high word. Each hexadecimal digit represents four bits, so the low 32 bits occupy exactly eight digits. Concatenation works in this case.</p>
+<p>Does the same rule work in other bases? Consider <code>hi=1</code>, <code>low=0</code>. The represented value is <code>4294967296</code>. In decimal mode, this method pads the low string to ten digits and prefixes <code>1</code>, producing <code>10000000000</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Fields</th>
+<th>Base</th>
+<th>String produced by the code</th>
+<th>Correct string</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hi=1</code>, <code>low=0</code></td>
+<td>16</td>
+<td><code>100000000</code></td>
+<td><code>100000000</code></td>
+</tr>
+<tr>
+<td><code>hi=1</code>, <code>low=0</code></td>
+<td>10</td>
+<td><code>10000000000</code></td>
+<td><code>4294967296</code></td>
+</tr>
+</tbody>
+</table>
+<p>This is a <strong>formatting issue</strong> visible by following the calculation. It does not establish that the chain failed in practice. It does show that accepting a radix argument is not enough to make conversion correct for every supported argument.</p>
+<h3>2.5 <code>makeRpc()</code>: waiting for a Worker reply</h3>
+<p><code>jb.js</code> exchanges messages with Workers. <code>makeRpc()</code> takes a Worker and returns a function for making calls. RPC here refers to calls between the page’s main thread and a Worker, rather than a server on another computer.</p>
+<p><em><code>jb.js</code> · L662–L693</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">makeRpc</span>(<span class="hljs-params">wk, name</span>) {
+  <span class="hljs-keyword">let</span> seq = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">const</span> pending = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Map</span>();
+  wk.<span class="hljs-property">onmessage</span> = <span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) {
+    <span class="hljs-keyword">const</span> d = e.<span class="hljs-property">data</span> || {};
+    <span class="hljs-keyword">const</span> slot = pending.<span class="hljs-title function_">get</span>(d.<span class="hljs-property">id</span>);
+    <span class="hljs-keyword">if</span> (!slot) <span class="hljs-keyword">return</span>;
+    pending.<span class="hljs-title function_">delete</span>(d.<span class="hljs-property">id</span>);
+    <span class="hljs-keyword">if</span> (slot.<span class="hljs-property">timer</span>) <span class="hljs-built_in">clearTimeout</span>(slot.<span class="hljs-property">timer</span>);
+    <span class="hljs-keyword">if</span> (d.<span class="hljs-property">type</span> === <span class="hljs-string">&quot;err&quot;</span>) slot.<span class="hljs-title function_">reject</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(<span class="hljs-title class_">String</span>(d.<span class="hljs-property">value</span>)));
+    <span class="hljs-keyword">else</span> slot.<span class="hljs-title function_">resolve</span>(d.<span class="hljs-property">value</span>);
+  };
+  wk.<span class="hljs-property">onerror</span> = <span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span>
+    <span class="hljs-title function_">mark</span>(
+      <span class="hljs-string">&quot;WORKER-ONERROR&quot;</span>,
+      name + <span class="hljs-string">&quot; &quot;</span> + (e &amp;&amp; e.<span class="hljs-property">message</span> ? e.<span class="hljs-property">message</span> : <span class="hljs-title class_">String</span>(e)),
+    );
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">call</span>(<span class="hljs-params">fname, timeoutMs, ...args</span>) {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Promise</span>(<span class="hljs-keyword">function</span> (<span class="hljs-params">resolve, reject</span>) {
+      <span class="hljs-keyword">const</span> id = seq++;
+      <span class="hljs-keyword">const</span> timer =
+        timeoutMs &gt; <span class="hljs-number">0</span>
+          ? <span class="hljs-built_in">setTimeout</span>(<span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) {
+              pending.<span class="hljs-title function_">delete</span>(id);
+              <span class="hljs-title function_">reject</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(name + <span class="hljs-string">&quot;: timeout waiting for &quot;</span> + fname));
+            }, timeoutMs)
+          : <span class="hljs-literal">null</span>;
+      pending.<span class="hljs-title function_">set</span>(id, { resolve, reject, timer });
+      wk.<span class="hljs-title function_">postMessage</span>({ <span class="hljs-attr">id</span>: id, <span class="hljs-attr">name</span>: fname, <span class="hljs-attr">args</span>: args });
+    });
+  };
+}
+</code></pre>
+<p>The central data structure is the <code>pending</code> Map. Each request receives an increasing <code>id</code>, which is associated with the Promise’s <code>resolve</code>, <code>reject</code>, and timer. The Worker receives <code>{ id, name, args }</code>. When a reply carries the same ID, the code can find the Promise waiting for it.</p>
+<p>The reply handler first removes the pending entry and clears its timer. It then calls <code>reject</code> if <code>type</code> is <code>&quot;err&quot;</code>, or <code>resolve</code> otherwise. A reply for an already finished request has no matching entry and is ignored. This handles late or duplicate responses.</p>
+<p><img src="/assets/research/ps4-raw13g-review/05-rpc-en.svg" alt="A request ID connects a Worker reply to its waiting Promise"></p>
+<p><em>Figure 3. The <code>id</code> identifies which request a reply belongs to.</em></p>
+<p>On the other side, <code>rpc_worker.js</code> reads the function name and arguments, finds the function in <code>api</code>, invokes it, and responds with <code>{ id, type, value }</code>. Both ends need to agree on the ID and response format for this connection to work.</p>
+<p>Two details stood out. A request ID distinguishes calls; it is not an authorization credential. This code trusts the Worker created by the same page, and there is no separate layer here checking the meaning of arguments or the detailed reply structure.</p>
+<p>Also, <code>wk.onerror</code> records an error without immediately settling all waiting Promises. If a call has no timeout, this function alone cannot guarantee that it finishes. These are observations about message handling and completion conditions, not a demonstrated externally exploitable vulnerability.</p>
+<h3>2.6 File loading: turning a response into bytes</h3>
+<p>This block receives the selected file.</p>
+<p><em><code>jb.js</code> · L3023–L3028</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">try</span> {
+  <span class="hljs-keyword">const</span> r = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetch</span>(<span class="hljs-variable constant_">PAYLOAD_FILE</span>);
+  <span class="hljs-keyword">if</span> (r.<span class="hljs-property">ok</span>) payloadBlob = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Uint8Array</span>(<span class="hljs-keyword">await</span> r.<span class="hljs-title function_">arrayBuffer</span>());
+} <span class="hljs-keyword">catch</span> (e) {
+  <span class="hljs-title function_">mark</span>(<span class="hljs-string">&quot;PAYLOAD-FETCH-THREW&quot;</span>, (e &amp;&amp; e.<span class="hljs-property">message</span>) || <span class="hljs-title class_">String</span>(e));
+}
+</code></pre>
+<p>If the response’s <code>r.ok</code> is true, the code reads its body with <code>arrayBuffer()</code> and wraps it in a <code>Uint8Array</code>. That view provides byte-by-byte access to the received file, preparing it in a form later code can use.</p>
+<p>This is the reception step. Neither <code>arrayBuffer()</code> nor <code>Uint8Array</code> interprets the file’s meaning or verifies who produced it. A successful HTTP response and a file with the expected contents are separate checks. Section 5 follows that distinction into the binaries.</p>
+<p>Taken together, <code>jb.js</code> <strong>selects configuration, connects modules, and coordinates asynchronous replies and external files</strong>. Establishing that structure first makes it easier to locate each responsibility in the rest of the code.</p>
+<h2>3. Vulnerability names and causes</h2>
+<p>The accompanying material calls the chain a “1-day.” That label alone was not enough to map each stage to a specific CVE, so the focus here is on reading the published chain’s code. [1, 2]</p>
+<p>The kernel-side code includes asynchronous I/O and object-lifetime races. With asynchronous work, another execution context may still be using an object after the requesting code has finished. When considering a UAF, the useful question is therefore whether <strong>the last operation using that object has finished</strong>, as well as whether cancellation or completion was reported.</p>
+<p>That perspective helps explain the code’s structure. Establishing the precise cause would also require the vulnerable kernel function, its fix, and execution traces. The supplied material did not provide enough evidence for that conclusion.</p>
+<p>The <code>bug=663</code> status string is an internal label, not a CVE identifier. I did not assign a CVE number merely because the code resembled a known class of issue.</p>
+<h2>4. Firmware support</h2>
+<p>The entry screen lists <code>13.02</code>, <code>13.04</code>, <code>13.50</code>, and <code>13.52</code>. This is the list shown by the interface, rather than evidence that all four versions were tested on hardware for this article. [2]</p>
+<p><code>ps4_offsets.js</code> contains entries for more versions. Their descriptions mix hardware checks, offline checks, and unverified states. Looking only for the presence of an entry would miss those differences.</p>
+<table>
+<thead>
+<tr>
+<th>Description</th>
+<th>What it establishes</th>
+<th>What else is needed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UI support list</td>
+<td>The entry screen classifies the version as supported</td>
+<td>Hardware results for each component</td>
+</tr>
+<tr>
+<td>Configuration entry exists</td>
+<td>Values exist for the version key</td>
+<td>Whether they are correct on the console</td>
+</tr>
+<tr>
+<td>Offline verification</td>
+<td>The author reports checking static material</td>
+<td>Runtime results</td>
+</tr>
+<tr>
+<td>Hardware verification</td>
+<td>The author reports checking a console</td>
+<td>Raw logs, trial counts, and conditions</td>
+</tr>
+</tbody>
+</table>
+<p>One concrete detail appears under <code>13.52</code>. Its payload field selects <code>goldhen.bin</code>, but its status description names <code>payload2.bin</code>. Comparing the two files showed that both were 293,120 bytes and had identical contents. In the files reviewed, the name discrepancy therefore did not select different bytes. [1, 2]</p>
+<p>The description and actual field still disagree. If one file changes later, someone reading only the log could misunderstand which file was used. Resource names and their status descriptions need to stay in step.</p>
+<h2>5. What the binary checks cover</h2>
+<p>The separate binaries mark a change in what can be learned from the JavaScript. The loader’s file handling is visible, but that does not explain the binaries’ internal behavior. [1, 2]</p>
+<p><code>goldhen.bin</code> and <code>payload2.bin</code> had the same size and hash:</p>
+<pre><code class="language-text">Size: 293120 bytes
+SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
+</code></pre>
+<p>The three patch binaries were 632 bytes each. Sizes and hashes help identify the files being examined. A hash or a format name reported by a file-identification tool does not explain what those files do internally.</p>
+<p>The loader checks response status, some format conditions, and copy results. In the JavaScript examined, I did not find a path that approved files against a trusted expected hash or publisher signature. <strong>Checking that received bytes were copied correctly does not establish who made them.</strong></p>
+<p><img src="/assets/research/ps4-raw13g-review/02-trust-en.svg" alt="The difference between matching files and checking their publisher or behavior"></p>
+<p><em>Figure 4. What each check can establish.</em></p>
+<p>The material did not include complete build inputs for reproducing the binaries, publisher signatures, or a component inventory. Their internals and provenance therefore remain unresolved here. That is not a finding that the files are malicious.</p>
+<p>I also checked <code>LICENSE</code>. It applies MIT to raw13g-authored code while identifying payloads, patches, and some primitive files as third-party components. A license at the repository root does not necessarily put every file under the same terms.</p>
+<h2>6. What the hashes in the cache file mean</h2>
+<p>In <code>cache.appcache</code>, resource paths are followed by <code>#</code> and hash strings. They can look like file-verification fields at first. However, AppCache does not compare those strings against the downloaded file contents as expected hashes. Reading the parsing rules alongside the file-handling code makes the distinction between recording a hash and enforcing it clear. [2, 6]</p>
+<p>A cache can also continue using previously received files. Opening the same URL does not necessarily mean using the same bytes. In that situation, the file hash and active resource version matter alongside the URL.</p>
+<p>The network section is:</p>
+<p><em><code>cache.appcache</code> · L21–L22</em></p>
+<pre><code class="language-text">NETWORK:
+*
+</code></pre>
+<p>With <code>NETWORK: *</code>, using an offline cache does not mean all network requests are blocked. That is what the configuration says; it is not a new measurement of cache updates or requests on the console.</p>
+<h2>7. Reading the logging code</h2>
+<p>Logging does more than put a string on the screen. Following <code>terse()</code>, <code>mark()</code>, <code>post()</code>, and <code>trace()</code> reveals a split between displayed values and transmitted values. I will go through them in turn. [2]</p>
+<h3>7.1 <code>terse()</code>: shortening the displayed string</h3>
+<p>Here is the complete <code>terse()</code> function. <code>VERBOSE</code> and <code>PROSE</code> are a display option and a list of regular expressions defined outside it.</p>
+<p><em><code>jb.js</code> · L39–L49</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">terse</span>(<span class="hljs-params">s</span>) {
+  <span class="hljs-keyword">if</span> (<span class="hljs-variable constant_">VERBOSE</span> || s == <span class="hljs-literal">null</span>) <span class="hljs-keyword">return</span> s;
+  s = <span class="hljs-title class_">String</span>(s);
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> re <span class="hljs-keyword">of</span> <span class="hljs-variable constant_">PROSE</span>) {
+    <span class="hljs-keyword">const</span> m = re.<span class="hljs-title function_">exec</span>(s);
+    <span class="hljs-keyword">if</span> (m &amp;&amp; m.<span class="hljs-property">index</span> &gt; <span class="hljs-number">0</span>) s = s.<span class="hljs-title function_">slice</span>(<span class="hljs-number">0</span>, m.<span class="hljs-property">index</span>);
+  }
+  s = s.<span class="hljs-title function_">replace</span>(<span class="hljs-regexp">/\s+$/</span>, <span class="hljs-string">&quot;&quot;</span>);
+  <span class="hljs-keyword">if</span> (s.<span class="hljs-property">length</span> &gt; <span class="hljs-number">140</span>) s = s.<span class="hljs-title function_">slice</span>(<span class="hljs-number">0</span>, <span class="hljs-number">140</span>) + <span class="hljs-string">&quot;...&quot;</span>;
+  <span class="hljs-keyword">return</span> s;
+}
+</code></pre>
+<p>If <code>VERBOSE</code> is enabled or the input is <code>null</code>, the function returns the input unchanged. Otherwise, it converts the value to a string and checks the first match for each expression in <code>PROSE</code>. A match starting after position zero causes the following text to be removed. Finally, it removes trailing whitespace and truncates strings longer than 140 characters, appending an ellipsis.</p>
+<p>The rules operate on the string’s shape and length. There is no rule here for identifying and removing IP addresses, tokens, or user identifiers. Shorter text on the screen does not establish that sensitive information has been removed.</p>
+<h3>7.2 <code>mark()</code>: keeping the original and display values apart</h3>
+<p>Next is <code>mark()</code>.</p>
+<p><em><code>jb.js</code> · L64–L89</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">mark</span>(<span class="hljs-params">tag, detail</span>) {
+  <span class="hljs-keyword">const</span> raw = detail;
+  detail = <span class="hljs-title function_">terse</span>(detail);
+  lines.<span class="hljs-title function_">push</span>(tag + (detail == <span class="hljs-literal">null</span> || detail === <span class="hljs-string">&quot;&quot;</span> ? <span class="hljs-string">&quot;&quot;</span> : <span class="hljs-string">&quot;  &quot;</span> + detail));
+  <span class="hljs-keyword">if</span> (<span class="hljs-variable constant_">SHOW_LOG</span> &amp;&amp; outEl) {
+    <span class="hljs-keyword">const</span> <span class="hljs-title function_">esc</span> = (<span class="hljs-params">t</span>) =&gt; <span class="hljs-title class_">String</span>(t).<span class="hljs-title function_">replace</span>(<span class="hljs-regexp">/&amp;/g</span>, <span class="hljs-string">&quot;&amp;amp;&quot;</span>).<span class="hljs-title function_">replace</span>(<span class="hljs-regexp">/&lt;/g</span>, <span class="hljs-string">&quot;&amp;lt;&quot;</span>);
+    outEl.<span class="hljs-property">innerHTML</span> = lines
+      .<span class="hljs-title function_">map</span>(<span class="hljs-keyword">function</span> (<span class="hljs-params">l</span>) {
+        l = <span class="hljs-title function_">esc</span>(l);
+        <span class="hljs-keyword">const</span> c =
+          <span class="hljs-regexp">/FAIL|ERROR|THREW|REBOOT|MISS|LOST|POISON|TIMEOUT|MISMATCH|ABORTED|GIVEUP|NO-STORAGE|UNSEEN/i</span>.<span class="hljs-title function_">test</span>(
+            l,
+          )
+            ? <span class="hljs-string">&quot;bad&quot;</span>
+            : <span class="hljs-regexp">/WARN|SKIP|REFUS|COMMITTED|DIRTY/i</span>.<span class="hljs-title function_">test</span>(l)
+              ? <span class="hljs-string">&quot;warn&quot;</span>
+              : <span class="hljs-regexp">/\bOK\b|\bPASS\b|PASS=|ACHIEVED|RUNNING|ARMED/i</span>.<span class="hljs-title function_">test</span>(l)
+                ? <span class="hljs-string">&quot;ok&quot;</span>
+                : <span class="hljs-string">&quot;&quot;</span>;
+        <span class="hljs-keyword">return</span> c ? <span class="hljs-string">&#x27;&lt;span class=&quot;&#x27;</span> + c + <span class="hljs-string">&#x27;&quot;&gt;&#x27;</span> + l + <span class="hljs-string">&quot;&lt;/span&gt;&quot;</span> : l;
+      })
+      .<span class="hljs-title function_">join</span>(<span class="hljs-string">&quot;\n&quot;</span>);
+    outEl.<span class="hljs-property">scrollTop</span> = outEl.<span class="hljs-property">scrollHeight</span>;
+  }
+  <span class="hljs-title function_">post</span>(tag, raw);
+}
+</code></pre>
+<p>The first line saves the original <code>detail</code> as <code>raw</code>. It then shortens only the display value with <code>terse()</code> and adds it to <code>lines</code>. When screen logging is enabled, it escapes each line, selects a CSS class by keyword, and renders the result.</p>
+<p>The use of <code>innerHTML</code> is visible, but it is not enough by itself to conclude that the input is interpreted directly as HTML. <code>esc()</code> replaces <code>&amp;</code> first and then <code>&lt;</code>, and the result goes into the text content of a <code>span</code>. The class name is also selected from fixed values in the code rather than copied from the input. Both the insertion context and the preceding processing matter.</p>
+<p>The final <code>post(tag, raw)</code> call is the detail to follow. It receives the saved original, not the shortened <code>detail</code>. <strong>This is where the displayed content and transmitted content diverge.</strong></p>
+<h3>7.3 <code>post()</code> and <code>trace()</code>: does hiding a log stop transmission?</h3>
+<p><code>post()</code> shows the destination and values sent.</p>
+<p><em><code>jb.js</code> · L15–L27</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">post</span>(<span class="hljs-params">tag, detail</span>) {
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> x = <span class="hljs-keyword">new</span> <span class="hljs-title class_">XMLHttpRequest</span>();
+    x.<span class="hljs-title function_">open</span>(<span class="hljs-string">&quot;POST&quot;</span>, <span class="hljs-string">&quot;/t&quot;</span>, <span class="hljs-literal">true</span>);
+    x.<span class="hljs-title function_">setRequestHeader</span>(<span class="hljs-string">&quot;Content-Type&quot;</span>, <span class="hljs-string">&quot;application/x-www-form-urlencoded&quot;</span>);
+    x.<span class="hljs-title function_">send</span>(
+      <span class="hljs-string">&quot;PS4-JB&amp;tag=&quot;</span> +
+        <span class="hljs-built_in">encodeURIComponent</span>(tag) +
+        <span class="hljs-string">&quot;&amp;detail=&quot;</span> +
+        <span class="hljs-built_in">encodeURIComponent</span>(<span class="hljs-title class_">String</span>(detail == <span class="hljs-literal">null</span> ? <span class="hljs-string">&quot;&quot;</span> : detail)),
+    );
+  } <span class="hljs-keyword">catch</span> (e) {}
+}
+</code></pre>
+<p>The destination is <code>/t</code> on the same origin. <code>tag</code> and <code>detail</code> are encoded with <code>encodeURIComponent()</code> and placed in a form-encoded body. A <code>null</code> detail becomes an empty string.</p>
+<p>The receiver can decode that representation back to the original string. It is a way of carrying values in the request, rather than encryption or anonymization.</p>
+<p>The function starts an asynchronous XHR without registering a response callback. Its outer <code>try/catch</code> handles exceptions during the call; it does not report whether the later HTTP response indicates success.</p>
+<p>Now connect that behavior to <code>trace()</code>.</p>
+<p><em><code>jb.js</code> · L91–L94</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">trace</span>(<span class="hljs-params">tag, detail</span>) {
+  <span class="hljs-keyword">if</span> (<span class="hljs-variable constant_">VERBOSE</span>) <span class="hljs-title function_">mark</span>(tag, detail);
+  <span class="hljs-keyword">else</span> <span class="hljs-title function_">post</span>(tag, detail);
+}
+</code></pre>
+<p>With <code>VERBOSE</code> enabled, it calls <code>mark()</code>; otherwise, it calls <code>post()</code> directly. As shown above, <code>mark()</code> also ends by calling <code>post()</code>. Turning off verbose display therefore leaves a path that attempts transmission.</p>
+<p><img src="/assets/research/ps4-raw13g-review/03-logging-en.svg" alt="The original log value branches into display and network paths"></p>
+<p><em>Figure 5. The screen uses the shortened value, while the transmission function receives the original.</em></p>
+<p>The code establishes the request attempt. Whether a server handles <code>/t</code>, receives the request successfully, or stores its contents requires separate evidence. Call sites that log firmware information or diagnostic state do not by themselves establish actual collection.</p>
+<h2>8. What the port records show</h2>
+<p>I also looked at the TCP connection records accompanying the code. The two observations were: [3]</p>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>17:15 KST</th>
+<th>17:29 KST</th>
+<th>Role in the GoldHEN documentation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>2121/tcp</code></td>
+<td>closed</td>
+<td>open</td>
+<td>FTP</td>
+</tr>
+<tr>
+<td><code>3232/tcp</code></td>
+<td>open</td>
+<td>open</td>
+<td>Klog</td>
+</tr>
+<tr>
+<td><code>9090/tcp</code></td>
+<td>closed</td>
+<td>open</td>
+<td>BinLoader</td>
+</tr>
+</tbody>
+</table>
+<p>The port-to-role mapping agrees with the GoldHEN documentation. Matching a port number does not identify the program actually listening there. [4]</p>
+<p>In Nmap, <code>open</code> means the target accepts connections from the scan’s vantage point. These records checked TCP connectivity, so they show that the three ports accepted connections at 17:29. They do not identify the implementation, its privileges, or whether the whole chain succeeds on every attempt. [5]</p>
+<p>Conversely, two closed ports in the first observation do not immediately establish a chain failure. Service activation and the overall execution result are separate states. A note that services were reopened fits the later change, but these two observations do not reconstruct everything that happened internally.</p>
+<h2>9. Review notes</h2>
+<p>I started with the file structure and then followed the main functions. <code>jb.js</code> connects configuration, modules, Workers, and external files, while the other files supply their individual functionality.</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Role</th>
+<th>What stood out</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>offsetsFor()</code></td>
+<td>Look up configuration by version key</td>
+<td>Existing configuration does not establish correctness on hardware</td>
+</tr>
+<tr>
+<td><code>core.js</code> / <code>mem.js</code></td>
+<td>Separate the underlying functionality from its API</td>
+<td>Other scripts in the same page can access the global interface</td>
+</tr>
+<tr>
+<td><code>int64.toString()</code></td>
+<td>Format two 32-bit words as a string</td>
+<td>The hexadecimal concatenation rule does not generalize to arbitrary bases</td>
+</tr>
+<tr>
+<td><code>makeRpc()</code></td>
+<td>Connect a request ID to a Promise</td>
+<td>Reply structure and completion conditions both matter</td>
+</tr>
+<tr>
+<td>File-reception block</td>
+<td>Prepare response bytes as a view</td>
+<td>Download success does not verify contents or publisher</td>
+</tr>
+<tr>
+<td><code>mark()</code> / <code>post()</code></td>
+<td>Separate display and transmission</td>
+<td>Information shortened on screen can remain in the transmitted value</td>
+</tr>
+</tbody>
+</table>
+<p>At first, the number of files stood out. Once their roles were separated, it became easier to follow where each value went. Small functions such as number formatting or log shortening were also a useful reminder that a name alone can suggest something different from the actual behavior.</p>
+<p>The separate binaries’ internals remain outside what this JavaScript review establishes. The discussion here follows the visible code and the existing execution records.</p>
+<h2>References</h2>
+<ol>
+<li>The analysis material’s <code>README.md</code>, <code>PROVENANCE.md</code>, and <code>MANIFEST.sha256</code>, plus the <a href="https://github.com/raw13g/raw13g.github.io/tree/9ba2f0719591d6900d91aba6cc5291f8fff97e6d">commit used for the analysis</a>. Source/deployment comparisons used the copies collected together.</li>
+<li>HTML, JavaScript, AppCache, and <code>LICENSE</code> under <code>source/</code>, along with <code>CODE_REVIEW.md</code> and <code>REPORT.md</code>. Excerpt filenames and line numbers refer to this source.</li>
+<li><code>PORT_CHECK.md</code> and the syntax/TCP records under <code>evidence/</code>. The port table uses existing observations from October 5, 2026, rather than new measurements.</li>
+<li><a href="https://github.com/GoldHEN/GoldHEN">GoldHEN project documentation</a>: FTP, Klog, and BinLoader features and ports.</li>
+<li><a href="https://nmap.org/book/man-port-scanning-basics.html">Nmap — Port Scanning Basics</a>: the meanings of <code>open</code> and <code>closed</code>.</li>
+<li><a href="https://dev.w3.org/html5/spec-LC/offline.html">W3C HTML5 — Offline Web applications</a>: AppCache manifest and networking rules.</li>
+</ol>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/ps4-raw13g-review/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
+
+  <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
+  <p class="print-notice">whrds.log · Printing and saving this page as PDF is restricted. Please read it on the blog.</p>
+  <dialog class="site-dialog subscribe-dialog" id="subscribe-dialog" aria-labelledby="subscribe-title" aria-describedby="subscribe-description">
+    <div class="dialog-heading"><div><p class="subscribe-kicker">RSS / WHRDS.LOG</p><h2 id="subscribe-title">Subscribe to new posts</h2></div><button class="dialog-close" type="button" data-dialog-close aria-label="Close">×</button></div>
+    <p id="subscribe-description">Add this feed to your RSS reader to follow new posts. Choose your preferred language.</p>
+    <div class="feed-languages" role="group" aria-label="Feed language"><button type="button" data-feed-language="ko" aria-pressed="false">한국어</button><button type="button" data-feed-language="en" aria-pressed="true">English</button></div>
+    <label class="feed-label" for="feed-url">Feed URL</label>
+    <div class="feed-copy-row"><input id="feed-url" type="url" readonly spellcheck="false" value="https://whrds.github.io/en/feed.xml" data-feed-origin="https://whrds.github.io"><button class="tool-button" type="button" data-copy-feed>Copy URL</button></div>
+    <p class="feed-status" data-feed-status role="status" aria-live="polite"></p>
+    <div class="feed-actions"><a class="tool-button" data-reader-link href="https://www.inoreader.com/?add_feed=https%3A%2F%2Fwhrds.github.io%2Fen%2Ffeed.xml" target="_blank" rel="noopener noreferrer">Subscribe in Inoreader ↗</a><a class="feed-raw-link" data-feed-link href="https://whrds.github.io/en/feed.xml">Open RSS feed ↗</a></div>
+    <p class="dialog-note">This feed URL works with other RSS readers too.</p>
+  </dialog>
+  <dialog class="site-dialog image-lightbox" id="image-lightbox" aria-labelledby="image-lightbox-title">
+    <div class="image-toolbar"><h2 id="image-lightbox-title">Image viewer</h2><div><button class="tool-button" type="button" data-image-scale aria-pressed="false">Zoom in</button><button class="dialog-close" type="button" data-dialog-close aria-label="Close">×</button></div></div>
+    <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
+    <p class="image-caption" data-image-caption></p>
+  </dialog>
+  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+</body></html>

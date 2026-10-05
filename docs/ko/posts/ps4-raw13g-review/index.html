@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="ko" data-theme="dark"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PS4] raw13g 코드 분석 · whrds.log</title><meta name="description" content="raw13g의 파일 구조부터 주요 함수, Worker 통신과 로그 처리까지 코드를 따라가며 정리해보았다.">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/ko/posts/ps4-raw13g-review/">
+  <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/ps4-raw13g-review/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/ps4-raw13g-review/">
+  <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PS4] raw13g 코드 분석 · whrds.log"><meta property="og:description" content="raw13g의 파일 구조부터 주요 함수, Worker 통신과 로그 처리까지 코드를 따라가며 정리해보았다."><meta property="og:url" content="https://whrds.github.io/ko/posts/ps4-raw13g-review/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PS4] raw13g 코드 분석","description":"raw13g의 파일 구조부터 주요 함수, Worker 통신과 로그 처리까지 코드를 따라가며 정리해보았다.","datePublished":"2026-10-05","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/ps4-raw13g-review/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/ko/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="주 메뉴">
+      <a href="/ko/" aria-current="page">글</a>
+      <a href="/ko/categories/">카테고리</a>
+      <a href="/ko/about/">소개</a>
+    </nav>
+    <div class="header-tools">
+      <a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a>
+      <div class="language-switch" aria-label="Language">
+        <a href="#" class="active" lang="ko" aria-current="true">KO</a>
+        <a href="/en/posts/ps4-raw13g-review/" class="" lang="en">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PS4] raw13g 코드 분석</h1><p class="article-description">raw13g의 파일 구조부터 주요 함수, Worker 통신과 로그 처리까지 코드를 따라가며 정리해보았다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2026-10-05">2026년 10월 5일</time><span>·</span><span>9 분 읽기</span></div></div></header><div class="prose"><p>이번에는 PS4에서 사용하는 <code>raw13g</code>의 코드를 정리해보겠다.</p>
+<p>실행 결과에 GoldHEN이 표시됐다는 기록은 있었지만, 화면만 봐서는 각 파일이 어떤 역할을 하는지 알기 어려웠다. JavaScript 파일도 여러 개로 나뉘어 있고, 별도로 불러오는 바이너리도 있었다. 우선 파일들이 어떻게 연결되는지부터 보고, 주요 함수에서 어떤 값을 받아 다음 단계로 넘기는지 살펴보았다.</p>
+<p>코드를 읽다 보니 버전 문자열을 다루는 방식이나 로그를 출력하는 부분도 눈에 들어왔다. 이런 부분은 실행 결과만 확인했을 때 지나치기 쉽기 때문에 함께 정리하도록 하겠다.</p>
+<h2>1. 분석 대상</h2>
+<p>분석한 코드는 <code>raw13g/raw13g.github.io</code>다. 같은 저장소라도 코드가 바뀔 수 있으므로 기준으로 삼은 커밋을 남겨둔다. [1]</p>
+<pre><code class="language-text">Repository: raw13g/raw13g.github.io
+Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
+</code></pre>
+<p>먼저 소스와 함께 수집된 배포 파일을 비교해보았다. 읽고 있는 코드와 배포 파일이 같은 내용인지 확인하기 위해서다.</p>
+<table>
+<thead>
+<tr>
+<th>확인한 항목</th>
+<th>결과</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MANIFEST.sha256</code></td>
+<td>목록의 <strong>48개 파일 모두 일치</strong></td>
+<td>함께 보관된 해시 목록과 파일이 일치함</td>
+</tr>
+<tr>
+<td><code>source/</code>와 <code>deployed/</code></td>
+<td>대응하는 <strong>15개 파일 모두 동일</strong></td>
+<td>수집된 소스와 배포 파일의 내용이 같음</td>
+</tr>
+<tr>
+<td>JavaScript 구문 검사</td>
+<td>기존 기록에 <strong>6개 파일 PASS</strong></td>
+<td>구문 검사 결과이며 실제 동작 확인과는 별개</td>
+</tr>
+</tbody>
+</table>
+<p>48개는 문서와 검사 기록까지 포함한 수이고, 15개는 웹 배포 파일만 비교한 수다. 매니페스트 자체와 Git 내부 파일은 48개에 포함되지 않는다.</p>
+<p>여기서 확인한 것은 파일 내용이 서로 같다는 점이다. 파일과 해시 목록을 함께 바꿀 수도 있기 때문에 해시가 맞는다는 이유만으로 제작자까지 확인되는 것은 아니다. 이 부분은 뒤에서 바이너리를 살펴볼 때 다시 이어진다.</p>
+<p><img src="/assets/research/ps4-raw13g-review/01-evidence-ko.svg" alt="파일 비교, 실행 결과와 제작자 확인이 각각 무엇을 보여주는지 정리한 그림"></p>
+<p><em>그림 1. 파일이 같은지, 실제로 동작했는지, 누가 만든 파일인지는 따로 확인해야 한다.</em></p>
+<h2>2. 전체 구조와 주요 함수</h2>
+<p>먼저 파일별 역할부터 나누어보겠다. <code>index.html</code>은 처음 보이는 화면이고, <code>jb.html</code>은 진행 상태를 보여주는 페이지다. 그 안에서 실제 JavaScript 모듈을 연결하는 파일은 <code>jb.js</code>다. 다른 모듈을 불러오고 Worker와 통신하며, 필요한 외부 파일도 이곳에서 받는다. [2]</p>
+<p><img src="/assets/research/ps4-raw13g-review/04-modules-ko.svg" alt="진입 페이지와 JavaScript 모듈의 연결 관계"></p>
+<p><em>그림 2. 화면에서 시작해 각 파일이 어떻게 연결되는지 정리하였다.</em></p>
+<table>
+<thead>
+<tr>
+<th>파일</th>
+<th>받는 값·상태</th>
+<th>역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>index.html</code></td>
+<td>User-Agent, 캐시 상태</td>
+<td>펌웨어 표시와 다음 페이지 이동</td>
+</tr>
+<tr>
+<td><code>jb.html</code></td>
+<td>DOM 요소, 모듈 스크립트</td>
+<td>진행 화면과 <code>jb.js</code>의 실행 환경</td>
+</tr>
+<tr>
+<td><code>ps4_offsets.js</code></td>
+<td>User-Agent 문자열</td>
+<td>버전 키와 설정 객체 조회</td>
+</tr>
+<tr>
+<td><code>int64.js</code></td>
+<td>하위·상위 32비트 값</td>
+<td>64비트 값 표현, 연산과 문자열 변환</td>
+</tr>
+<tr>
+<td><code>core.js</code></td>
+<td>브라우저 환경, 옵션, 이벤트 콜백</td>
+<td>브라우저 메모리 기능을 묶은 carrier 구성</td>
+</tr>
+<tr>
+<td><code>mem.js</code></td>
+<td>carrier, 설치 옵션</td>
+<td>다른 코드에서 사용할 공통 메모리 인터페이스 제공</td>
+</tr>
+<tr>
+<td><code>rpc_worker.js</code></td>
+<td>ID, 함수 이름, 인자를 담은 메시지</td>
+<td>같은 ID를 붙인 결과 또는 오류 응답</td>
+</tr>
+<tr>
+<td><code>jb.js</code></td>
+<td>설정, 모듈 결과, Worker 응답, 파일 응답</td>
+<td>전체 흐름 제어와 로그 기록</td>
+</tr>
+<tr>
+<td><code>cache.appcache</code></td>
+<td>자원 경로, 캐시 규칙</td>
+<td>오프라인 자원 목록과 네트워크 처리 설정</td>
+</tr>
+</tbody>
+</table>
+<p>아래에서는 주요 함수를 원문과 함께 살펴보겠다. 함수 일부만 가져온 경우에는 해당 블록의 역할을 따로 설명하고, <code>core.js</code>와 <code>mem.js</code>는 모듈 사이에서 주고받는 객체와 인터페이스를 중심으로 읽었다.</p>
+<h3>2.1 <code>index.html</code>과 <code>jb.html</code>: 시작 화면에서 하는 일</h3>
+<p><code>index.html</code>에서 먼저 눈에 들어온 부분은 버전을 읽는 코드다. User-Agent에서 숫자 두 묶음을 찾은 뒤 <code>key</code>와 <code>fwnum</code>을 만든다.</p>
+<p><em><code>index.html</code> · L49–L56</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">var</span> key = <span class="hljs-literal">null</span>, fwnum = <span class="hljs-literal">null</span>;
+<span class="hljs-keyword">var</span> m = <span class="hljs-regexp">/PlayStation\s+4[\/ ](\d+)\.(\d+)/</span>.<span class="hljs-title function_">exec</span>(navigator.<span class="hljs-property">userAgent</span>);
+<span class="hljs-keyword">if</span> (m) {
+    <span class="hljs-keyword">var</span> ms = <span class="hljs-built_in">parseInt</span>(m[<span class="hljs-number">2</span>], <span class="hljs-number">16</span>).<span class="hljs-title function_">toString</span>(<span class="hljs-number">16</span>);
+    <span class="hljs-keyword">if</span> (ms.<span class="hljs-property">length</span> &lt; <span class="hljs-number">2</span>) ms = <span class="hljs-string">&quot;0&quot;</span> + ms;
+    key = m[<span class="hljs-number">1</span>] + <span class="hljs-string">&quot;.&quot;</span> + ms;
+    fwnum = <span class="hljs-built_in">parseInt</span>(m[<span class="hljs-number">1</span>], <span class="hljs-number">10</span>) * <span class="hljs-number">100</span> + <span class="hljs-built_in">parseInt</span>(ms, <span class="hljs-number">10</span>);
+}
+</code></pre>
+<p><code>13.52</code>를 예로 들어보겠다. 두 번째 숫자 묶음은 <code>&quot;52&quot;</code>인데, 이를 16진수로 읽고 다시 16진수 문자열로 바꾸므로 <code>ms</code>에는 그대로 <code>&quot;52&quot;</code>가 남는다. 이후 <code>fwnum</code>을 만들 때는 10진수로 계산하여 <code>1352</code>가 된다.</p>
+<p>처음 보면 같은 버전을 왜 두 가지로 만드는지 궁금할 수 있다. <code>key</code>는 설정을 찾거나 화면에 표시할 때 쓰는 문자열이고, <code>fwnum</code>은 시작 화면의 지원 목록과 비교할 때 쓰는 숫자다. 같은 입력에서 용도에 맞는 값을 따로 만드는 것이다.</p>
+<p>다만 입력은 어디까지나 User-Agent다. 이 코드가 기기의 펌웨어 파일이나 커널 버전을 직접 읽는 것은 아니므로, <strong>버전 표기를 정리하는 처리</strong>로 이해하면 된다.</p>
+<p>다음은 <code>jb.html</code>의 모듈 진입점이다.</p>
+<p><em><code>jb.html</code> · L156–L158</em></p>
+<pre><code class="hljs language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;module&quot;</span>&gt;</span><span class="language-javascript">
+  <span class="hljs-keyword">import</span> <span class="hljs-string">&quot;./jb.js?v=19&quot;</span>;
+</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+</code></pre>
+<p>HTML에는 스타일과 화면 요소가 길게 들어 있지만, 기능이 시작되는 위치를 찾으려면 이 선언을 보면 된다. <code>jb.html</code>이 상태를 표시할 DOM을 준비하고 <code>jb.js</code>를 모듈로 불러오는 구조다. 뒤에 붙은 <code>?v=19</code>는 자원 URL을 구분하는 값으로, 파일의 내용이나 제작자를 확인하는 값은 아니다.</p>
+<h3>2.2 <code>offsetsFor()</code>: 버전에 맞는 설정 찾기</h3>
+<p>버전 문자열을 만들었다면 이제 그에 맞는 설정이 필요하다. <code>ps4_offsets.js</code>의 조회 함수는 다음과 같다.</p>
+<p><em><code>ps4_offsets.js</code> · L647–L653</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">offsetsFor</span>(<span class="hljs-params">uaString</span>) {
+  <span class="hljs-keyword">const</span> m = (uaString || <span class="hljs-string">&quot;&quot;</span>).<span class="hljs-title function_">match</span>(<span class="hljs-regexp">/PlayStation\s+4[\/ ](\d+)\.(\d+)/</span>);
+  <span class="hljs-keyword">if</span> (!m) <span class="hljs-keyword">return</span> { <span class="hljs-attr">key</span>: <span class="hljs-literal">null</span>, <span class="hljs-attr">off</span>: <span class="hljs-literal">null</span> };
+
+  <span class="hljs-keyword">const</span> key = m[<span class="hljs-number">1</span>] + <span class="hljs-string">&quot;.&quot;</span> + <span class="hljs-built_in">parseInt</span>(m[<span class="hljs-number">2</span>], <span class="hljs-number">16</span>).<span class="hljs-title function_">toString</span>(<span class="hljs-number">16</span>).<span class="hljs-title function_">padStart</span>(<span class="hljs-number">2</span>, <span class="hljs-string">&quot;0&quot;</span>);
+  <span class="hljs-keyword">return</span> { key, <span class="hljs-attr">off</span>: <span class="hljs-title class_">PS4</span>[key] || <span class="hljs-literal">null</span> };
+}
+</code></pre>
+<p>반환하는 값은 <code>{ key, off }</code>다. 예상한 문자열 형식이 아니면 둘 다 <code>null</code>이고, 형식은 맞지만 <code>PS4</code> 테이블에 항목이 없으면 <code>key</code>는 남고 <code>off</code>만 <code>null</code>이 된다.</p>
+<p>때문에 호출하는 쪽에서는 버전 자체를 읽지 못한 것인지, 버전은 읽었지만 설정이 없는 것인지 구분할 수 있다. 짧은 함수지만 반환값을 둘로 나눈 이유를 여기서 볼 수 있다.</p>
+<p>이 함수가 하는 일은 설정 조회까지다. 테이블에 값이 들어 있다는 것만으로 그 값이 실제 기기에서도 맞는지는 알 수 없다. 지원 목록은 <code>index.html</code>에, 설정은 <code>ps4_offsets.js</code>에 나뉘어 있으므로 두 파일의 설명도 함께 봐야 한다. 이 부분은 4절에서 다시 정리하겠다.</p>
+<h3>2.3 <code>core.js</code>와 <code>mem.js</code>: 기능을 만들고 인터페이스로 감싸기</h3>
+<p><code>jb.js</code>의 맨 위에는 다음과 같은 import가 있다.</p>
+<p><em><code>jb.js</code> · L1–L4</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">import</span> { establishPrimitive } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;./core.js?v=10&quot;</span>;
+<span class="hljs-keyword">import</span> { installWindowP, pairStatus } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;./mem.js&quot;</span>;
+<span class="hljs-keyword">import</span> { int64 } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;./int64.js&quot;</span>;
+<span class="hljs-keyword">import</span> { offsetsFor } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;./ps4_offsets.js&quot;</span>;
+</code></pre>
+<p><code>establishPrimitive()</code>는 비동기 작업의 결과로 carrier라는 객체를 제공한다. 여기서 carrier는 뒤의 코드가 사용할 브라우저 측 메모리 기능을 묶은 객체라고 보면 된다. <code>installWindowP()</code>는 이 객체를 받아 공통 인터페이스를 만들고 전역 <code>p</code>로 노출한다. <code>pairStatus</code>는 같은 모듈의 상태를 나타낸다.</p>
+<p>이름만 보면 복잡하지만, 역할을 나누어보면 다음과 같다.</p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th><code>core.js</code></th>
+<th><code>mem.js</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>맡은 일</td>
+<td>브라우저 환경에 맞는 기반 기능 구성</td>
+<td>다른 코드에서 쓸 수 있도록 API로 감싸기</td>
+</tr>
+<tr>
+<td>밖으로 전달하는 것</td>
+<td>준비 결과와 이벤트</td>
+<td>일정한 형태의 함수와 상태</td>
+</tr>
+<tr>
+<td>나누어 둔 이유</td>
+<td>기반 구현을 한곳에 모음</td>
+<td>호출부마다 내부 표현을 반복해서 다루지 않게 함</td>
+</tr>
+</tbody>
+</table>
+<p>이렇게 나누어두면 호출하는 쪽은 내부 구현을 매번 알 필요가 없다. 다만 API로 감쌌다고 해서 접근 가능한 주소 범위를 제한하는 샌드박스가 하나 더 생기는 것은 아니다. <code>globalThis.p</code>는 같은 페이지에서 실행되는 다른 스크립트도 접근할 수 있기 때문에, 함께 불러오는 스크립트의 신뢰도도 중요해진다.</p>
+<p>즉, 여기서 보이는 분리는 기능을 구성하는 코드와 사용하는 코드를 정리하기 위한 것으로 이해했다. 인터페이스가 존재한다는 사실과 그 안의 기능이 기대대로 동작한다는 사실까지 같아지는 것은 아니다.</p>
+<h3>2.4 <code>int64.js</code>: 64비트 값을 나누어 보관하는 이유</h3>
+<p>JavaScript의 일반적인 <code>Number</code>로는 모든 64비트 정수를 정확하게 표현할 수 없다. 때문에 이 파일에서는 하위 32비트인 <code>low</code>와 상위 32비트인 <code>hi</code>를 따로 보관한다. 아래는 생성자에서 필드를 초기화하는 부분이다.</p>
+<p><em><code>int64.js</code> · L12–L16</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-variable language_">this</span>.<span class="hljs-property">low</span> = low &gt;&gt;&gt; <span class="hljs-number">0</span>;
+
+<span class="hljs-variable language_">this</span>.<span class="hljs-property">hi</span> = hi &gt;&gt;&gt; <span class="hljs-number">0</span>;
+
+<span class="hljs-variable language_">this</span>.<span class="hljs-property">backing</span> = <span class="hljs-literal">null</span>;
+</code></pre>
+<p><code>&gt;&gt;&gt; 0</code>은 입력을 부호 없는 32비트 값으로 바꾼다. 두 필드가 나타내는 실제 수는 <code>hi × 2³² + low</code>다. <code>backing</code>은 따로 연결할 바이트 뷰를 위한 필드로, 숫자 값과는 구분된다.</p>
+<p>연산 함수도 이름을 보면 차이가 있다. <code>inplace</code>가 붙은 함수는 현재 객체의 값을 바꾸고, <code>add32()</code>처럼 별도 결과를 만드는 함수는 새 객체를 반환한다. 값을 읽는 것뿐 아니라 원래 객체가 바뀌는지도 함께 봐야 하는 이유다.</p>
+<p>여기서 한 가지 더 살펴볼 부분은 문자열 변환이다. 다음은 <code>toString()</code> 전체다.</p>
+<p><em><code>int64.js</code> · L100–L112</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-variable language_">this</span>.<span class="hljs-property">toString</span> = <span class="hljs-keyword">function</span> (<span class="hljs-params">radix = <span class="hljs-number">16</span></span>) {
+  <span class="hljs-keyword">let</span> lo_str = (<span class="hljs-variable language_">this</span>.<span class="hljs-property">low</span> &gt;&gt;&gt; <span class="hljs-number">0</span>).<span class="hljs-title function_">toString</span>(radix);
+  <span class="hljs-keyword">let</span> hi_str = (<span class="hljs-variable language_">this</span>.<span class="hljs-property">hi</span> &gt;&gt;&gt; <span class="hljs-number">0</span>).<span class="hljs-title function_">toString</span>(radix);
+
+  <span class="hljs-keyword">if</span> (<span class="hljs-variable language_">this</span>.<span class="hljs-property">hi</span> == <span class="hljs-number">0</span>) {
+    <span class="hljs-keyword">return</span> lo_str;
+  } <span class="hljs-keyword">else</span> {
+    <span class="hljs-keyword">const</span> width = radix === <span class="hljs-number">16</span> ? <span class="hljs-number">8</span> : <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">ceil</span>(<span class="hljs-number">32</span> / <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">log2</span>(radix));
+    lo_str = <span class="hljs-title function_">zeroFill</span>(lo_str, width);
+  }
+
+  <span class="hljs-keyword">return</span> hi_str + lo_str;
+};
+</code></pre>
+<p>기본값인 16진수에서는 하위 값을 8자리로 채운 뒤 상위 값 뒤에 붙인다. 16진수 한 자리는 4비트이므로 하위 32비트가 정확히 8자리를 차지한다. 이 경우에는 두 문자열을 붙이는 방식이 맞다.</p>
+<p>그렇다면 다른 진법에서도 같을까? <code>hi=1</code>, <code>low=0</code>을 넣어보면 차이가 드러난다. 두 필드가 나타내는 수는 <code>4294967296</code>인데, 10진수 모드에서는 하위 문자열을 10자리로 채운 뒤 <code>1</code>을 붙여 <code>10000000000</code>이 된다.</p>
+<table>
+<thead>
+<tr>
+<th>필드</th>
+<th>진법</th>
+<th>코드가 만드는 문자열</th>
+<th>올바른 문자열</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hi=1</code>, <code>low=0</code></td>
+<td>16</td>
+<td><code>100000000</code></td>
+<td><code>100000000</code></td>
+</tr>
+<tr>
+<td><code>hi=1</code>, <code>low=0</code></td>
+<td>10</td>
+<td><code>10000000000</code></td>
+<td><code>4294967296</code></td>
+</tr>
+</tbody>
+</table>
+<p>계산을 따라가면 확인할 수 있는 <strong>표시 함수의 문제</strong>다. 이것만으로 실제 체인이 실패했다고 볼 수는 없다. 다만 인자로 여러 진법을 받을 수 있다고 해서 모든 진법에서 올바르게 변환되는 것은 아니라는 점을 알 수 있다.</p>
+<h3>2.5 <code>makeRpc()</code>: Worker 응답을 기다리는 방식</h3>
+<p><code>jb.js</code>는 Worker와 메시지를 주고받는다. 이때 <code>makeRpc()</code>가 Worker를 받아 호출용 함수를 만들어준다. 여기서 RPC는 다른 컴퓨터의 서버가 아니라, 같은 페이지의 메인 스레드와 Worker 사이에서 쓰는 호출 형식이다.</p>
+<p><em><code>jb.js</code> · L662–L693</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">makeRpc</span>(<span class="hljs-params">wk, name</span>) {
+  <span class="hljs-keyword">let</span> seq = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">const</span> pending = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Map</span>();
+  wk.<span class="hljs-property">onmessage</span> = <span class="hljs-keyword">function</span> (<span class="hljs-params">e</span>) {
+    <span class="hljs-keyword">const</span> d = e.<span class="hljs-property">data</span> || {};
+    <span class="hljs-keyword">const</span> slot = pending.<span class="hljs-title function_">get</span>(d.<span class="hljs-property">id</span>);
+    <span class="hljs-keyword">if</span> (!slot) <span class="hljs-keyword">return</span>;
+    pending.<span class="hljs-title function_">delete</span>(d.<span class="hljs-property">id</span>);
+    <span class="hljs-keyword">if</span> (slot.<span class="hljs-property">timer</span>) <span class="hljs-built_in">clearTimeout</span>(slot.<span class="hljs-property">timer</span>);
+    <span class="hljs-keyword">if</span> (d.<span class="hljs-property">type</span> === <span class="hljs-string">&quot;err&quot;</span>) slot.<span class="hljs-title function_">reject</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(<span class="hljs-title class_">String</span>(d.<span class="hljs-property">value</span>)));
+    <span class="hljs-keyword">else</span> slot.<span class="hljs-title function_">resolve</span>(d.<span class="hljs-property">value</span>);
+  };
+  wk.<span class="hljs-property">onerror</span> = <span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span>
+    <span class="hljs-title function_">mark</span>(
+      <span class="hljs-string">&quot;WORKER-ONERROR&quot;</span>,
+      name + <span class="hljs-string">&quot; &quot;</span> + (e &amp;&amp; e.<span class="hljs-property">message</span> ? e.<span class="hljs-property">message</span> : <span class="hljs-title class_">String</span>(e)),
+    );
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">call</span>(<span class="hljs-params">fname, timeoutMs, ...args</span>) {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Promise</span>(<span class="hljs-keyword">function</span> (<span class="hljs-params">resolve, reject</span>) {
+      <span class="hljs-keyword">const</span> id = seq++;
+      <span class="hljs-keyword">const</span> timer =
+        timeoutMs &gt; <span class="hljs-number">0</span>
+          ? <span class="hljs-built_in">setTimeout</span>(<span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) {
+              pending.<span class="hljs-title function_">delete</span>(id);
+              <span class="hljs-title function_">reject</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(name + <span class="hljs-string">&quot;: timeout waiting for &quot;</span> + fname));
+            }, timeoutMs)
+          : <span class="hljs-literal">null</span>;
+      pending.<span class="hljs-title function_">set</span>(id, { resolve, reject, timer });
+      wk.<span class="hljs-title function_">postMessage</span>({ <span class="hljs-attr">id</span>: id, <span class="hljs-attr">name</span>: fname, <span class="hljs-attr">args</span>: args });
+    });
+  };
+}
+</code></pre>
+<p>핵심은 <code>pending</code>이라는 <code>Map</code>이다. 요청마다 증가하는 <code>id</code>를 붙이고, 그 ID에 Promise의 <code>resolve</code>, <code>reject</code>, 타이머를 연결해둔다. Worker에는 <code>{ id, name, args }</code>를 보내고, 같은 ID가 붙은 응답이 돌아오면 기다리던 Promise를 찾는다.</p>
+<p>응답 처리 순서도 보겠다. 먼저 <code>pending</code>에서 항목을 지우고 타이머를 해제한다. 그 뒤 <code>type</code>이 <code>&quot;err&quot;</code>면 <code>reject</code>, 그 외에는 <code>resolve</code>로 값을 전달한다. 이미 끝난 요청의 ID가 다시 들어오면 대응하는 항목이 없으므로 무시한다. 늦게 도착하거나 중복된 응답을 정리하는 방식이다.</p>
+<p><img src="/assets/research/ps4-raw13g-review/05-rpc-ko.svg" alt="요청 ID로 Worker 응답과 Promise를 연결하는 흐름"></p>
+<p><em>그림 3. <code>id</code>를 기준으로 응답이 어느 요청에 대한 것인지 찾는다.</em></p>
+<p>반대편인 <code>rpc_worker.js</code>에서는 메시지의 함수 이름과 인자를 읽고, <code>api</code>에서 함수를 찾아 호출한 뒤 <code>{ id, type, value }</code>로 응답한다. 양쪽이 같은 ID와 응답 형식을 사용해야 이 연결이 맞아떨어진다.</p>
+<p>읽으면서 확인한 점은 두 가지다. 요청 ID는 호출을 구분하는 번호이지 권한을 증명하는 값이 아니다. 이 코드는 같은 페이지에서 만든 Worker를 신뢰하며, 인자의 의미나 응답의 세부 형식을 별도로 검사하는 계층은 보이지 않는다.</p>
+<p>또한 <code>wk.onerror</code>는 오류를 기록하지만 기다리던 Promise를 즉시 모두 종료하지는 않는다. 타임아웃도 지정하지 않았다면 이 함수만으로 호출이 반드시 끝난다고 보장하기 어렵다. 여기서는 메시지가 연결되고 종료되는 조건을 짚은 것이며, 외부에서 이용할 수 있는 취약점을 확인한 것은 아니다.</p>
+<h3>2.6 파일 로딩: 응답을 바이트 배열로 바꾸기</h3>
+<p>다음은 선택된 파일을 받아오는 블록이다.</p>
+<p><em><code>jb.js</code> · L3023–L3028</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">try</span> {
+  <span class="hljs-keyword">const</span> r = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetch</span>(<span class="hljs-variable constant_">PAYLOAD_FILE</span>);
+  <span class="hljs-keyword">if</span> (r.<span class="hljs-property">ok</span>) payloadBlob = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Uint8Array</span>(<span class="hljs-keyword">await</span> r.<span class="hljs-title function_">arrayBuffer</span>());
+} <span class="hljs-keyword">catch</span> (e) {
+  <span class="hljs-title function_">mark</span>(<span class="hljs-string">&quot;PAYLOAD-FETCH-THREW&quot;</span>, (e &amp;&amp; e.<span class="hljs-property">message</span>) || <span class="hljs-title class_">String</span>(e));
+}
+</code></pre>
+<p><code>fetch()</code>로 받은 응답의 <code>r.ok</code>가 참이면 본문을 <code>arrayBuffer()</code>로 읽고, 이를 <code>Uint8Array</code>로 감싼다. <code>Uint8Array</code>는 받은 파일을 바이트 단위로 다루기 위한 뷰다. 이후 코드에서 쓰기 편한 형태로 준비하는 부분이라고 보면 된다.</p>
+<p>여기까지는 파일을 받는 처리다. <code>arrayBuffer()</code>나 <code>Uint8Array</code>가 파일의 의미를 해석하거나 제작자를 확인해주는 것은 아니다. HTTP 응답이 성공했는지와 기대한 내용의 파일인지는 따로 확인해야 한다. 이 차이는 5절의 바이너리 부분으로 이어진다.</p>
+<p>전체적으로 보면 <code>jb.js</code>는 <strong>설정을 선택하고, 모듈을 연결하고, 비동기 응답과 외부 파일을 받아 흐름을 이어가는 역할</strong>을 한다. 이 구조를 먼저 잡아두면 뒤의 코드를 읽을 때도 각 기능이 어느 파일에 있는지 찾기 편하다.</p>
+<h2>3. 취약점 이름과 원인</h2>
+<p>관련 자료에는 이 체인을 “1-day”라고 부르는 표현이 있다. 다만 그 표현만으로 각 단계가 어떤 CVE에 대응하는지까지 알 수는 없었다. 그래서 여기서는 공개된 체인의 코드를 읽는 데 초점을 맞췄다. [1, 2]</p>
+<p>커널 측 코드에는 비동기 I/O와 객체 수명 경쟁을 다루는 부분이 있다. 비동기 작업에서는 요청한 쪽의 코드가 끝나도 다른 실행 주체가 같은 객체를 사용하고 있을 수 있다. 때문에 UAF를 볼 때는 취소나 완료 표시뿐 아니라 <strong>그 객체를 사용하는 마지막 작업이 끝났는지</strong>를 봐야 한다.</p>
+<p>이런 관점으로 코드 구조를 이해할 수는 있지만, 정확한 원인을 확정하려면 취약한 커널 함수와 수정 코드, 실행 추적을 함께 봐야 한다. 이번 자료에는 그 근거가 충분하지 않았다.</p>
+<p>상태 문자열의 <code>bug=663</code>도 내부 표기일 뿐 CVE 식별자는 아니다. 비슷한 유형의 코드라는 이유만으로 특정 CVE 번호를 붙이지는 않았다.</p>
+<h2>4. 펌웨어별 지원 상태</h2>
+<p>시작 화면에는 <code>13.02</code>, <code>13.04</code>, <code>13.50</code>, <code>13.52</code>가 지원 목록으로 들어 있다. 우선 이것은 화면에 적힌 목록이며, 네 버전을 모두 실기기에서 확인했다는 뜻은 아니다. [2]</p>
+<p><code>ps4_offsets.js</code>에는 더 많은 버전의 항목이 있다. 설명을 보면 실기기 확인, 오프라인 확인, 미검증 상태가 섞여 있다. 단순히 항목이 있는지만 보면 이 차이를 놓칠 수 있다.</p>
+<table>
+<thead>
+<tr>
+<th>표기</th>
+<th>알 수 있는 내용</th>
+<th>추가로 필요한 정보</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UI 지원 목록</td>
+<td>시작 화면에서 지원 대상으로 분류함</td>
+<td>각 구성요소의 실기기 시험 결과</td>
+</tr>
+<tr>
+<td>설정 항목 존재</td>
+<td>해당 버전 키에 값이 있음</td>
+<td>실제 기기에서 값이 정확한지</td>
+</tr>
+<tr>
+<td>오프라인 검증</td>
+<td>작성자가 정적 자료로 확인했다고 기록함</td>
+<td>실제 실행 결과</td>
+</tr>
+<tr>
+<td>실기기 검증</td>
+<td>작성자가 기기에서 확인했다고 기록함</td>
+<td>원시 로그, 시험 횟수와 조건</td>
+</tr>
+</tbody>
+</table>
+<p>구체적으로 눈에 들어온 부분은 <code>13.52</code>다. 실제 payload 필드에는 <code>goldhen.bin</code>이 들어 있지만 상태 설명에는 <code>payload2.bin</code>이 남아 있다. 두 파일을 비교해보니 크기는 모두 293,120바이트였고 내용도 같았다. 따라서 비교한 파일에서는 이름 차이가 다른 바이트를 선택하는 문제로 이어지지는 않았다. [1, 2]</p>
+<p>그래도 설명과 실제 값이 다르다는 점은 남는다. 나중에 두 파일 중 하나가 바뀌면 로그만 보고 어떤 파일을 사용했는지 잘못 판단할 수 있기 때문이다. 이런 부분은 실행 파일 이름과 상태 설명을 함께 관리해야 한다.</p>
+<h2>5. 바이너리 파일은 어디까지 확인했나</h2>
+<p>JavaScript를 읽다 보면 별도로 불러오는 바이너리에서 확인할 수 있는 범위가 달라진다. 로더가 파일을 다루는 방식은 볼 수 있지만, 그것으로 바이너리 내부 동작까지 설명할 수는 없다. [1, 2]</p>
+<p><code>goldhen.bin</code>과 <code>payload2.bin</code>은 다음과 같이 동일했다.</p>
+<pre><code class="language-text">Size: 293120 bytes
+SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
+</code></pre>
+<p>세 개의 patch 바이너리는 각각 632바이트였다. 크기와 해시는 어떤 파일을 보고 있는지 구분할 때 유용하다. 다만 파일 식별기가 출력한 형식 이름이나 해시만으로 내부 동작을 판단할 수는 없다.</p>
+<p>로더에는 응답 상태, 일부 형식 조건과 복사 결과를 확인하는 코드가 있다. 반면 읽어본 JavaScript에서는 신뢰할 수 있는 기대 해시나 제작자 서명을 기준으로 파일을 승인하는 경로를 찾지 못했다. <strong>받은 바이트가 정확히 복사됐다는 것과, 그 바이트를 누가 만들었는지는 다른 문제다.</strong></p>
+<p><img src="/assets/research/ps4-raw13g-review/02-trust-ko.svg" alt="파일 비교와 제작자·내부 동작 확인의 차이"></p>
+<p><em>그림 4. 각 검사가 무엇을 확인해주는지 나누어보았다.</em></p>
+<p>자료에는 바이너리를 소스에서 다시 만들 수 있는 완결된 빌드 자료나 제작자 서명, 구성요소 목록이 없었다. 따라서 바이너리 내부와 출처에 대해서는 판단을 남겨두었다. 이것이 곧 악성 파일이라는 뜻은 아니다.</p>
+<p><code>LICENSE</code>도 함께 확인했다. raw13g가 작성한 코드는 MIT를 적용하지만 payload, patch와 일부 primitive 파일은 제3자 구성요소로 따로 설명한다. 저장소에 라이선스 파일이 하나 있다고 해서 모든 파일에 같은 조건이 적용되는 것은 아니라는 점도 확인할 수 있었다.</p>
+<h2>6. 캐시에 적힌 해시의 의미</h2>
+<p><code>cache.appcache</code>를 보면 자원 경로 뒤에 <code>#</code>와 해시 문자열이 붙어 있다. 처음 보면 파일 검증에 쓰는 값처럼 보일 수 있다. 하지만 AppCache가 이 문자열을 파일 내용의 기대 해시로 비교하는 것은 아니다. 명세의 파싱 규칙과 파일 처리 코드를 함께 보면, 해시를 적어두는 것과 실제로 검사하는 처리를 구분할 수 있다. [2, 6]</p>
+<p>캐시는 이전에 받은 파일을 계속 사용할 수도 있다. 때문에 같은 URL을 열었다고 항상 같은 파일을 사용했다고 보기는 어렵다. 이런 경우에는 URL뿐 아니라 파일의 해시와 적용된 자원 버전도 같이 확인해야 한다.</p>
+<p>네트워크 설정은 다음과 같다.</p>
+<p><em><code>cache.appcache</code> · L21–L22</em></p>
+<pre><code class="language-text">NETWORK:
+*
+</code></pre>
+<p><code>NETWORK: *</code>가 있으므로 오프라인 캐시를 사용한다는 이유만으로 모든 네트워크 요청이 막히는 구성은 아니다. 여기까지는 설정에서 읽을 수 있는 내용이며, 실제 기기에서 캐시 갱신이나 요청 동작을 따로 측정한 결과는 아니다.</p>
+<h2>7. 로그 처리 코드</h2>
+<p>로그도 화면에 문자열을 찍는 것에서 끝나지 않았다. <code>terse()</code>, <code>mark()</code>, <code>post()</code>, <code>trace()</code>를 따라가면 화면에 보이는 값과 전송하는 값이 나뉜다. 하나씩 살펴보겠다. [2]</p>
+<h3>7.1 <code>terse()</code>: 화면에 보여줄 문자열 줄이기</h3>
+<p>다음은 <code>terse()</code> 전체다. <code>VERBOSE</code>와 <code>PROSE</code>는 함수 밖에 있는 표시 옵션과 정규식 목록이다.</p>
+<p><em><code>jb.js</code> · L39–L49</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">terse</span>(<span class="hljs-params">s</span>) {
+  <span class="hljs-keyword">if</span> (<span class="hljs-variable constant_">VERBOSE</span> || s == <span class="hljs-literal">null</span>) <span class="hljs-keyword">return</span> s;
+  s = <span class="hljs-title class_">String</span>(s);
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> re <span class="hljs-keyword">of</span> <span class="hljs-variable constant_">PROSE</span>) {
+    <span class="hljs-keyword">const</span> m = re.<span class="hljs-title function_">exec</span>(s);
+    <span class="hljs-keyword">if</span> (m &amp;&amp; m.<span class="hljs-property">index</span> &gt; <span class="hljs-number">0</span>) s = s.<span class="hljs-title function_">slice</span>(<span class="hljs-number">0</span>, m.<span class="hljs-property">index</span>);
+  }
+  s = s.<span class="hljs-title function_">replace</span>(<span class="hljs-regexp">/\s+$/</span>, <span class="hljs-string">&quot;&quot;</span>);
+  <span class="hljs-keyword">if</span> (s.<span class="hljs-property">length</span> &gt; <span class="hljs-number">140</span>) s = s.<span class="hljs-title function_">slice</span>(<span class="hljs-number">0</span>, <span class="hljs-number">140</span>) + <span class="hljs-string">&quot;...&quot;</span>;
+  <span class="hljs-keyword">return</span> s;
+}
+</code></pre>
+<p>먼저 <code>VERBOSE</code>가 켜져 있거나 값이 <code>null</code>이면 그대로 반환한다. 그 외에는 문자열로 바꾼 뒤 <code>PROSE</code>의 정규식마다 처음 일치하는 위치를 확인한다. 일치한 위치가 0보다 크면 그 뒤를 잘라낸다. 마지막으로 뒤쪽 공백을 지우고, 140자가 넘으면 말줄임표를 붙인다.</p>
+<p>결국 문자열의 형태와 길이를 기준으로 줄이는 함수다. IP나 토큰, 사용자 식별자를 찾아 지우는 처리는 없다. 화면의 글자가 짧아졌다고 민감한 정보까지 제거됐다고 볼 수는 없다.</p>
+<h3>7.2 <code>mark()</code>: 화면용 값과 원문을 나누기</h3>
+<p>다음은 <code>mark()</code>다.</p>
+<p><em><code>jb.js</code> · L64–L89</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">mark</span>(<span class="hljs-params">tag, detail</span>) {
+  <span class="hljs-keyword">const</span> raw = detail;
+  detail = <span class="hljs-title function_">terse</span>(detail);
+  lines.<span class="hljs-title function_">push</span>(tag + (detail == <span class="hljs-literal">null</span> || detail === <span class="hljs-string">&quot;&quot;</span> ? <span class="hljs-string">&quot;&quot;</span> : <span class="hljs-string">&quot;  &quot;</span> + detail));
+  <span class="hljs-keyword">if</span> (<span class="hljs-variable constant_">SHOW_LOG</span> &amp;&amp; outEl) {
+    <span class="hljs-keyword">const</span> <span class="hljs-title function_">esc</span> = (<span class="hljs-params">t</span>) =&gt; <span class="hljs-title class_">String</span>(t).<span class="hljs-title function_">replace</span>(<span class="hljs-regexp">/&amp;/g</span>, <span class="hljs-string">&quot;&amp;amp;&quot;</span>).<span class="hljs-title function_">replace</span>(<span class="hljs-regexp">/&lt;/g</span>, <span class="hljs-string">&quot;&amp;lt;&quot;</span>);
+    outEl.<span class="hljs-property">innerHTML</span> = lines
+      .<span class="hljs-title function_">map</span>(<span class="hljs-keyword">function</span> (<span class="hljs-params">l</span>) {
+        l = <span class="hljs-title function_">esc</span>(l);
+        <span class="hljs-keyword">const</span> c =
+          <span class="hljs-regexp">/FAIL|ERROR|THREW|REBOOT|MISS|LOST|POISON|TIMEOUT|MISMATCH|ABORTED|GIVEUP|NO-STORAGE|UNSEEN/i</span>.<span class="hljs-title function_">test</span>(
+            l,
+          )
+            ? <span class="hljs-string">&quot;bad&quot;</span>
+            : <span class="hljs-regexp">/WARN|SKIP|REFUS|COMMITTED|DIRTY/i</span>.<span class="hljs-title function_">test</span>(l)
+              ? <span class="hljs-string">&quot;warn&quot;</span>
+              : <span class="hljs-regexp">/\bOK\b|\bPASS\b|PASS=|ACHIEVED|RUNNING|ARMED/i</span>.<span class="hljs-title function_">test</span>(l)
+                ? <span class="hljs-string">&quot;ok&quot;</span>
+                : <span class="hljs-string">&quot;&quot;</span>;
+        <span class="hljs-keyword">return</span> c ? <span class="hljs-string">&#x27;&lt;span class=&quot;&#x27;</span> + c + <span class="hljs-string">&#x27;&quot;&gt;&#x27;</span> + l + <span class="hljs-string">&quot;&lt;/span&gt;&quot;</span> : l;
+      })
+      .<span class="hljs-title function_">join</span>(<span class="hljs-string">&quot;\n&quot;</span>);
+    outEl.<span class="hljs-property">scrollTop</span> = outEl.<span class="hljs-property">scrollHeight</span>;
+  }
+  <span class="hljs-title function_">post</span>(tag, raw);
+}
+</code></pre>
+<p>첫 줄을 보면 원래 <code>detail</code>을 <code>raw</code>에 따로 남겨둔다. 그다음 화면에 쓸 값만 <code>terse()</code>로 줄이고 <code>lines</code>에 추가한다. 화면 로그가 켜져 있으면 각 줄을 이스케이프한 뒤, 키워드에 따라 CSS 클래스를 붙여 출력한다.</p>
+<p><code>innerHTML</code>을 사용한다는 점도 보인다. 다만 이것만 보고 문자열이 그대로 HTML로 해석된다고 판단하면 안 된다. <code>esc()</code>에서 <code>&amp;</code>를 먼저 바꾸고 <code>&lt;</code>를 바꾸며, 그 결과는 <code>span</code>의 텍스트 내용으로 들어간다. 클래스 이름도 입력값을 그대로 쓰는 것이 아니라 코드에 정해진 값 중에서 선택한다. 어느 위치에 문자열을 넣는지와 그 전에 어떤 처리를 하는지를 같이 봐야 한다.</p>
+<p>여기서 주목한 부분은 마지막의 <code>post(tag, raw)</code>다. 전송 함수에는 화면에서 줄인 <code>detail</code>이 아니라 처음 남겨둔 원문이 들어간다. <strong>화면에 보이는 내용과 전송하는 내용이 달라지는 지점</strong>이다.</p>
+<h3>7.3 <code>post()</code>와 <code>trace()</code>: 로그가 보이지 않아도 전송하는가</h3>
+<p><code>post()</code>를 보면 어디로 어떤 값을 보내는지 알 수 있다.</p>
+<p><em><code>jb.js</code> · L15–L27</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">post</span>(<span class="hljs-params">tag, detail</span>) {
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> x = <span class="hljs-keyword">new</span> <span class="hljs-title class_">XMLHttpRequest</span>();
+    x.<span class="hljs-title function_">open</span>(<span class="hljs-string">&quot;POST&quot;</span>, <span class="hljs-string">&quot;/t&quot;</span>, <span class="hljs-literal">true</span>);
+    x.<span class="hljs-title function_">setRequestHeader</span>(<span class="hljs-string">&quot;Content-Type&quot;</span>, <span class="hljs-string">&quot;application/x-www-form-urlencoded&quot;</span>);
+    x.<span class="hljs-title function_">send</span>(
+      <span class="hljs-string">&quot;PS4-JB&amp;tag=&quot;</span> +
+        <span class="hljs-built_in">encodeURIComponent</span>(tag) +
+        <span class="hljs-string">&quot;&amp;detail=&quot;</span> +
+        <span class="hljs-built_in">encodeURIComponent</span>(<span class="hljs-title class_">String</span>(detail == <span class="hljs-literal">null</span> ? <span class="hljs-string">&quot;&quot;</span> : detail)),
+    );
+  } <span class="hljs-keyword">catch</span> (e) {}
+}
+</code></pre>
+<p>목적지는 같은 출처의 <code>/t</code>다. <code>tag</code>와 <code>detail</code>을 <code>encodeURIComponent()</code>로 인코딩하여 폼 형식의 본문에 넣는다. <code>detail</code>이 <code>null</code>이면 빈 문자열로 바꾼다.</p>
+<p>이 인코딩은 수신 측에서 원래 문자열로 되돌릴 수 있다. 암호화나 익명화 처리가 아니라 요청에 값을 담기 위한 표현이다.</p>
+<p>또한 비동기 XHR을 시작하지만 응답을 처리하는 콜백은 없다. 바깥의 <code>try/catch</code>는 호출 중 발생한 예외를 처리할 뿐, 나중에 도착하는 HTTP 응답의 성공 여부를 알려주지는 않는다.</p>
+<p>이제 <code>trace()</code>까지 연결해서 보겠다.</p>
+<p><em><code>jb.js</code> · L91–L94</em></p>
+<pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">trace</span>(<span class="hljs-params">tag, detail</span>) {
+  <span class="hljs-keyword">if</span> (<span class="hljs-variable constant_">VERBOSE</span>) <span class="hljs-title function_">mark</span>(tag, detail);
+  <span class="hljs-keyword">else</span> <span class="hljs-title function_">post</span>(tag, detail);
+}
+</code></pre>
+<p><code>VERBOSE</code>가 켜져 있으면 <code>mark()</code>로 가고, 꺼져 있으면 곧바로 <code>post()</code>를 호출한다. 앞에서 본 것처럼 <code>mark()</code>도 마지막에 <code>post()</code>를 호출한다. 결국 자세한 화면 표시를 끄더라도 전송을 시도하는 경로는 남는다.</p>
+<p><img src="/assets/research/ps4-raw13g-review/03-logging-ko.svg" alt="로그 원문이 화면 표시와 네트워크 전송으로 나뉘는 흐름"></p>
+<p><em>그림 5. 화면에서는 줄인 값을 사용하고, 전송 함수에는 원문을 넘긴다.</em></p>
+<p>여기서 확인한 것은 요청을 시도하는 코드까지다. <code>/t</code>를 처리하는 서버가 실제로 있는지, 수신에 성공했는지, 받은 내용을 저장하는지는 별도로 확인해야 한다. 펌웨어 정보나 진단 상태를 로그에 넣는 호출부가 있다고 해서 실제 수집까지 확인된 것은 아니다.</p>
+<h2>8. 포트 상태로 확인한 내용</h2>
+<p>코드와 함께 남아 있던 TCP 연결 기록도 살펴보았다. 두 번의 결과는 다음과 같다. [3]</p>
+<table>
+<thead>
+<tr>
+<th>포트</th>
+<th>17:15 KST</th>
+<th>17:29 KST</th>
+<th>GoldHEN 문서의 역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>2121/tcp</code></td>
+<td>closed</td>
+<td>open</td>
+<td>FTP</td>
+</tr>
+<tr>
+<td><code>3232/tcp</code></td>
+<td>open</td>
+<td>open</td>
+<td>Klog</td>
+</tr>
+<tr>
+<td><code>9090/tcp</code></td>
+<td>closed</td>
+<td>open</td>
+<td>BinLoader</td>
+</tr>
+</tbody>
+</table>
+<p>포트와 역할은 GoldHEN 문서의 설명과 맞는다. 다만 포트 번호가 같다고 그곳에서 동작하는 프로그램까지 확인되는 것은 아니다. [4]</p>
+<p>Nmap에서 <code>open</code>은 검사한 지점에서 연결을 수락했다는 의미다. 이 기록은 TCP 연결 여부까지 확인한 것이므로, 17:29에 세 포트가 연결을 받았다는 점을 알 수 있다. 어떤 구현이 어떤 권한으로 동작했는지, 전체 체인이 매번 성공하는지까지는 설명하지 못한다. [5]</p>
+<p>반대로 처음에 두 포트가 닫혀 있었다고 바로 체인 실패라고 볼 수도 없다. 서비스가 켜져 있는지와 전체 실행 결과는 구분해야 한다. 서비스를 다시 열었다는 기록은 뒤의 상태 변화와 맞지만, 이 두 번의 결과만으로 내부 과정을 전부 알 수는 없다.</p>
+<h2>9. 정리</h2>
+<p>이번에는 <code>raw13g</code>의 파일 구조를 먼저 나누고 주요 함수를 따라가보았다. <code>jb.js</code>가 설정, 모듈, Worker와 외부 파일을 연결하고, 나머지 파일이 각 기능을 맡는 구조였다.</p>
+<table>
+<thead>
+<tr>
+<th>코드</th>
+<th>맡은 역할</th>
+<th>읽으면서 확인한 점</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>offsetsFor()</code></td>
+<td>버전 키로 설정 조회</td>
+<td>설정이 있다는 것과 실제 환경에서 맞는지는 별개</td>
+</tr>
+<tr>
+<td><code>core.js</code> / <code>mem.js</code></td>
+<td>기반 기능과 사용 API 분리</td>
+<td>전역 인터페이스는 같은 페이지의 다른 스크립트도 접근 가능</td>
+</tr>
+<tr>
+<td><code>int64.toString()</code></td>
+<td>두 32비트 값을 문자열로 변환</td>
+<td>16진수의 결합 방식을 일반 진법에 그대로 적용하기 어려움</td>
+</tr>
+<tr>
+<td><code>makeRpc()</code></td>
+<td>요청 ID와 Promise 연결</td>
+<td>응답 형식과 대기 호출의 종료 조건을 함께 봐야 함</td>
+</tr>
+<tr>
+<td>파일 수신 블록</td>
+<td>응답 본문을 바이트 뷰로 준비</td>
+<td>다운로드 성공만으로 내용이나 제작자가 확인되지는 않음</td>
+</tr>
+<tr>
+<td><code>mark()</code> / <code>post()</code></td>
+<td>화면 표시와 전송 분리</td>
+<td>화면에서 줄인 정보가 전송 단계에서는 그대로 남을 수 있음</td>
+</tr>
+</tbody>
+</table>
+<p>처음에는 파일이 여러 개라는 점이 눈에 들어왔지만, 역할별로 나누고 나니 어떤 값이 어디로 넘어가는지 보기 쉬워졌다. 특히 숫자를 문자열로 만드는 작은 함수나 로그를 줄이는 코드도 이름만 보고 넘기면 실제 동작과 다르게 이해할 수 있다는 점이 기억에 남았다.</p>
+<p>별도 바이너리의 내부는 이번 JavaScript 리뷰만으로 확인할 수 없는 부분이다. 여기까지는 코드에서 직접 읽은 동작과 기존 실행 기록을 바탕으로 정리하였다.</p>
+<h2>참고 자료</h2>
+<ol>
+<li>분석 자료의 <code>README.md</code>, <code>PROVENANCE.md</code>, <code>MANIFEST.sha256</code> 및 <a href="https://github.com/raw13g/raw13g.github.io/tree/9ba2f0719591d6900d91aba6cc5291f8fff97e6d">분석 기준 커밋</a>. 소스와 배포 파일 비교는 함께 수집된 사본을 기준으로 했다.</li>
+<li><code>source/</code>의 HTML·JavaScript·AppCache·<code>LICENSE</code>, <code>CODE_REVIEW.md</code>, <code>REPORT.md</code>. 코드 발췌의 파일명과 줄 번호는 이 소스를 기준으로 한다.</li>
+<li><code>PORT_CHECK.md</code>와 <code>evidence/</code>의 구문 검사·TCP 연결 기록. 포트 표는 2026년 10월 5일의 기존 기록이며 새로 측정한 결과는 아니다.</li>
+<li><a href="https://github.com/GoldHEN/GoldHEN">GoldHEN 프로젝트 문서</a>: FTP·Klog·BinLoader 기능과 포트 설명.</li>
+<li><a href="https://nmap.org/book/man-port-scanning-basics.html">Nmap — Port Scanning Basics</a>: <code>open</code>·<code>closed</code> 상태의 의미.</li>
+<li><a href="https://dev.w3.org/html5/spec-LC/offline.html">W3C HTML5 — Offline Web applications</a>: AppCache 매니페스트와 네트워크 처리 규칙.</li>
+</ol>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/ps4-raw13g-review/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
+
+  <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
+  <p class="print-notice">whrds.log · 이 페이지의 인쇄 및 PDF 저장은 제한되어 있습니다. 블로그에서 내용을 확인해 주세요.</p>
+  <dialog class="site-dialog subscribe-dialog" id="subscribe-dialog" aria-labelledby="subscribe-title" aria-describedby="subscribe-description">
+    <div class="dialog-heading"><div><p class="subscribe-kicker">RSS / WHRDS.LOG</p><h2 id="subscribe-title">새 글 구독</h2></div><button class="dialog-close" type="button" data-dialog-close aria-label="닫기">×</button></div>
+    <p id="subscribe-description">RSS 앱에 피드를 추가하면 새 글을 모아볼 수 있어요. 원하는 언어를 선택하세요.</p>
+    <div class="feed-languages" role="group" aria-label="구독 언어"><button type="button" data-feed-language="ko" aria-pressed="true">한국어</button><button type="button" data-feed-language="en" aria-pressed="false">English</button></div>
+    <label class="feed-label" for="feed-url">RSS 주소</label>
+    <div class="feed-copy-row"><input id="feed-url" type="url" readonly spellcheck="false" value="https://whrds.github.io/ko/feed.xml" data-feed-origin="https://whrds.github.io"><button class="tool-button" type="button" data-copy-feed>주소 복사</button></div>
+    <p class="feed-status" data-feed-status role="status" aria-live="polite"></p>
+    <div class="feed-actions"><a class="tool-button" data-reader-link href="https://www.inoreader.com/?add_feed=https%3A%2F%2Fwhrds.github.io%2Fko%2Ffeed.xml" target="_blank" rel="noopener noreferrer">Inoreader에서 구독 ↗</a><a class="feed-raw-link" data-feed-link href="https://whrds.github.io/ko/feed.xml">RSS 피드 열기 ↗</a></div>
+    <p class="dialog-note">RSS 주소는 다른 구독 앱에서도 사용할 수 있어요.</p>
+  </dialog>
+  <dialog class="site-dialog image-lightbox" id="image-lightbox" aria-labelledby="image-lightbox-title">
+    <div class="image-toolbar"><h2 id="image-lightbox-title">이미지 확대</h2><div><button class="tool-button" type="button" data-image-scale aria-pressed="false">더 확대</button><button class="dialog-close" type="button" data-dialog-close aria-label="닫기">×</button></div></div>
+    <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
+    <p class="image-caption" data-image-caption></p>
+  </dialog>
+  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+</body></html>
