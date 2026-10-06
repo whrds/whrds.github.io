@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/2026-def-con-34-ctf-retrospective-from-jindomix-to-jinddabi-s/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/2026-def-con-34-ctf-retrospective-from-jindomix-to-jinddabi-s/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="2026 DEF CON 34 CTF 회고: Jindomix에서 Jinddabi&#039;s까지 · whrds.log"><meta property="og:description" content="안녕하세요. 2026년 DEF CON 34 CTF 본선에 진출한 Jinddabi&#039;s 소속 ZZoMb1E입니다.DEF CON CTF는 세계에서 가장 권위 있고 규모가 큰 해킹 대회 중 하나입니다. 구글에 검색만 해도 아래와 같이 소개될 정도죠. 그만큼 해킹을 공부하는 많은 사람에게 꿈의 무대로 여겨지는 대회이기도 합니다. "><meta property="og:url" content="https://whrds.github.io/ko/posts/2026-def-con-34-ctf-retrospective-from-jindomix-to-jinddabi-s/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"2026 DEF CON 34 CTF 회고: Jindomix에서 Jinddabi's까지","description":"안녕하세요. 2026년 DEF CON 34 CTF 본선에 진출한 Jinddabi's 소속 ZZoMb1E입니다.DEF CON CTF는 세계에서 가장 권위 있고 규모가 큰 해킹 대회 중 하나입니다. 구글에 검색만 해도 아래와 같이 소개될 정도죠. 그만큼 해킹을 공부하는 많은 사람에게 꿈의 무대로 여겨지는 대회이기도 합니다. ","datePublished":"2026-08-14","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/2026-def-con-34-ctf-retrospective-from-jindomix-to-jinddabi-s/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>2026 DEF CON 34 CTF 회고: Jindomix에서 Jinddabi&#039;s까지</h1><p class="article-description">안녕하세요. 2026년 DEF CON 34 CTF 본선에 진출한 Jinddabi&#039;s 소속 ZZoMb1E입니다.DEF CON CTF는 세계에서 가장 권위 있고 규모가 큰 해킹 대회 중 하나입니다. 구글에 검색만 해도 아래와 같이 소개될 정도죠. 그만큼 해킹을 공부하는 많은 사람에게 꿈의 무대로 여겨지는 대회이기도 합니다. </p><div class="article-meta"><a class="post-category" href="/ko/categories/ctf-writeups/">Write Up / CTF</a><span>·</span><time datetime="2026-08-14">2026년 8월 14일</time><span>·</span><span>2 분 읽기</span></div></div></header><div class="prose"><p>안녕하세요. </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">2026 DEF CON 34 CTF 회고: Jindomix에서 Jinddabi&#039;s까지</h1><p class="article-description">안녕하세요. 2026년 DEF CON 34 CTF 본선에 진출한 Jinddabi&#039;s 소속 ZZoMb1E입니다.DEF CON CTF는 세계에서 가장 권위 있고 규모가 큰 해킹 대회 중 하나입니다. 구글에 검색만 해도 아래와 같이 소개될 정도죠. 그만큼 해킹을 공부하는 많은 사람에게 꿈의 무대로 여겨지는 대회이기도 합니다. </p><div class="article-meta"><a class="post-category" href="/ko/categories/ctf-writeups/">Write Up / CTF</a><span>·</span><time datetime="2026-08-14">2026년 8월 14일</time><span>·</span><span>2 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>안녕하세요. </p>
 <p>2026년 <strong>DEF CON 34 CTF 본선</strong>에 진출한 <strong>Jinddabi’s</strong> 소속 <strong>ZZoMb1E</strong>입니다.</p>
 <p>DEF CON CTF는 세계에서 가장 권위 있고 규모가 큰 해킹 대회 중 하나입니다. 구글에 검색만 해도 아래와 같이 소개될 정도죠.</p>
 <p><img src="/assets/images/tistory/tistory-b94dbd1b7bbd/001.png" alt=""></p>
@@ -51,7 +51,7 @@
 <p>평범한 후배의 연락 한 통에서 시작된 팀이 Codegate를 거쳐 DEF CON 본선까지 이어질 것이라고는 전혀 예상하지 못했습니다. 저에게는 오랫동안 바라왔던 목표를 이루는 순간이었고, 함께했기에 더욱 의미 있는 경험이었습니다. 다시 한번 이 여정을 함께해주신 모든 분께 감사드립니다.</p>
 <p>저희 팀뿐만 아니라 다른 팀 소속의 많은 분들과도 인사를 나누며 뜻깊은 시간을 보낼 수 있었습니다. 오랫동안 바라온 목표를 이룬 것만큼이나, 이번 기회를 통해 좋은 분들을 만나고 인연을 맺을 수 있었다는 점이 저에게는 큰 의미로 남았습니다.</p>
 <p>함께해주신 모든 분의 앞날에 좋은 일만 가득하기를 바라며, 다시 한번 진심으로 감사드립니다. 다음에 또 좋은 자리에서 뵙겠습니다.</p>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/2026-def-con-34-ctf-retrospective-from-jindomix-to-jinddabi-s/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/2026-def-con-34-ctf-retrospective-from-jindomix-to-jinddabi-s/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -71,6 +71,6 @@
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

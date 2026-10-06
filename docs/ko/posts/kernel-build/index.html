@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-build/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-build/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] build · whrds.log"><meta property="og:description" content="※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. Kernel 1-day를 분석하기 위해서는 User 공간에서 1-day 분석을 위해 환경 구축을 했던 것처럼, 취약한 버젼에 맞는 Kernel 버젼을 build "><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-build/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] build","description":"※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. Kernel 1-day를 분석하기 위해서는 User 공간에서 1-day 분석을 위해 환경 구축을 했던 것처럼, 취약한 버젼에 맞는 Kernel 버젼을 build ","datePublished":"2024-11-12","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-build/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,12 +27,12 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[KERNEL] build</h1><p class="article-description">※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. Kernel 1-day를 분석하기 위해서는 User 공간에서 1-day 분석을 위해 환경 구축을 했던 것처럼, 취약한 버젼에 맞는 Kernel 버젼을 build </p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-11-12">2024년 11월 12일</time><span>·</span><span>2 분 읽기</span></div></div></header><div class="prose"><p><strong>※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다.</strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[KERNEL] build</h1><p class="article-description">※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다. Kernel 1-day를 분석하기 위해서는 User 공간에서 1-day 분석을 위해 환경 구축을 했던 것처럼, 취약한 버젼에 맞는 Kernel 버젼을 build </p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-11-12">2024년 11월 12일</time><span>·</span><span>2 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-1-kernel-source-install" data-toc-link>1. Kernel source install</a></li><li class="article-toc-level-0"><a href="#section-2-install-package" data-toc-link>2. Install package</a></li><li class="article-toc-level-0"><a href="#section-3-version-check" data-toc-link>3. Version check</a></li><li class="article-toc-level-0"><a href="#section-4-prepare-config" data-toc-link>4. Prepare .config</a></li><li class="article-toc-level-0"><a href="#section-5-make" data-toc-link>5. make</a></li><li class="article-toc-level-0"><a href="#section-6-rootfs-img" data-toc-link>6. rootfs img</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다.</strong> </p>
 <p><strong>※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.</strong></p>
 <p>  Kernel 1-day를 분석하기 위해서는 User 공간에서 1-day 분석을 위해 환경 구축을 했던 것처럼, 취약한 버젼에 맞는 Kernel 버젼을 build 해야한다. 이를 위해 준비해야 하는 것은 취약한 버젼에 맞는 bzimage, vmlinux 그리고 PoC 동작을 할 바이너리를 가지고 있는 rootfs 이미지 파일이다.</p>
 <p>Kernel 1-day 중 하나인 CVE-2022-1015를 분석하기 위해 Kernel 환경 구축에 대해 공부를 하였으며 이를 작성해보고자 한다.</p>
 <hr>
-<h4>1. Kernel source install</h4>
+<h4 id="section-1-kernel-source-install" tabindex="-1">1. Kernel source install</h4>
 <p>먼저 취약한 버젼에 맞는 Kernel 파일을 설치를 해야한다. 이를 위해 git을 사용하겠다.</p>
 <pre><code>git clone git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 </code></pre>
@@ -45,11 +45,11 @@ tar -xzvf ./kernel.tar.gz
 </code></pre>
 <p>wget으로 설치를 진행해도 된다.</p>
 <p>이렇게 진행할 경우 압축해제도 진행해주어야 한다.</p>
-<h4>2. Install package</h4>
+<h4 id="section-2-install-package" tabindex="-1">2. Install package</h4>
 <pre><code>sudo apt-get install git-all fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison
 </code></pre>
 <p>이와 같은 package 들을 설치를 해주게 되면 정상적으로 이후 작업을 수행할 수 있다.</p>
-<h4>3. Version check</h4>
+<h4 id="section-3-version-check" tabindex="-1">3. Version check</h4>
 <pre><code>git checkout -b CV5.12.2 v5.12.2
 
 ____________________________________________________________________________________
@@ -58,7 +58,7 @@ git checkout[commit code]
 -&gt; ex)  git checkout 9f4ad9e425a1d3b6a34617b8ea226d56a119a717
 </code></pre>
 <p>이후 방법로 git의 commit 값을 아는 경우 해당 값을 작성하거나 설치하고자 하는 버젼을 위와 같은 형식으로 작성해주면 된다.</p>
-<h4>4. Prepare .config</h4>
+<h4 id="section-4-prepare-config" tabindex="-1">4. Prepare .config</h4>
 <p>여기서는 방법이 2가지로 나뉘게 된다.</p>
 <p>현재 사용중인 Linux 환경 Kernel의 .config 파일을 그대로 가져다 쓰거나 새로 생성하는 방법이 있다.</p>
 <p>4-1. Copy Kernel config</p>
@@ -92,7 +92,7 @@ CONFIG_SYSTEM_TRUSTED_KEYScd
 <p>2번째 설정은 [Kernel hacking] 부분에서 KGPG인가 있다는데 필자의 환경에서는 해당 설정이 존재하지 않았다.</p>
 <p><img src="/assets/images/tistory/tistory-696de103e19e/005.png" alt=""></p>
 <p>설정을 다했으면 [SAVE]로 저장하고 나가면 .config 파일이 생성되어 있다.</p>
-<h4>5. make </h4>
+<h4 id="section-5-make" tabindex="-1">5. make </h4>
 <pre><code>make -j$(nproc) O=../build/
 </code></pre>
 <p>설정을 다 했으면 위와 같이 입력하여 build를 수행해주면 된다.</p>
@@ -107,7 +107,7 @@ CONFIG_SYSTEM_TRUSTED_KEYScd
 <p><img src="/assets/images/tistory/tistory-696de103e19e/008.png" alt=""></p>
 <p>arch/x86/boot/ 경로에 들어가면 bzImage가 있는 것을 볼 수 있다. 이 파일과 vmlinux 파일을 이용해서 이후 Kernel을 실행하면 된다.</p>
 <hr>
-<h4>6. rootfs img</h4>
+<h4 id="section-6-rootfs-img" tabindex="-1">6. rootfs img</h4>
 <p>Kernel을 실행하기 위해서는 rootfs 이미지가 필요하다. 이를 위해 debootstrap을 사용한다.</p>
 <pre><code>sudo debootstrap --arch amd64 jammy /path/to/rootfs http://archive.ubuntu.com/ubuntu
 </code></pre>
@@ -130,7 +130,7 @@ qemu-system-x86_64 \
     -net nic,model=virtio \
     -net user
 </code></pre>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-build/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-build/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -150,6 +150,6 @@ qemu-system-x86_64 \
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

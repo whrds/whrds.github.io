@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-slab-allocator/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-slab-allocator/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Slab Allocator · whrds.log"><meta property="og:description" content="※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 "><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-slab-allocator/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Slab Allocator","description":"※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 ","datePublished":"2024-11-14","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-slab-allocator/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Slab Allocator</h1><p class="article-description">※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 </p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-11-14">2024년 11월 14일</time><span>·</span><span>3 분 읽기</span></div></div></header><div class="prose"><p><strong>※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다.</strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[KERNEL] Slab Allocator</h1><p class="article-description">※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다. ※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.) User 영역에서 malloc, free 등의 </p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-11-14">2024년 11월 14일</time><span>·</span><span>3 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-fastpath" data-toc-link>fastpath</a></li><li class="article-toc-level-0"><a href="#section-slowpath-1" data-toc-link>Slowpath-1</a></li><li class="article-toc-level-0"><a href="#section-slowpath-2" data-toc-link>Slowpath-2</a></li><li class="article-toc-level-0"><a href="#section-slowpath-3" data-toc-link>Slowpath-3</a></li><li class="article-toc-level-0"><a href="#section-slowpath-4" data-toc-link>Slowpath-4</a></li><li class="article-toc-level-0"><a href="#section-reference" data-toc-link>Reference</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ 자료들을 참고하여 분석을 진행하였기에 잘못된 부분이 있을지도 모릅니다.</strong> </p>
 <p><strong>※ 보완 혹은 수정해야 되는 부분이 있다면 알려주시면 확인 후 조치하도록 하겠습니다.</strong></p>
 <p><strong>※ 이미지의 경우 제가 참고한 레퍼런스의 이미지가 설명이 잘되어 있어서 가져왔습니다.(링크 가장 하단에 있습니다.)</strong></p>
 <p>User 영역에서 malloc, free 등의 함수에 의한 메모리 할당은 ptmalloc에서 관리를 수행한다.</p>
@@ -193,7 +193,7 @@
 <p>위 그림을 보면 알 수 있듯이 현재의 CPU에서 해제를 했을 경우 page의 inuse 값이 8로 유지되는데, 다른 CPU에 의해서 해제되었을 경우 cpu-&gt;freelist에서 관리하는 것이 아니게 되고 cpu-&gt;page-&gt;freelist에서 관리하는 것이 되기 때문에 2개가 줄어 inuse가 6개인 것을 볼 수 있다.</p>
 <hr>
 <p>메모리 할당 방식에는 크게 5가지로 이루어져 있다.</p>
-<h4>fastpath</h4>
+<h4 id="section-fastpath" tabindex="-1">fastpath</h4>
 <ul>
 <li>가장 빠른 할당 방식</li>
 <li>cpu-&gt;freelist에 할당 가능한 object가 있으면 바로 할당하는 방식
@@ -203,14 +203,14 @@
 </li>
 </ul>
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/011.png" alt=""></p>
-<h4>Slowpath-1</h4>
+<h4 id="section-slowpath-1" tabindex="-1">Slowpath-1</h4>
 <ul>
 <li>cpu-&gt;freelist에 사용할 수 있는 object가 없을 경우 실행</li>
 <li>cpu-&gt;page-&gt;freelist에 들어있는 object들을 cpu-&gt;freelist로 올린 다음 fastpath 수행</li>
 </ul>
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/012.png" alt=""></p>
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/013.png" alt=""></p>
-<h4>Slowpath-2</h4>
+<h4 id="section-slowpath-2" tabindex="-1">Slowpath-2</h4>
 <ul>
 <li>cpu-&gt;page-&gt;freelist에도 object가 없는 경우 (fastpath, slowpath-1을 사용할 수 없는 상황)</li>
 <li>cpu-&gt;partial page를 활용
@@ -222,7 +222,7 @@
 </li>
 </ul>
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/014.png" alt=""></p>
-<h4>Slowpath-3</h4>
+<h4 id="section-slowpath-3" tabindex="-1">Slowpath-3</h4>
 <ul>
 <li>cpu-&gt;partial에도 할당 가능한 object가 없는 경우 (fastpath, slowpath-1, slowpath-2을 사용할 수 없는 상황)</li>
 </ul>
@@ -240,7 +240,7 @@
 </li>
 </ul>
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/016.png" alt=""></p>
-<h4>Slowpath-4</h4>
+<h4 id="section-slowpath-4" tabindex="-1">Slowpath-4</h4>
 <ul>
 <li>앞의 방법들을 모두 사용할 수가 없을 때 사용하는 단계</li>
 <li>Buddy System으로부터 새롭게 page를 할당</li>
@@ -254,7 +254,7 @@
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/020.png" alt=""></p>
 <p>fastpath의 경우 cpu-&gt;freelist에 있는 것을 바로 할당했기 때문에 해당 위치로 그대로 반환하는 구조이다.</p>
 <hr>
-<h4>Reference</h4>
+<h4 id="section-reference" tabindex="-1">Reference</h4>
 <ul>
 <li><a href="http://jake.dothome.co.kr/slub/#comment-304534">http://jake.dothome.co.kr/slub/#comment-304534</a></li>
 </ul>
@@ -267,7 +267,7 @@
 <p> [[Linux Kernel] Slab Memory Allocator 란?</p>
 <p>목차</p>
 <p><a href="http://jeongzero.oopy.io">jeongzero.oopy.io</a>](<a href="https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4">https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4</a>)</p>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-slab-allocator/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-slab-allocator/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -287,6 +287,6 @@
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

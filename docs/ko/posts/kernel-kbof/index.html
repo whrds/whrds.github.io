@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-kbof/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-kbof/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] KBOF · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps:/"><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-kbof/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] KBOF","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps:/","datePublished":"2024-06-27","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-kbof/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,14 +27,14 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[KERNEL] KBOF</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps:/</p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-06-27">2024년 6월 27일</time><span>·</span><span>2 분 읽기</span></div></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[KERNEL] KBOF</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ Holsteinhttps:/</p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-06-27">2024년 6월 27일</time><span>·</span><span>2 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-commit-creds" data-toc-link>commit_creds()</a></li><li class="article-toc-level-0"><a href="#section-init-cred" data-toc-link>init_cred</a></li><li class="article-toc-level-0"><a href="#section-prepare-kernel-cred" data-toc-link>prepare_kernel_cred</a></li><li class="article-toc-level-0"><a href="#section-ret2usr" data-toc-link>ret2usr</a></li><li class="article-toc-level-0"><a href="#section-exploit" data-toc-link>Exploit</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
 <p><a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a></p>
 <p> [[KERNEL] Holstein Module</p>
 <p>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※  Holsteinhttps://whrdud727.tistory.com/entry/KERNEL-Environment-Setting [KERNEL] Environment Setting※ 잘못된 부분이 있으면 알려주세요.</p>
 <p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a>)</p>
 <p>이전 게시글에서 Holstein 모듈을 활용하여 코드 분석 및 취약점을 확인했다. </p>
 <p>취약점으로 RIP 를 조작할 수 있다는 사실을 활용하여 Exploit을 해보겠다.</p>
-<h4>commit_creds()</h4>
+<h4 id="section-commit-creds" tabindex="-1">commit_creds()</h4>
 <hr>
 <p>cred 구조체는 프로세스에 대한 권한 정보를 가지고 있다. 그리고 이를 관리하는 것은 task_cred라는 구조체에서 하고 있다.</p>
 <pre><code>int commit_creds(struct cred *new)
@@ -90,7 +90,7 @@
 ...
 </code></pre>
 <p>commit_creds()는 new cred 구조체를 인자로 받아온다. 그리고 나서 프로세스의 각 권한 정보들을 new cred 구조체의 정보로 설정해주는 역할을 한다.</p>
-<h4>init_cred</h4>
+<h4 id="section-init-cred" tabindex="-1">init_cred</h4>
 <hr>
 <pre><code>struct cred init_cred = {
 	.usage			= ATOMIC_INIT(4),
@@ -115,7 +115,7 @@
 </code></pre>
 <p>cred 구조체 중 init_cred를 살펴보면 uid, gid 등을 포함한 값들이 ROOT 권한을 가리키고 있다.</p>
 <p>여기까지 확인했을 때, commit_creds()의 인자로 init_cred 구조체를 전달해주면 프로세스의 권한 정보를 root로 변경할 수 있게 된다.</p>
-<h4>prepare_kernel_cred</h4>
+<h4 id="section-prepare-kernel-cred" tabindex="-1">prepare_kernel_cred</h4>
 <hr>
 <pre><code>struct cred *prepare_kernel_cred(struct task_struct *daemon)
 {
@@ -140,7 +140,7 @@
 <p>이전 게시글에서 RIP를 변조하는 것을 했었는데, RIP 위치에 아래 코드를 입력하게 되면 우리는 일반 사용자가 아닌 root 사용자로 권한 상승일 일어나게 된다.</p>
 <pre><code>commit_cred(prepare_kernel_cred(NULL))
 </code></pre>
-<h4>ret2usr</h4>
+<h4 id="section-ret2usr" tabindex="-1">ret2usr</h4>
 <hr>
 <p>이전까지 확인한 내용은 커널 영역에서 작동한다. 원하는 값으로 overwrite를 성공했다면 다시 유저 영역으로 돌아와야 한다.</p>
 <p><strong>swapgs</strong></p>
@@ -189,7 +189,7 @@ static void restore_state() {
 </code></pre>
 <p>코드를 살펴보면 shell을 위한 win()가 있는 것을 확인할 수 있다.</p>
 <p>권한 자체를 일반 사용자에서 root로 상승하더라도 바로 shell이 따지는 것은 아니다. 말 그대로 프로세스의 실행 권한을 root로 바꾸었다는 것이기 때문에 shell을 위해서는 코드 상에서 /bin/sh를 실행하는 함수를 설정해주어야 한다.</p>
-<h4>Exploit</h4>
+<h4 id="section-exploit" tabindex="-1">Exploit</h4>
 <hr>
 <p>Exploit을 하기 위해서는 유저 영역에서의 BoF와 마찬가지로 buf와 ret 사이의 offset을 구해야 한다.</p>
 <p>./root/vuln.ko 파일을 활용하여 취약한 함수인 _copy_from_user의 offset을 구한다.</p>
@@ -321,7 +321,7 @@ poweroff -d 0 -f
 </code></pre>
 <p><img src="/assets/images/tistory/tistory-9743f1296bfa/007.png" alt=""></p>
 <p>성공적으로 권한 상승 후 shell을 얻은 것을 볼 수 있다.</p>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-kbof/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-kbof/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -341,6 +341,6 @@ poweroff -d 0 -f
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

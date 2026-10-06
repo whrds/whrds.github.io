@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/ps4-raw13g-review/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/ps4-raw13g-review/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[PS4] raw13g 코드 분석 · whrds.log"><meta property="og:description" content="raw13g의 파일 구조부터 주요 함수, Worker 통신과 로그 처리까지 코드를 따라가며 정리해보았다."><meta property="og:url" content="https://whrds.github.io/ko/posts/ps4-raw13g-review/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PS4] raw13g 코드 분석","description":"raw13g의 파일 구조부터 주요 함수, Worker 통신과 로그 처리까지 코드를 따라가며 정리해보았다.","datePublished":"2026-10-05","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/ps4-raw13g-review/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,10 +27,10 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PS4] raw13g 코드 분석</h1><p class="article-description">raw13g의 파일 구조부터 주요 함수, Worker 통신과 로그 처리까지 코드를 따라가며 정리해보았다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2026-10-05">2026년 10월 5일</time><span>·</span><span>9 분 읽기</span></div></div></header><div class="prose"><p>이번에는 PS4에서 사용하는 <code>raw13g</code>의 코드를 정리해보겠다.</p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[PS4] raw13g 코드 분석</h1><p class="article-description">raw13g의 파일 구조부터 주요 함수, Worker 통신과 로그 처리까지 코드를 따라가며 정리해보았다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2026-10-05">2026년 10월 5일</time><span>·</span><span>9 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-1-%EB%B6%84%EC%84%9D-%EB%8C%80%EC%83%81" data-toc-link>1. 분석 대상</a></li><li class="article-toc-level-0"><a href="#section-2-%EC%A0%84%EC%B2%B4-%EA%B5%AC%EC%A1%B0%EC%99%80-%EC%A3%BC%EC%9A%94-%ED%95%A8%EC%88%98" data-toc-link>2. 전체 구조와 주요 함수</a></li><li class="article-toc-level-1"><a href="#section-2-1-index-html%EA%B3%BC-jb-html-%EC%8B%9C%EC%9E%91-%ED%99%94%EB%A9%B4%EC%97%90%EC%84%9C-%ED%95%98%EB%8A%94-%EC%9D%BC" data-toc-link>2.1 index.html과 jb.html: 시작 화면에서 하는 일</a></li><li class="article-toc-level-1"><a href="#section-2-2-offsetsfor-%EB%B2%84%EC%A0%84%EC%97%90-%EB%A7%9E%EB%8A%94-%EC%84%A4%EC%A0%95-%EC%B0%BE%EA%B8%B0" data-toc-link>2.2 offsetsFor(): 버전에 맞는 설정 찾기</a></li><li class="article-toc-level-1"><a href="#section-2-3-core-js%EC%99%80-mem-js-%EA%B8%B0%EB%8A%A5%EC%9D%84-%EB%A7%8C%EB%93%A4%EA%B3%A0-%EC%9D%B8%ED%84%B0%ED%8E%98%EC%9D%B4%EC%8A%A4%EB%A1%9C-%EA%B0%90%EC%8B%B8%EA%B8%B0" data-toc-link>2.3 core.js와 mem.js: 기능을 만들고 인터페이스로 감싸기</a></li><li class="article-toc-level-1"><a href="#section-2-4-int64-js-64%EB%B9%84%ED%8A%B8-%EA%B0%92%EC%9D%84-%EB%82%98%EB%88%84%EC%96%B4-%EB%B3%B4%EA%B4%80%ED%95%98%EB%8A%94-%EC%9D%B4%EC%9C%A0" data-toc-link>2.4 int64.js: 64비트 값을 나누어 보관하는 이유</a></li><li class="article-toc-level-1"><a href="#section-2-5-makerpc-worker-%EC%9D%91%EB%8B%B5%EC%9D%84-%EA%B8%B0%EB%8B%A4%EB%A6%AC%EB%8A%94-%EB%B0%A9%EC%8B%9D" data-toc-link>2.5 makeRpc(): Worker 응답을 기다리는 방식</a></li><li class="article-toc-level-1"><a href="#section-2-6-%ED%8C%8C%EC%9D%BC-%EB%A1%9C%EB%94%A9-%EC%9D%91%EB%8B%B5%EC%9D%84-%EB%B0%94%EC%9D%B4%ED%8A%B8-%EB%B0%B0%EC%97%B4%EB%A1%9C-%EB%B0%94%EA%BE%B8%EA%B8%B0" data-toc-link>2.6 파일 로딩: 응답을 바이트 배열로 바꾸기</a></li><li class="article-toc-level-0"><a href="#section-3-%EC%B7%A8%EC%95%BD%EC%A0%90-%EC%9D%B4%EB%A6%84%EA%B3%BC-%EC%9B%90%EC%9D%B8" data-toc-link>3. 취약점 이름과 원인</a></li><li class="article-toc-level-0"><a href="#section-4-%ED%8E%8C%EC%9B%A8%EC%96%B4%EB%B3%84-%EC%A7%80%EC%9B%90-%EC%83%81%ED%83%9C" data-toc-link>4. 펌웨어별 지원 상태</a></li><li class="article-toc-level-0"><a href="#section-5-%EB%B0%94%EC%9D%B4%EB%84%88%EB%A6%AC-%ED%8C%8C%EC%9D%BC%EC%9D%80-%EC%96%B4%EB%94%94%EA%B9%8C%EC%A7%80-%ED%99%95%EC%9D%B8%ED%96%88%EB%82%98" data-toc-link>5. 바이너리 파일은 어디까지 확인했나</a></li><li class="article-toc-level-0"><a href="#section-6-%EC%BA%90%EC%8B%9C%EC%97%90-%EC%A0%81%ED%9E%8C-%ED%95%B4%EC%8B%9C%EC%9D%98-%EC%9D%98%EB%AF%B8" data-toc-link>6. 캐시에 적힌 해시의 의미</a></li><li class="article-toc-level-0"><a href="#section-7-%EB%A1%9C%EA%B7%B8-%EC%B2%98%EB%A6%AC-%EC%BD%94%EB%93%9C" data-toc-link>7. 로그 처리 코드</a></li><li class="article-toc-level-1"><a href="#section-7-1-terse-%ED%99%94%EB%A9%B4%EC%97%90-%EB%B3%B4%EC%97%AC%EC%A4%84-%EB%AC%B8%EC%9E%90%EC%97%B4-%EC%A4%84%EC%9D%B4%EA%B8%B0" data-toc-link>7.1 terse(): 화면에 보여줄 문자열 줄이기</a></li><li class="article-toc-level-1"><a href="#section-7-2-mark-%ED%99%94%EB%A9%B4%EC%9A%A9-%EA%B0%92%EA%B3%BC-%EC%9B%90%EB%AC%B8%EC%9D%84-%EB%82%98%EB%88%84%EA%B8%B0" data-toc-link>7.2 mark(): 화면용 값과 원문을 나누기</a></li><li class="article-toc-level-1"><a href="#section-7-3-post-%EC%99%80-trace-%EB%A1%9C%EA%B7%B8%EA%B0%80-%EB%B3%B4%EC%9D%B4%EC%A7%80-%EC%95%8A%EC%95%84%EB%8F%84-%EC%A0%84%EC%86%A1%ED%95%98%EB%8A%94%EA%B0%80" data-toc-link>7.3 post()와 trace(): 로그가 보이지 않아도 전송하는가</a></li><li class="article-toc-level-0"><a href="#section-8-%ED%8F%AC%ED%8A%B8-%EC%83%81%ED%83%9C%EB%A1%9C-%ED%99%95%EC%9D%B8%ED%95%9C-%EB%82%B4%EC%9A%A9" data-toc-link>8. 포트 상태로 확인한 내용</a></li><li class="article-toc-level-0"><a href="#section-9-%EC%A0%95%EB%A6%AC" data-toc-link>9. 정리</a></li><li class="article-toc-level-0"><a href="#section-%EC%B0%B8%EA%B3%A0-%EC%9E%90%EB%A3%8C" data-toc-link>참고 자료</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>이번에는 PS4에서 사용하는 <code>raw13g</code>의 코드를 정리해보겠다.</p>
 <p>실행 결과에 GoldHEN이 표시됐다는 기록은 있었지만, 화면만 봐서는 각 파일이 어떤 역할을 하는지 알기 어려웠다. JavaScript 파일도 여러 개로 나뉘어 있고, 별도로 불러오는 바이너리도 있었다. 우선 파일들이 어떻게 연결되는지부터 보고, 주요 함수에서 어떤 값을 받아 다음 단계로 넘기는지 살펴보았다.</p>
 <p>코드를 읽다 보니 버전 문자열을 다루는 방식이나 로그를 출력하는 부분도 눈에 들어왔다. 이런 부분은 실행 결과만 확인했을 때 지나치기 쉽기 때문에 함께 정리하도록 하겠다.</p>
-<h2>1. 분석 대상</h2>
+<h2 id="section-1-분석-대상" tabindex="-1">1. 분석 대상</h2>
 <p>분석한 코드는 <code>raw13g/raw13g.github.io</code>다. 같은 저장소라도 코드가 바뀔 수 있으므로 기준으로 삼은 커밋을 남겨둔다. [1]</p>
 <pre><code class="language-text">Repository: raw13g/raw13g.github.io
 Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
@@ -66,7 +66,7 @@ Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
 <p>여기서 확인한 것은 파일 내용이 서로 같다는 점이다. 파일과 해시 목록을 함께 바꿀 수도 있기 때문에 해시가 맞는다는 이유만으로 제작자까지 확인되는 것은 아니다. 이 부분은 뒤에서 바이너리를 살펴볼 때 다시 이어진다.</p>
 <p><img src="/assets/research/ps4-raw13g-review/01-evidence-ko.svg" alt="파일 비교, 실행 결과와 제작자 확인이 각각 무엇을 보여주는지 정리한 그림"></p>
 <p><em>그림 1. 파일이 같은지, 실제로 동작했는지, 누가 만든 파일인지는 따로 확인해야 한다.</em></p>
-<h2>2. 전체 구조와 주요 함수</h2>
+<h2 id="section-2-전체-구조와-주요-함수" tabindex="-1">2. 전체 구조와 주요 함수</h2>
 <p>먼저 파일별 역할부터 나누어보겠다. <code>index.html</code>은 처음 보이는 화면이고, <code>jb.html</code>은 진행 상태를 보여주는 페이지다. 그 안에서 실제 JavaScript 모듈을 연결하는 파일은 <code>jb.js</code>다. 다른 모듈을 불러오고 Worker와 통신하며, 필요한 외부 파일도 이곳에서 받는다. [2]</p>
 <p><img src="/assets/research/ps4-raw13g-review/04-modules-ko.svg" alt="진입 페이지와 JavaScript 모듈의 연결 관계"></p>
 <p><em>그림 2. 화면에서 시작해 각 파일이 어떻게 연결되는지 정리하였다.</em></p>
@@ -127,7 +127,7 @@ Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
 </tbody>
 </table>
 <p>아래에서는 주요 함수를 원문과 함께 살펴보겠다. 함수 일부만 가져온 경우에는 해당 블록의 역할을 따로 설명하고, <code>core.js</code>와 <code>mem.js</code>는 모듈 사이에서 주고받는 객체와 인터페이스를 중심으로 읽었다.</p>
-<h3>2.1 <code>index.html</code>과 <code>jb.html</code>: 시작 화면에서 하는 일</h3>
+<h3 id="section-2-1-index-html과-jb-html-시작-화면에서-하는-일" tabindex="-1">2.1 <code>index.html</code>과 <code>jb.html</code>: 시작 화면에서 하는 일</h3>
 <p><code>index.html</code>에서 먼저 눈에 들어온 부분은 버전을 읽는 코드다. User-Agent에서 숫자 두 묶음을 찾은 뒤 <code>key</code>와 <code>fwnum</code>을 만든다.</p>
 <p><em><code>index.html</code> · L49–L56</em></p>
 <pre><code class="hljs language-javascript"><span class="hljs-keyword">var</span> key = <span class="hljs-literal">null</span>, fwnum = <span class="hljs-literal">null</span>;
@@ -149,7 +149,7 @@ Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
 </span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
 </code></pre>
 <p>HTML에는 스타일과 화면 요소가 길게 들어 있지만, 기능이 시작되는 위치를 찾으려면 이 선언을 보면 된다. <code>jb.html</code>이 상태를 표시할 DOM을 준비하고 <code>jb.js</code>를 모듈로 불러오는 구조다. 뒤에 붙은 <code>?v=19</code>는 자원 URL을 구분하는 값으로, 파일의 내용이나 제작자를 확인하는 값은 아니다.</p>
-<h3>2.2 <code>offsetsFor()</code>: 버전에 맞는 설정 찾기</h3>
+<h3 id="section-2-2-offsetsfor-버전에-맞는-설정-찾기" tabindex="-1">2.2 <code>offsetsFor()</code>: 버전에 맞는 설정 찾기</h3>
 <p>버전 문자열을 만들었다면 이제 그에 맞는 설정이 필요하다. <code>ps4_offsets.js</code>의 조회 함수는 다음과 같다.</p>
 <p><em><code>ps4_offsets.js</code> · L647–L653</em></p>
 <pre><code class="hljs language-javascript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">offsetsFor</span>(<span class="hljs-params">uaString</span>) {
@@ -163,7 +163,7 @@ Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
 <p>반환하는 값은 <code>{ key, off }</code>다. 예상한 문자열 형식이 아니면 둘 다 <code>null</code>이고, 형식은 맞지만 <code>PS4</code> 테이블에 항목이 없으면 <code>key</code>는 남고 <code>off</code>만 <code>null</code>이 된다.</p>
 <p>때문에 호출하는 쪽에서는 버전 자체를 읽지 못한 것인지, 버전은 읽었지만 설정이 없는 것인지 구분할 수 있다. 짧은 함수지만 반환값을 둘로 나눈 이유를 여기서 볼 수 있다.</p>
 <p>이 함수가 하는 일은 설정 조회까지다. 테이블에 값이 들어 있다는 것만으로 그 값이 실제 기기에서도 맞는지는 알 수 없다. 지원 목록은 <code>index.html</code>에, 설정은 <code>ps4_offsets.js</code>에 나뉘어 있으므로 두 파일의 설명도 함께 봐야 한다. 이 부분은 4절에서 다시 정리하겠다.</p>
-<h3>2.3 <code>core.js</code>와 <code>mem.js</code>: 기능을 만들고 인터페이스로 감싸기</h3>
+<h3 id="section-2-3-core-js와-mem-js-기능을-만들고-인터페이스로-감싸기" tabindex="-1">2.3 <code>core.js</code>와 <code>mem.js</code>: 기능을 만들고 인터페이스로 감싸기</h3>
 <p><code>jb.js</code>의 맨 위에는 다음과 같은 import가 있다.</p>
 <p><em><code>jb.js</code> · L1–L4</em></p>
 <pre><code class="hljs language-javascript"><span class="hljs-keyword">import</span> { establishPrimitive } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;./core.js?v=10&quot;</span>;
@@ -201,7 +201,7 @@ Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
 </table>
 <p>이렇게 나누어두면 호출하는 쪽은 내부 구현을 매번 알 필요가 없다. 다만 API로 감쌌다고 해서 접근 가능한 주소 범위를 제한하는 샌드박스가 하나 더 생기는 것은 아니다. <code>globalThis.p</code>는 같은 페이지에서 실행되는 다른 스크립트도 접근할 수 있기 때문에, 함께 불러오는 스크립트의 신뢰도도 중요해진다.</p>
 <p>즉, 여기서 보이는 분리는 기능을 구성하는 코드와 사용하는 코드를 정리하기 위한 것으로 이해했다. 인터페이스가 존재한다는 사실과 그 안의 기능이 기대대로 동작한다는 사실까지 같아지는 것은 아니다.</p>
-<h3>2.4 <code>int64.js</code>: 64비트 값을 나누어 보관하는 이유</h3>
+<h3 id="section-2-4-int64-js-64비트-값을-나누어-보관하는-이유" tabindex="-1">2.4 <code>int64.js</code>: 64비트 값을 나누어 보관하는 이유</h3>
 <p>JavaScript의 일반적인 <code>Number</code>로는 모든 64비트 정수를 정확하게 표현할 수 없다. 때문에 이 파일에서는 하위 32비트인 <code>low</code>와 상위 32비트인 <code>hi</code>를 따로 보관한다. 아래는 생성자에서 필드를 초기화하는 부분이다.</p>
 <p><em><code>int64.js</code> · L12–L16</em></p>
 <pre><code class="hljs language-javascript"><span class="hljs-variable language_">this</span>.<span class="hljs-property">low</span> = low &gt;&gt;&gt; <span class="hljs-number">0</span>;
@@ -255,7 +255,7 @@ Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
 </tbody>
 </table>
 <p>계산을 따라가면 확인할 수 있는 <strong>표시 함수의 문제</strong>다. 이것만으로 실제 체인이 실패했다고 볼 수는 없다. 다만 인자로 여러 진법을 받을 수 있다고 해서 모든 진법에서 올바르게 변환되는 것은 아니라는 점을 알 수 있다.</p>
-<h3>2.5 <code>makeRpc()</code>: Worker 응답을 기다리는 방식</h3>
+<h3 id="section-2-5-makerpc-worker-응답을-기다리는-방식" tabindex="-1">2.5 <code>makeRpc()</code>: Worker 응답을 기다리는 방식</h3>
 <p><code>jb.js</code>는 Worker와 메시지를 주고받는다. 이때 <code>makeRpc()</code>가 Worker를 받아 호출용 함수를 만들어준다. 여기서 RPC는 다른 컴퓨터의 서버가 아니라, 같은 페이지의 메인 스레드와 Worker 사이에서 쓰는 호출 형식이다.</p>
 <p><em><code>jb.js</code> · L662–L693</em></p>
 <pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">makeRpc</span>(<span class="hljs-params">wk, name</span>) {
@@ -298,7 +298,7 @@ Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
 <p>반대편인 <code>rpc_worker.js</code>에서는 메시지의 함수 이름과 인자를 읽고, <code>api</code>에서 함수를 찾아 호출한 뒤 <code>{ id, type, value }</code>로 응답한다. 양쪽이 같은 ID와 응답 형식을 사용해야 이 연결이 맞아떨어진다.</p>
 <p>읽으면서 확인한 점은 두 가지다. 요청 ID는 호출을 구분하는 번호이지 권한을 증명하는 값이 아니다. 이 코드는 같은 페이지에서 만든 Worker를 신뢰하며, 인자의 의미나 응답의 세부 형식을 별도로 검사하는 계층은 보이지 않는다.</p>
 <p>또한 <code>wk.onerror</code>는 오류를 기록하지만 기다리던 Promise를 즉시 모두 종료하지는 않는다. 타임아웃도 지정하지 않았다면 이 함수만으로 호출이 반드시 끝난다고 보장하기 어렵다. 여기서는 메시지가 연결되고 종료되는 조건을 짚은 것이며, 외부에서 이용할 수 있는 취약점을 확인한 것은 아니다.</p>
-<h3>2.6 파일 로딩: 응답을 바이트 배열로 바꾸기</h3>
+<h3 id="section-2-6-파일-로딩-응답을-바이트-배열로-바꾸기" tabindex="-1">2.6 파일 로딩: 응답을 바이트 배열로 바꾸기</h3>
 <p>다음은 선택된 파일을 받아오는 블록이다.</p>
 <p><em><code>jb.js</code> · L3023–L3028</em></p>
 <pre><code class="hljs language-javascript"><span class="hljs-keyword">try</span> {
@@ -311,12 +311,12 @@ Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
 <p><code>fetch()</code>로 받은 응답의 <code>r.ok</code>가 참이면 본문을 <code>arrayBuffer()</code>로 읽고, 이를 <code>Uint8Array</code>로 감싼다. <code>Uint8Array</code>는 받은 파일을 바이트 단위로 다루기 위한 뷰다. 이후 코드에서 쓰기 편한 형태로 준비하는 부분이라고 보면 된다.</p>
 <p>여기까지는 파일을 받는 처리다. <code>arrayBuffer()</code>나 <code>Uint8Array</code>가 파일의 의미를 해석하거나 제작자를 확인해주는 것은 아니다. HTTP 응답이 성공했는지와 기대한 내용의 파일인지는 따로 확인해야 한다. 이 차이는 5절의 바이너리 부분으로 이어진다.</p>
 <p>전체적으로 보면 <code>jb.js</code>는 <strong>설정을 선택하고, 모듈을 연결하고, 비동기 응답과 외부 파일을 받아 흐름을 이어가는 역할</strong>을 한다. 이 구조를 먼저 잡아두면 뒤의 코드를 읽을 때도 각 기능이 어느 파일에 있는지 찾기 편하다.</p>
-<h2>3. 취약점 이름과 원인</h2>
+<h2 id="section-3-취약점-이름과-원인" tabindex="-1">3. 취약점 이름과 원인</h2>
 <p>관련 자료에는 이 체인을 “1-day”라고 부르는 표현이 있다. 다만 그 표현만으로 각 단계가 어떤 CVE에 대응하는지까지 알 수는 없었다. 그래서 여기서는 공개된 체인의 코드를 읽는 데 초점을 맞췄다. [1, 2]</p>
 <p>커널 측 코드에는 비동기 I/O와 객체 수명 경쟁을 다루는 부분이 있다. 비동기 작업에서는 요청한 쪽의 코드가 끝나도 다른 실행 주체가 같은 객체를 사용하고 있을 수 있다. 때문에 UAF를 볼 때는 취소나 완료 표시뿐 아니라 <strong>그 객체를 사용하는 마지막 작업이 끝났는지</strong>를 봐야 한다.</p>
 <p>이런 관점으로 코드 구조를 이해할 수는 있지만, 정확한 원인을 확정하려면 취약한 커널 함수와 수정 코드, 실행 추적을 함께 봐야 한다. 이번 자료에는 그 근거가 충분하지 않았다.</p>
 <p>상태 문자열의 <code>bug=663</code>도 내부 표기일 뿐 CVE 식별자는 아니다. 비슷한 유형의 코드라는 이유만으로 특정 CVE 번호를 붙이지는 않았다.</p>
-<h2>4. 펌웨어별 지원 상태</h2>
+<h2 id="section-4-펌웨어별-지원-상태" tabindex="-1">4. 펌웨어별 지원 상태</h2>
 <p>시작 화면에는 <code>13.02</code>, <code>13.04</code>, <code>13.50</code>, <code>13.52</code>가 지원 목록으로 들어 있다. 우선 이것은 화면에 적힌 목록이며, 네 버전을 모두 실기기에서 확인했다는 뜻은 아니다. [2]</p>
 <p><code>ps4_offsets.js</code>에는 더 많은 버전의 항목이 있다. 설명을 보면 실기기 확인, 오프라인 확인, 미검증 상태가 섞여 있다. 단순히 항목이 있는지만 보면 이 차이를 놓칠 수 있다.</p>
 <table>
@@ -352,7 +352,7 @@ Revision: 9ba2f0719591d6900d91aba6cc5291f8fff97e6d
 </table>
 <p>구체적으로 눈에 들어온 부분은 <code>13.52</code>다. 실제 payload 필드에는 <code>goldhen.bin</code>이 들어 있지만 상태 설명에는 <code>payload2.bin</code>이 남아 있다. 두 파일을 비교해보니 크기는 모두 293,120바이트였고 내용도 같았다. 따라서 비교한 파일에서는 이름 차이가 다른 바이트를 선택하는 문제로 이어지지는 않았다. [1, 2]</p>
 <p>그래도 설명과 실제 값이 다르다는 점은 남는다. 나중에 두 파일 중 하나가 바뀌면 로그만 보고 어떤 파일을 사용했는지 잘못 판단할 수 있기 때문이다. 이런 부분은 실행 파일 이름과 상태 설명을 함께 관리해야 한다.</p>
-<h2>5. 바이너리 파일은 어디까지 확인했나</h2>
+<h2 id="section-5-바이너리-파일은-어디까지-확인했나" tabindex="-1">5. 바이너리 파일은 어디까지 확인했나</h2>
 <p>JavaScript를 읽다 보면 별도로 불러오는 바이너리에서 확인할 수 있는 범위가 달라진다. 로더가 파일을 다루는 방식은 볼 수 있지만, 그것으로 바이너리 내부 동작까지 설명할 수는 없다. [1, 2]</p>
 <p><code>goldhen.bin</code>과 <code>payload2.bin</code>은 다음과 같이 동일했다.</p>
 <pre><code class="language-text">Size: 293120 bytes
@@ -364,7 +364,7 @@ SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
 <p><em>그림 4. 각 검사가 무엇을 확인해주는지 나누어보았다.</em></p>
 <p>자료에는 바이너리를 소스에서 다시 만들 수 있는 완결된 빌드 자료나 제작자 서명, 구성요소 목록이 없었다. 따라서 바이너리 내부와 출처에 대해서는 판단을 남겨두었다. 이것이 곧 악성 파일이라는 뜻은 아니다.</p>
 <p><code>LICENSE</code>도 함께 확인했다. raw13g가 작성한 코드는 MIT를 적용하지만 payload, patch와 일부 primitive 파일은 제3자 구성요소로 따로 설명한다. 저장소에 라이선스 파일이 하나 있다고 해서 모든 파일에 같은 조건이 적용되는 것은 아니라는 점도 확인할 수 있었다.</p>
-<h2>6. 캐시에 적힌 해시의 의미</h2>
+<h2 id="section-6-캐시에-적힌-해시의-의미" tabindex="-1">6. 캐시에 적힌 해시의 의미</h2>
 <p><code>cache.appcache</code>를 보면 자원 경로 뒤에 <code>#</code>와 해시 문자열이 붙어 있다. 처음 보면 파일 검증에 쓰는 값처럼 보일 수 있다. 하지만 AppCache가 이 문자열을 파일 내용의 기대 해시로 비교하는 것은 아니다. 명세의 파싱 규칙과 파일 처리 코드를 함께 보면, 해시를 적어두는 것과 실제로 검사하는 처리를 구분할 수 있다. [2, 6]</p>
 <p>캐시는 이전에 받은 파일을 계속 사용할 수도 있다. 때문에 같은 URL을 열었다고 항상 같은 파일을 사용했다고 보기는 어렵다. 이런 경우에는 URL뿐 아니라 파일의 해시와 적용된 자원 버전도 같이 확인해야 한다.</p>
 <p>네트워크 설정은 다음과 같다.</p>
@@ -373,9 +373,9 @@ SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
 *
 </code></pre>
 <p><code>NETWORK: *</code>가 있으므로 오프라인 캐시를 사용한다는 이유만으로 모든 네트워크 요청이 막히는 구성은 아니다. 여기까지는 설정에서 읽을 수 있는 내용이며, 실제 기기에서 캐시 갱신이나 요청 동작을 따로 측정한 결과는 아니다.</p>
-<h2>7. 로그 처리 코드</h2>
+<h2 id="section-7-로그-처리-코드" tabindex="-1">7. 로그 처리 코드</h2>
 <p>로그도 화면에 문자열을 찍는 것에서 끝나지 않았다. <code>terse()</code>, <code>mark()</code>, <code>post()</code>, <code>trace()</code>를 따라가면 화면에 보이는 값과 전송하는 값이 나뉜다. 하나씩 살펴보겠다. [2]</p>
-<h3>7.1 <code>terse()</code>: 화면에 보여줄 문자열 줄이기</h3>
+<h3 id="section-7-1-terse-화면에-보여줄-문자열-줄이기" tabindex="-1">7.1 <code>terse()</code>: 화면에 보여줄 문자열 줄이기</h3>
 <p>다음은 <code>terse()</code> 전체다. <code>VERBOSE</code>와 <code>PROSE</code>는 함수 밖에 있는 표시 옵션과 정규식 목록이다.</p>
 <p><em><code>jb.js</code> · L39–L49</em></p>
 <pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">terse</span>(<span class="hljs-params">s</span>) {
@@ -392,7 +392,7 @@ SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
 </code></pre>
 <p>먼저 <code>VERBOSE</code>가 켜져 있거나 값이 <code>null</code>이면 그대로 반환한다. 그 외에는 문자열로 바꾼 뒤 <code>PROSE</code>의 정규식마다 처음 일치하는 위치를 확인한다. 일치한 위치가 0보다 크면 그 뒤를 잘라낸다. 마지막으로 뒤쪽 공백을 지우고, 140자가 넘으면 말줄임표를 붙인다.</p>
 <p>결국 문자열의 형태와 길이를 기준으로 줄이는 함수다. IP나 토큰, 사용자 식별자를 찾아 지우는 처리는 없다. 화면의 글자가 짧아졌다고 민감한 정보까지 제거됐다고 볼 수는 없다.</p>
-<h3>7.2 <code>mark()</code>: 화면용 값과 원문을 나누기</h3>
+<h3 id="section-7-2-mark-화면용-값과-원문을-나누기" tabindex="-1">7.2 <code>mark()</code>: 화면용 값과 원문을 나누기</h3>
 <p>다음은 <code>mark()</code>다.</p>
 <p><em><code>jb.js</code> · L64–L89</em></p>
 <pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">mark</span>(<span class="hljs-params">tag, detail</span>) {
@@ -425,7 +425,7 @@ SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
 <p>첫 줄을 보면 원래 <code>detail</code>을 <code>raw</code>에 따로 남겨둔다. 그다음 화면에 쓸 값만 <code>terse()</code>로 줄이고 <code>lines</code>에 추가한다. 화면 로그가 켜져 있으면 각 줄을 이스케이프한 뒤, 키워드에 따라 CSS 클래스를 붙여 출력한다.</p>
 <p><code>innerHTML</code>을 사용한다는 점도 보인다. 다만 이것만 보고 문자열이 그대로 HTML로 해석된다고 판단하면 안 된다. <code>esc()</code>에서 <code>&amp;</code>를 먼저 바꾸고 <code>&lt;</code>를 바꾸며, 그 결과는 <code>span</code>의 텍스트 내용으로 들어간다. 클래스 이름도 입력값을 그대로 쓰는 것이 아니라 코드에 정해진 값 중에서 선택한다. 어느 위치에 문자열을 넣는지와 그 전에 어떤 처리를 하는지를 같이 봐야 한다.</p>
 <p>여기서 주목한 부분은 마지막의 <code>post(tag, raw)</code>다. 전송 함수에는 화면에서 줄인 <code>detail</code>이 아니라 처음 남겨둔 원문이 들어간다. <strong>화면에 보이는 내용과 전송하는 내용이 달라지는 지점</strong>이다.</p>
-<h3>7.3 <code>post()</code>와 <code>trace()</code>: 로그가 보이지 않아도 전송하는가</h3>
+<h3 id="section-7-3-post-와-trace-로그가-보이지-않아도-전송하는가" tabindex="-1">7.3 <code>post()</code>와 <code>trace()</code>: 로그가 보이지 않아도 전송하는가</h3>
 <p><code>post()</code>를 보면 어디로 어떤 값을 보내는지 알 수 있다.</p>
 <p><em><code>jb.js</code> · L15–L27</em></p>
 <pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">post</span>(<span class="hljs-params">tag, detail</span>) {
@@ -456,7 +456,7 @@ SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
 <p><img src="/assets/research/ps4-raw13g-review/03-logging-ko.svg" alt="로그 원문이 화면 표시와 네트워크 전송으로 나뉘는 흐름"></p>
 <p><em>그림 5. 화면에서는 줄인 값을 사용하고, 전송 함수에는 원문을 넘긴다.</em></p>
 <p>여기서 확인한 것은 요청을 시도하는 코드까지다. <code>/t</code>를 처리하는 서버가 실제로 있는지, 수신에 성공했는지, 받은 내용을 저장하는지는 별도로 확인해야 한다. 펌웨어 정보나 진단 상태를 로그에 넣는 호출부가 있다고 해서 실제 수집까지 확인된 것은 아니다.</p>
-<h2>8. 포트 상태로 확인한 내용</h2>
+<h2 id="section-8-포트-상태로-확인한-내용" tabindex="-1">8. 포트 상태로 확인한 내용</h2>
 <p>코드와 함께 남아 있던 TCP 연결 기록도 살펴보았다. 두 번의 결과는 다음과 같다. [3]</p>
 <table>
 <thead>
@@ -491,7 +491,7 @@ SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
 <p>포트와 역할은 GoldHEN 문서의 설명과 맞는다. 다만 포트 번호가 같다고 그곳에서 동작하는 프로그램까지 확인되는 것은 아니다. [4]</p>
 <p>Nmap에서 <code>open</code>은 검사한 지점에서 연결을 수락했다는 의미다. 이 기록은 TCP 연결 여부까지 확인한 것이므로, 17:29에 세 포트가 연결을 받았다는 점을 알 수 있다. 어떤 구현이 어떤 권한으로 동작했는지, 전체 체인이 매번 성공하는지까지는 설명하지 못한다. [5]</p>
 <p>반대로 처음에 두 포트가 닫혀 있었다고 바로 체인 실패라고 볼 수도 없다. 서비스가 켜져 있는지와 전체 실행 결과는 구분해야 한다. 서비스를 다시 열었다는 기록은 뒤의 상태 변화와 맞지만, 이 두 번의 결과만으로 내부 과정을 전부 알 수는 없다.</p>
-<h2>9. 정리</h2>
+<h2 id="section-9-정리" tabindex="-1">9. 정리</h2>
 <p>이번에는 <code>raw13g</code>의 파일 구조를 먼저 나누고 주요 함수를 따라가보았다. <code>jb.js</code>가 설정, 모듈, Worker와 외부 파일을 연결하고, 나머지 파일이 각 기능을 맡는 구조였다.</p>
 <table>
 <thead>
@@ -536,7 +536,7 @@ SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
 </table>
 <p>처음에는 파일이 여러 개라는 점이 눈에 들어왔지만, 역할별로 나누고 나니 어떤 값이 어디로 넘어가는지 보기 쉬워졌다. 특히 숫자를 문자열로 만드는 작은 함수나 로그를 줄이는 코드도 이름만 보고 넘기면 실제 동작과 다르게 이해할 수 있다는 점이 기억에 남았다.</p>
 <p>별도 바이너리의 내부는 이번 JavaScript 리뷰만으로 확인할 수 없는 부분이다. 여기까지는 코드에서 직접 읽은 동작과 기존 실행 기록을 바탕으로 정리하였다.</p>
-<h2>참고 자료</h2>
+<h2 id="section-참고-자료" tabindex="-1">참고 자료</h2>
 <ol>
 <li>분석 자료의 <code>README.md</code>, <code>PROVENANCE.md</code>, <code>MANIFEST.sha256</code> 및 <a href="https://github.com/raw13g/raw13g.github.io/tree/9ba2f0719591d6900d91aba6cc5291f8fff97e6d">분석 기준 커밋</a>. 소스와 배포 파일 비교는 함께 수집된 사본을 기준으로 했다.</li>
 <li><code>source/</code>의 HTML·JavaScript·AppCache·<code>LICENSE</code>, <code>CODE_REVIEW.md</code>, <code>REPORT.md</code>. 코드 발췌의 파일명과 줄 번호는 이 소스를 기준으로 한다.</li>
@@ -545,7 +545,7 @@ SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
 <li><a href="https://nmap.org/book/man-port-scanning-basics.html">Nmap — Port Scanning Basics</a>: <code>open</code>·<code>closed</code> 상태의 의미.</li>
 <li><a href="https://dev.w3.org/html5/spec-LC/offline.html">W3C HTML5 — Offline Web applications</a>: AppCache 매니페스트와 네트워크 처리 규칙.</li>
 </ol>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/ps4-raw13g-review/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/ps4-raw13g-review/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -565,6 +565,6 @@ SHA-256: df3f27c1b35bc7c40e3a08caab948930914dc7d0301a73b68945cf6ffe40ea12
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

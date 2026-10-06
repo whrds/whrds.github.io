@@ -5,6 +5,7 @@ import matter from 'gray-matter';
 import MarkdownIt from 'markdown-it';
 import { build as bundle } from 'esbuild';
 import { highlightMarkdownCode } from './syntax-highlighting.mjs';
+import { renderArticleContent, renderArticleToc } from './article-toc.mjs';
 import { subscribeButton, subscribeCard, viewCount, siteDialogs, counterNotice } from './site-features.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -89,14 +90,17 @@ async function readContent(lang) {
   return Promise.all(files.map(async (file) => {
     const source = await fs.readFile(path.join(dir, file), 'utf8');
     const parsed = matter(source);
-    let html = md.render(parsed.content);
+    const rendered = parsed.data.page
+      ? { html: md.render(parsed.content), headings: [] }
+      : renderArticleContent(md, parsed.content);
+    let html = rendered.html;
     if (parsed.data.concept_demo === 'm152-lifetime' && file === 'chrome-m152-externalstring-race.md') {
       const marker = md.render('<!--DEMO-->').trim();
       if (!html.includes(marker)) throw new Error('Missing conceptual demo marker');
       const demoTitle = lang === 'ko' ? '객체 수명 개념 데모' : 'Object lifetime concept demo';
       html = html.replace(marker, `<div class="concept-demo-embed"><iframe data-concept-demo src="/assets/research/chrome-m152-externalstring-race/m152-lifetime-demo.html#${lang}" title="${demoTitle}" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></div>`);
     }
-    return { lang, slug: path.basename(file, '.md'), data: parsed.data, body: parsed.content, html };
+    return { lang, slug: path.basename(file, '.md'), data: parsed.data, body: parsed.content, html, headings: rendered.headings };
   }));
 }
 
@@ -223,11 +227,11 @@ function categoryPage(lang, name, posts) {
 }
 
 function articlePage(item, translation) {
-  const { lang, data, body, html } = item;
+  const { lang, data, body, html, headings } = item;
   const t = copy[lang];
   const route = routeFor(item);
   const alternate = translation ? routeFor(translation) : `/${lang === 'ko' ? 'en' : 'ko'}/`;
-  const inner = `<article class="article-wrap${data.page ? ' about-page' : ''}"><header class="article-header${data.page ? ' about-heading' : ''}"><div class="article-heading-copy"><p class="eyebrow">${data.page ? t.navAbout : t.eyebrow}</p><h1>${escapeHtml(data.title)}</h1><p class="article-description">${escapeHtml(data.description)}</p>${data.page ? '' : `<div class="article-meta"><a class="post-category" href="${categoryRoute(lang, data.category)}">${escapeHtml(categoryLabel(lang, data.category))}</a><span>·</span><time datetime="${escapeHtml(data.date)}">${formatDate(data.date, lang)}</time><span>·</span><span>${readingTime(body, lang)} ${t.minRead}</span>${viewsEnabled ? `<span aria-hidden="true">·</span>${viewCount(lang)}` : ''}</div>`}</div>${data.page ? mascot(lang, 'about') : ''}</header><div class="prose">${html}</div>${data.page ? '' : subscribeCard(lang)}<div class="article-end"><a href="/${lang}/">← ${t.back}</a>${translation ? `<a href="${alternate}" hreflang="${translation.lang}">${t.readIn} →</a>` : ''}</div></article>`;
+  const inner = `<article class="article-wrap${data.page ? ' about-page' : ' article-with-toc'}"><header class="article-header${data.page ? ' about-heading' : ''}"><div class="article-heading-copy"><p class="eyebrow">${data.page ? t.navAbout : t.eyebrow}</p><h1${data.page ? '' : ' id="article-start" tabindex="-1"'}>${escapeHtml(data.title)}</h1><p class="article-description">${escapeHtml(data.description)}</p>${data.page ? '' : `<div class="article-meta"><a class="post-category" href="${categoryRoute(lang, data.category)}">${escapeHtml(categoryLabel(lang, data.category))}</a><span>·</span><time datetime="${escapeHtml(data.date)}">${formatDate(data.date, lang)}</time><span>·</span><span>${readingTime(body, lang)} ${t.minRead}</span>${viewsEnabled ? `<span aria-hidden="true">·</span>${viewCount(lang)}` : ''}</div>`}</div>${data.page ? mascot(lang, 'about') : ''}</header>${data.page ? '' : renderArticleToc(headings, lang) + '<div class="article-reading">'}<div class="prose">${html}</div>${data.page ? '' : subscribeCard(lang)}<div class="article-end"><a href="/${lang}/">← ${t.back}</a>${translation ? `<a href="${alternate}" hreflang="${translation.lang}">${t.readIn} →</a>` : ''}</div>${data.page ? '' : '</div>'}</article>`;
   return layout({ lang, title: data.title, description: data.description, route, alternate, body: inner, active: data.page ? 'about' : 'notes', type: data.page ? 'website' : 'article', date: data.date, countKey: data.page ? undefined : data.translation_key || item.slug });
 }
 

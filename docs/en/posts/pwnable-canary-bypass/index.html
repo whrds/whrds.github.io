@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-canary-bypass/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-canary-bypass/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Canary bypass · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ We discussed canary in the previous post. This time we will cover the workarounds. 1. canary leak 2. got overwrite (I will explain it briefly, and more details will be discussed after posting about plt/got.) 3. master can"><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-canary-bypass/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Canary bypass","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ We discussed canary in the previous post. This time we will cover the workarounds. 1. canary leak 2. got overwrite (I will explain it briefly, and more details will be discussed after posting about plt/got.) 3. master can","datePublished":"2023-09-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-canary-bypass/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Canary bypass</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ We discussed canary in the previous post. This time we will cover the workarounds. 1. canary leak 2. got overwrite (I will explain it briefly, and more details will be discussed after posting about plt/got.) 3. master can</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-24">Sep 24, 2023</time><span>·</span><span>4 min read</span></div></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[PWNABLE] Canary bypass</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ We discussed canary in the previous post. This time we will cover the workarounds. 1. canary leak 2. got overwrite (I will explain it briefly, and more details will be discussed after posting about plt/got.) 3. master can</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-24">Sep 24, 2023</time><span>·</span><span>4 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-canary-leak" data-toc-link>canary leak</a></li><li class="article-toc-level-0"><a href="#section-got-overwrite" data-toc-link>got overwrite</a></li><li class="article-toc-level-0"><a href="#section-master-canary-tampering" data-toc-link>master canary tampering</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> </p>
 <p>I discussed canary in a previous post.</p>
 <p>This time we will cover the workarounds.</p>
 <p><strong>1. canary leak</strong></p>
@@ -35,7 +35,7 @@
 <p><strong>3. master canary tampering</strong></p>
 <p><strong>4. Reset thread area</strong></p>
 <hr>
-<h3>canary leak</h3>
+<h3 id="section-canary-leak" tabindex="-1">canary leak</h3>
 <p>The most common method is to use Linux’s stack sorting feature and the feature that the canary ends with \x00.</p>
 <p><img src="/assets/images/tistory/tistory-136d7c463f6c/001.png" alt=""></p>
 <p>Hands-on example code</p>
@@ -132,7 +132,7 @@ p.send(payload)
 p.interactive()
 </code></pre>
 <hr>
-<h3>got overwrite</h3>
+<h3 id="section-got-overwrite" tabindex="-1">got overwrite</h3>
 <p>This method requires knowledge of plt/got and got overwrite, which will be covered later.</p>
 <p>So for now, I’ll just look at how it works and move on.</p>
 <p><img src="/assets/images/tistory/tistory-136d7c463f6c/011.png" alt=""></p>
@@ -143,7 +143,7 @@ p.interactive()
 <p>Abnormal termination can be bypassed by blocking the call to the function.</p>
 <p><img src="/assets/images/tistory/tistory-136d7c463f6c/012.png" alt=""></p>
 <hr>
-<h3>master canary tampering</h3>
+<h3 id="section-master-canary-tampering" tabindex="-1">master canary tampering</h3>
 <p>This is a method of modifying the canary value located in the thread area.</p>
 <p>I tried to make a practice example, but it didn’t work out well, so I will proceed with the example used at <a href="http://dreamhack.io">dreamhack.io</a>.</p>
 <pre><code>#include &lt;pthread.h&gt;
@@ -313,7 +313,7 @@ This is the final modified code. 
 ### Reset thread area
 
 (In progress - example creation and practice steps)</code></pre>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-canary-bypass/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-canary-bypass/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -333,6 +333,6 @@ This is the final modified code. 
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-kbof/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-kbof/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] KBOF · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Please let me know if there are any mistakes. We will check and correct it. ※ Holstein https://"><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-kbof/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] KBOF","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Please let me know if there are any mistakes. We will check and correct it. ※ Holstein https://","datePublished":"2024-06-27","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-kbof/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,14 +27,14 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[KERNEL] KBOF</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Please let me know if there are any mistakes. We will check and correct it. ※ Holstein https://</p><div class="article-meta"><a class="post-category" href="/en/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-06-27">Jun 27, 2024</time><span>·</span><span>4 min read</span></div></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[KERNEL] KBOF</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module [KERNEL] Holstein Module※ Please let me know if there are any mistakes. We will check and correct it. ※ Holstein https://</p><div class="article-meta"><a class="post-category" href="/en/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-06-27">Jun 27, 2024</time><span>·</span><span>4 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-commit-creds" data-toc-link>commit_creds()</a></li><li class="article-toc-level-0"><a href="#section-init-cred" data-toc-link>init_cred</a></li><li class="article-toc-level-0"><a href="#section-prepare-kernel-cred" data-toc-link>prepare_kernel_cred</a></li><li class="article-toc-level-0"><a href="#section-ret2usr" data-toc-link>ret2usr</a></li><li class="article-toc-level-0"><a href="#section-exploit" data-toc-link>Exploit</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
 <p><a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a></p>
 <p> [[KERNEL] Holstein Module</p>
 <p>※ If there are any mistakes, please let me know. We will check and correct it. ※ ​Holsteinhttps://whrdud727.tistory.com/entry/KERNEL-Environment-Setting ​[KERNEL] Environment Setting※ ​Please let me know if there are any mistakes.</p>
 <p><a href="http://whrdud727.tistory.com">whrdud727.tistory.com</a>](<a href="https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module">https://whrdud727.tistory.com/entry/KERNEL-Holstein-Module</a>)</p>
 <p>In the previous post, we used the Holstein module to analyze code and check vulnerabilities. </p>
 <p>We will try to exploit the fact that RIP can be manipulated through a vulnerability.</p>
-<h4>commit_creds()</h4>
+<h4 id="section-commit-creds" tabindex="-1">commit_creds()</h4>
 <hr>
 <p>The cred structure contains permission information for the process. And this is managed in a structure called task_cred.</p>
 <pre><code>int commit_creds(struct cred *new)
@@ -90,7 +90,7 @@
 ...
 </code></pre>
 <p>commit_creds() receives the new cred structure as an argument. It then plays the role of setting each permission information of the process as information in the new cred structure.</p>
-<h4>init_cred</h4>
+<h4 id="section-init-cred" tabindex="-1">init_cred</h4>
 <hr>
 <pre><code>struct cred init_cred = {
 	.usage			= ATOMIC_INIT(4),
@@ -115,7 +115,7 @@
 </code></pre>
 <p>If you look at init_cred in the cred structure, values including uid, gid, etc. indicate ROOT authority.</p>
 <p>If you have confirmed up to this point, you can change the process’s permission information to root by passing the init_cred structure as an argument to commit_creds().</p>
-<h4>prepare_kernel_cred</h4>
+<h4 id="section-prepare-kernel-cred" tabindex="-1">prepare_kernel_cred</h4>
 <hr>
 <pre><code>struct cred *prepare_kernel_cred(struct task_struct *daemon)
 {
@@ -140,7 +140,7 @@
 <p>In the previous post, we discussed modifying the RIP, but if we enter the code below into the RIP location, we will be elevated to the root user rather than a regular user.</p>
 <pre><code>commit_cred(prepare_kernel_cred(NULL))
 </code></pre>
-<h4>ret2usr</h4>
+<h4 id="section-ret2usr" tabindex="-1">ret2usr</h4>
 <hr>
 <p>What we have confirmed so far operates in the kernel area. If you succeed in overwriting with the desired value, you must return to the user area.</p>
 <p><strong>swapgs</strong></p>
@@ -189,7 +189,7 @@ static void restore_state() {
 </code></pre>
 <p>If you look at the code, you can see that there is win() for the shell.</p>
 <p>Even if the privilege itself is elevated from a regular user to root, the shell does not immediately take notice. Since this literally means that the execution permission of the process has been changed to root, you need to set a function to run /bin/sh in the code for the shell.</p>
-<h4>Exploit</h4>
+<h4 id="section-exploit" tabindex="-1">Exploit</h4>
 <hr>
 <p>In order to exploit, the offset between buf and ret must be obtained, similar to BoF in the user area.</p>
 <p>Use the ./root/vuln.ko file to find the offset of the vulnerable function _copy_from_user.</p>
@@ -321,7 +321,7 @@ poweroff -d 0 -f
 </code></pre>
 <p><img src="/assets/images/tistory/tistory-9743f1296bfa/007.png" alt=""></p>
 <p>After successfully elevating privileges, you can see that a shell has been obtained.</p>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-kbof/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-kbof/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -341,6 +341,6 @@ poweroff -d 0 -f
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

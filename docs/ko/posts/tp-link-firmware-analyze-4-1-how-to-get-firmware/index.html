@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE · whrds.log"><meta property="og:description" content="보통 회사에서 프로젝트를 진행하게 되면 하나 끝나고 바로 이어서 다른 프로젝트가 진행된다. 첫 프로젝트에서는 새로운 기술들을 많이 배울 수 있었으며, 기존에 가지고 있던 분석 능력을 포함한 기술 능력들을 향상할 수 있었다. 때문에 다음 프로젝트에서도 무엇을 더 배우고 성장할 수 있을지 기대하고 있었는데...텀이 생겨버렸다"><meta property="og:url" content="https://whrds.github.io/ko/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE","description":"보통 회사에서 프로젝트를 진행하게 되면 하나 끝나고 바로 이어서 다른 프로젝트가 진행된다. 첫 프로젝트에서는 새로운 기술들을 많이 배울 수 있었으며, 기존에 가지고 있던 분석 능력을 포함한 기술 능력들을 향상할 수 있었다. 때문에 다음 프로젝트에서도 무엇을 더 배우고 성장할 수 있을지 기대하고 있었는데...텀이 생겨버렸다","datePublished":"2025-08-28","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE</h1><p class="article-description">보통 회사에서 프로젝트를 진행하게 되면 하나 끝나고 바로 이어서 다른 프로젝트가 진행된다. 첫 프로젝트에서는 새로운 기술들을 많이 배울 수 있었으며, 기존에 가지고 있던 분석 능력을 포함한 기술 능력들을 향상할 수 있었다. 때문에 다음 프로젝트에서도 무엇을 더 배우고 성장할 수 있을지 기대하고 있었는데...텀이 생겨버렸다</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-08-28">2025년 8월 28일</time><span>·</span><span>6 분 읽기</span></div></div></header><div class="prose"><p>보통 회사에서 프로젝트를 진행하게 되면 하나 끝나고 바로 이어서 다른 프로젝트가 진행된다.<br>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE</h1><p class="article-description">보통 회사에서 프로젝트를 진행하게 되면 하나 끝나고 바로 이어서 다른 프로젝트가 진행된다. 첫 프로젝트에서는 새로운 기술들을 많이 배울 수 있었으며, 기존에 가지고 있던 분석 능력을 포함한 기술 능력들을 향상할 수 있었다. 때문에 다음 프로젝트에서도 무엇을 더 배우고 성장할 수 있을지 기대하고 있었는데...텀이 생겨버렸다</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-08-28">2025년 8월 28일</time><span>·</span><span>6 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-target" data-toc-link>TARGET</a></li><li class="article-toc-level-0"><a href="#section-firmware-online" data-toc-link>FIRMWARE-ONLINE</a></li><li class="article-toc-level-0"><a href="#section-firmware-hardware" data-toc-link>FIRMWARE-HARDWARE</a></li><li class="article-toc-level-1"><a href="#section-uart" data-toc-link>UART</a></li><li class="article-toc-level-1"><a href="#section-serial-data-output-faul-injection" data-toc-link>Serial Data Output Faul Injection</a></li><li class="article-toc-level-0"><a href="#section-analyze-1" data-toc-link>Analyze #1</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>보통 회사에서 프로젝트를 진행하게 되면 하나 끝나고 바로 이어서 다른 프로젝트가 진행된다.<br>
  <br>
 첫 프로젝트에서는 새로운 기술들을 많이 배울 수 있었으며, 기존에 가지고 있던 분석 능력을 포함한 기술 능력들을 향상할 수 있었다. 때문에 다음 프로젝트에서도 무엇을 더 배우고 성장할 수 있을지 기대하고 있었는데…<br>
 텀이 생겨버렸다. <br>
@@ -37,7 +37,7 @@
 이제 분기 마다 1개 이상의 IoT 장비를 타겟으로 하여 분석을 시도해 나갈 예정이다. <br>
  </p>
 <hr>
-<h2>TARGET</h2>
+<h2 id="section-target" tabindex="-1">TARGET</h2>
 <p>언제나처럼 어떤 타겟을 대상으로 하면 좋을지 고민을 많이 해봤다. <br>
  <br>
 새로운 타겟을 잡아볼까, 아니면 기존에 진행해 본 경험이 있는 모델류를 다시 해볼까<br>
@@ -66,7 +66,7 @@ iptime, tplink, asus 등 다양한데, 일단 국내 제조사가 아닌 곳을 
 장비를 최대한 손상 안되게 뜯었으며 내부 펌웨어를 추출하고 취약점 검증 용으로만 사용할 것이기 때문에, 프로젝트가 끝나면 싸게 처리를 해봐야겠다. 생각 있는 분 연락…<br>
  </p>
 <hr>
-<h2>FIRMWARE-ONLINE</h2>
+<h2 id="section-firmware-online" tabindex="-1">FIRMWARE-ONLINE</h2>
 <p><a href="https://www.tp-link.com/kr/support/download/archer-air-r5/">https://www.tp-link.com/kr/support/download/archer-air-r5/</a> </p>
 <p> [다운로드 함 Archer Air R5 | TP-Link 대한민국</p>
 <p>TP Link - Download Center Detail</p>
@@ -111,7 +111,7 @@ fi
  <br>
  </p>
 <hr>
-<h2>FIRMWARE-HARDWARE</h2>
+<h2 id="section-firmware-hardware" tabindex="-1">FIRMWARE-HARDWARE</h2>
 <p>자 이번엔 하드웨어 장비에서 추출하여 분석을 시도해 보겠다.<br>
 하드웨어 해킹 기술을 배우고 기술을 제대로 익히고자 장비를 결국 구비했다.<br>
  </p>
@@ -125,7 +125,7 @@ fi
  <br>
 이제 UART만 찾으면 되는데 집에 있던 멀티테스터기가 제대로 측정을 못하여 회사로 가져가서 진행했다.<br>
  </p>
-<h4>UART</h4>
+<h4 id="section-uart" tabindex="-1">UART</h4>
 <p>UART는 하드웨어 기반의 통신 규약 중 하나로, 대표적인 직렬 통신 프로토콜이다.<br>
 병렬과는 달리 데이터를 한 비트씩 순차적으로 받는 구조이기 때문에 쉽게 안정적인 데이터 송수신이 가능하다.<br>
  <br>
@@ -213,7 +213,7 @@ RX는 데이터 수신을 담당하기 때문에 송신하는 TX와 교차로 �
 이러면 다른 방법을 사용해 펌웨어를 얻어내야 한다.<br>
 방법은 크게 3가지가 있다.<br>
  </p>
-<h4>Serial Data Output Faul Injection</h4>
+<h4 id="section-serial-data-output-faul-injection" tabindex="-1">Serial Data Output Faul Injection</h4>
 <p>부팅되는 과정에서 펌웨어가 실행되는 단계가 있다. <br>
 이때 interrupt를 발생시키게 되면 부트로더 쉘이 실행되는데 이 방식을 통해 펌웨어를 얻는 방법이 있다.<br>
  </p>
@@ -308,7 +308,7 @@ Glitching Attack 공격은 이 SO 핀과 GND를 부팅되는 중간에 연결하
  <br>
 이 2가지 방법까지 가지 않아도 충분히 펌웨어를 구할 수 있는 환경이 되었기에 해당 내용에 대해서는 작업을 진행할 때 추가로 작성하겠다.</p>
 <hr>
-<h2>Analyze #1</h2>
+<h2 id="section-analyze-1" tabindex="-1">Analyze #1</h2>
 <p>먼저 분석해주어야 하는 친구는 /etc/inittab -&gt; /etc/init.d/rcS -&gt; /etc/rc.d/* 이다.</p>
 <p><img src="/assets/images/tistory/tistory-27d29bcca2fa/034.png" alt=""></p>
 <p>부팅할 때에 /etc/init.d/rcS를 S 인자를 주고 실행하고 있다.</p>
@@ -463,7 +463,7 @@ failsafe_wait() {
 </code></pre>
 <p>99_10_failsafe_login 을 추적해보면 이제 실제 telnetd 실행 함수가 호출 되는지 확인 가능하다.</p>
 <p>해당 Target 장비에서는 주석처리 되어 있는 것을 통해 사용하지 않는 것을 볼 수 있다.</p>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -483,6 +483,6 @@ failsafe_wait() {
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

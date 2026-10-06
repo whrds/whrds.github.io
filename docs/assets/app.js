@@ -110,3 +110,82 @@
     if (frame && Number.isFinite(height) && height >= 400 && height <= 2400) frame.style.height = Math.ceil(height) + 'px';
   });
 })();
+
+// Enhance the static table of contents; its links also work without JavaScript.
+(() => {
+  const disclosure = document.querySelector('[data-article-toc]');
+  if (!disclosure) return;
+  const navigation = disclosure.querySelector('.article-toc-nav');
+  const article = disclosure.closest('.article-with-toc');
+  const header = document.querySelector('.site-header');
+  const entries = [...navigation.querySelectorAll('[data-toc-link]')].map(link => ({
+    link, target: document.getElementById(decodeURIComponent(link.hash.slice(1)))
+  })).filter(entry => entry.target);
+  if (!entries.length) return;
+  const desktop = matchMedia('(min-width: 1101px)');
+  let positions = [], active = -1, offset = 103, frame = 0, needsLayout = true;
+
+  const revealActive = () => {
+    if (!desktop.matches || !disclosure.open || navigation.contains(document.activeElement)) return;
+    const link = entries[active]?.link;
+    if (!link) return;
+    const box = link.getBoundingClientRect(), viewport = navigation.getBoundingClientRect();
+    if (box.top < viewport.top + 8) navigation.scrollTop += box.top - viewport.top - 8;
+    else if (box.bottom > viewport.bottom - 8) navigation.scrollTop += box.bottom - viewport.bottom + 8;
+  };
+
+  const update = () => {
+    frame = 0;
+    if (needsLayout) {
+      offset = Math.ceil(header?.getBoundingClientRect().height || 79) + 24;
+      article.style.setProperty('--article-nav-top', `${offset}px`);
+      positions = entries.map(({ target }) => target.getBoundingClientRect().top + scrollY);
+      needsLayout = false;
+    }
+    const line = scrollY + offset + 12;
+    let low = 0, high = positions.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (positions[middle] <= line) low = middle + 1;
+      else high = middle;
+    }
+    const atBottom = scrollY > 0 && Math.ceil(scrollY + innerHeight) >= document.documentElement.scrollHeight - 2;
+    const next = atBottom ? entries.length - 1 : Math.max(0, low - 1);
+    if (next === active) return;
+    entries[active]?.link.removeAttribute('aria-current');
+    active = next;
+    entries[active].link.setAttribute('aria-current', 'location');
+    revealActive();
+  };
+  const schedule = (layout = false) => {
+    needsLayout ||= layout;
+    if (!frame) frame = requestAnimationFrame(update);
+  };
+  const syncViewport = () => {
+    disclosure.open = desktop.matches;
+    schedule(true);
+  };
+
+  navigation.addEventListener('click', event => {
+    const link = event.target.closest('[data-toc-link]');
+    if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const entry = entries.find(item => item.link === link);
+    if (!entry) return;
+    if (!desktop.matches) disclosure.open = false;
+    schedule(true);
+    requestAnimationFrame(() => entry.target.focus({ preventScroll: true }));
+  });
+  disclosure.addEventListener('toggle', () => { schedule(true); if (disclosure.open) revealActive(); });
+  desktop.addEventListener('change', syncViewport);
+  window.addEventListener('scroll', () => schedule(), { passive: true });
+  window.addEventListener('resize', () => schedule(true), { passive: true });
+  window.addEventListener('hashchange', () => schedule(true));
+  window.addEventListener('load', () => schedule(true), { once: true });
+  document.fonts?.ready.then(() => schedule(true));
+  if ('ResizeObserver' in window) {
+    const observer = new ResizeObserver(() => schedule(true));
+    observer.observe(article);
+    if (header) observer.observe(header);
+  }
+  syncViewport();
+})();

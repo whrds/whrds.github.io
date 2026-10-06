@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-fsb/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-fsb/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] FSB · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ FSB stands for Format String Bug, and as the name suggests, it is a vulnerability that occurs due to incorrect use of format specifier. You may have used printf() a lot to print variables, as shown below. printf(&quot;%d&quot;,num1); It is better to use it in this way."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-fsb/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] FSB","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ FSB stands for Format String Bug, and as the name suggests, it is a vulnerability that occurs due to incorrect use of format specifier. You may have used printf() a lot to print variables, as shown below. printf(\"%d\",num1); It is better to use it in this way.","datePublished":"2024-06-24","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-fsb/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,14 +27,14 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] FSB</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ FSB stands for Format String Bug, and as the name suggests, it is a vulnerability that occurs due to incorrect use of format specifier. You may have used printf() a lot to print variables, as shown below. printf(&quot;%d&quot;,num1); It is better to use it in this way.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>7 min read</span></div></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[PWNABLE] FSB</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ FSB stands for Format String Bug, and as the name suggests, it is a vulnerability that occurs due to incorrect use of format specifier. You may have used printf() a lot to print variables, as shown below. printf(&quot;%d&quot;,num1); It is better to use it in this way.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">Jun 24, 2024</time><span>·</span><span>7 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-what-are-format-specifiers" data-toc-link>What are format specifiers?</a></li><li class="article-toc-level-0"><a href="#section-vulnerable-code-example" data-toc-link>Vulnerable code example</a></li><li class="article-toc-level-0"><a href="#section-problems-and-attack-methods" data-toc-link>Problems and attack methods</a></li><li class="article-toc-level-0"><a href="#section-n-and-hn-format-specifiers" data-toc-link>%n and %hn format specifiers</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong> </p>
 <p>FSB stands for Format String Bug, and as the name suggests, it is a vulnerability that occurs due to incorrect use of format specifiers.</p>
 <p>You may have used printf() a lot to print variables, as shown below.</p>
 <pre><code>printf(&quot;%d&quot;,num1);
 </code></pre>
 <p>You probably know that using it this way is the right way.</p>
 <p>So, in the case of vulnerable code, how is it used that causes bugs?</p>
-<h4>What are format specifiers?</h4>
+<h4 id="section-what-are-format-specifiers" tabindex="-1">What are format specifiers?</h4>
 <p>To understand this, you need to know what a format specifier is. A format specifier is a data format for receiving and processing variable arguments from functions such as printf() or scanf(). For example, %d is a format specifier that outputs an integer, and %s is a format specifier that outputs a string.</p>
 <p>Format specifiers are usually used to clearly specify the data type of the variable to be output.</p>
 <p>See more</p>
@@ -170,14 +170,14 @@
 <p>Format specifier ? This is a data format for receiving and processing variable arguments from various APIs such as printf, scanf, sprintf, and fprintf. Specify which arguments are to be processed and how to handle them inside the API function that handles variable arguments.</p>
 <p><a href="http://hackerpark.tistory.com">hackerpark.tistory.com</a>](<a href="https://hackerpark.tistory.com/entry/C%EC%96%B8%EC%96%B4-%EC%84%9C%EC%8B%9D-%EC%A7%80%EC%A0%95%EC%9E%90%EC%9D%98-%EB%AA%A8%EB%93%A0%EA%B2%83-%EC%84%9C%EC%8B%9D%EB%AC%B8%EC%9E%90">https://hackerpark.tistory.com/entry/C언어-서식-지정자의-모든것-서식문자</a>)</p>
 <hr>
-<h4>Vulnerable code example</h4>
+<h4 id="section-vulnerable-code-example" tabindex="-1">Vulnerable code example</h4>
 <p>Common examples of FSB occurring include:</p>
 <pre><code>char userInput[100];
 scanf(&quot;%s&quot;, userInput);
 printf(userInput);
 </code></pre>
 <p>In the above code, the format specifier is not used in printf() and the user input is passed as is. In this case, if the user input contains format specifiers, memory may be read or written in unexpected ways, which may lead to bugs.* * *</p>
-<h4>Problems and attack methods</h4>
+<h4 id="section-problems-and-attack-methods" tabindex="-1">Problems and attack methods</h4>
 <p>A vulnerable printf call can be exploited by an attacker to read or write arbitrary locations in memory. For example, if the user provides input such as %x %x %x %x to userInput, the program’s memory contents are output. In more serious cases, the %n format specifier can be used to manipulate memory into writing a specific value.</p>
 <p>Let’s look at a simple example.</p>
 <pre><code>// gcc -no-pie -fno-stack-protector -z execstack -o ex ex.c
@@ -228,7 +228,7 @@ int main() {
 <p>In this way, memory leak can be performed using FSB.</p>
 <p>I know how to leak, but now how to exploit it?</p>
 <p>The answer to this also lies in the format specifier.</p>
-<h4>%n and %hn format specifiers</h4>
+<h4 id="section-n-and-hn-format-specifiers" tabindex="-1">%n and %hn format specifiers</h4>
 <p>In FSB attacks, the %n and %hn format specifiers are used by the attacker to write values to memory. %n writes the number of characters written to the specified memory location.</p>
 <p>For example, printf(“hello%n”, &amp;var); writes 5, the length of “hello”, to var. %hn does the same thing, but only half the size.</p>
 <p>You can perform operations such as overwriting a return address or function pointer by writing the desired value to a specific location in memory.</p>
@@ -272,7 +272,7 @@ p.interactive()
 <p>b’\x41’ is inserted in the middle for address padding, and exit_got is also covered by splitting it into 2 bytes.</p>
 <p>At this time, it must be run in python2, not python3.</p>
 <p><img src="/assets/images/tistory/tistory-b0994a81b2cb/007.png" alt=""></p>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-fsb/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-fsb/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -292,6 +292,6 @@ p.interactive()
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

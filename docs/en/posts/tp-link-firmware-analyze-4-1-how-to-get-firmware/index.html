@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE · whrds.log"><meta property="og:description" content="Usually, when a company is working on a project, one project ends and another project begins immediately afterward. In my first project, I was able to learn a lot of new technologies and improve my technical skills, including my existing analytical skills. Therefore, I was looking forward to what more I could learn and grow in the next project... but time has come."><meta property="og:url" content="https://whrds.github.io/en/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE","description":"Usually, when a company is working on a project, one project ends and another project begins immediately afterward. In my first project, I was able to learn a lot of new technologies and improve my technical skills, including my existing analytical skills. Therefore, I was looking forward to what more I could learn and grow in the next project... but time has come.","datePublished":"2025-08-28","inLanguage":"en","url":"https://whrds.github.io/en/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE</h1><p class="article-description">Usually, when a company is working on a project, one project ends and another project begins immediately afterward. In my first project, I was able to learn a lot of new technologies and improve my technical skills, including my existing analytical skills. Therefore, I was looking forward to what more I could learn and grow in the next project... but time has come.</p><div class="article-meta"><a class="post-category" href="/en/categories/firmware/">STUDY / Firmware Analysis</a><span>·</span><time datetime="2025-08-28">Aug 28, 2025</time><span>·</span><span>12 min read</span></div></div></header><div class="prose"><p>Usually, when a company is working on a project, one project ends and another project begins immediately afterward.<br>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[TP-LINK] FIRMWARE ANALYZE #4 - #1. How To Get FIRMWARE</h1><p class="article-description">Usually, when a company is working on a project, one project ends and another project begins immediately afterward. In my first project, I was able to learn a lot of new technologies and improve my technical skills, including my existing analytical skills. Therefore, I was looking forward to what more I could learn and grow in the next project... but time has come.</p><div class="article-meta"><a class="post-category" href="/en/categories/firmware/">STUDY / Firmware Analysis</a><span>·</span><time datetime="2025-08-28">Aug 28, 2025</time><span>·</span><span>12 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-target" data-toc-link>TARGET</a></li><li class="article-toc-level-0"><a href="#section-firmware-online" data-toc-link>FIRMWARE-ONLINE</a></li><li class="article-toc-level-0"><a href="#section-firmware-hardware" data-toc-link>FIRMWARE-HARDWARE</a></li><li class="article-toc-level-1"><a href="#section-uart" data-toc-link>UART</a></li><li class="article-toc-level-1"><a href="#section-serial-data-output-fault-injection" data-toc-link>Serial Data Output Fault Injection</a></li><li class="article-toc-level-0"><a href="#section-analyze-1" data-toc-link>Analyze #1</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>Usually, when a company is working on a project, one project ends and another project begins immediately afterward.<br>
  <br>
 In my first project, I was able to learn a lot of new technologies and improve my technical skills, including my existing analytical skills. Therefore, I was looking forward to what more I could learn and grow in the next project…<br>
 A time has arisen. <br>
@@ -37,7 +37,7 @@ Thanks to this, I had some free time, but I decided to use this time as an oppor
 Now, we plan to conduct analysis targeting one or more IoT devices every quarter. <br>
  </p>
 <hr>
-<h2>TARGET</h2>
+<h2 id="section-target" tabindex="-1">TARGET</h2>
 <p>As always, I thought a lot about what kind of target I should target. <br>
  <br>
 Should I try to set a new target, or should I try again with a model I have experience with before?<br>
@@ -66,7 +66,7 @@ I paid a lot thinking it was an investment for the future…<br>
 Since the equipment has been opened with as little damage as possible and the internal firmware has been extracted and will only be used to verify vulnerabilities, I will try to dispose of it cheaply after the project is completed. If you are interested, please contact me…<br>
  </p>
 <hr>
-<h2>FIRMWARE-ONLINE</h2>
+<h2 id="section-firmware-online" tabindex="-1">FIRMWARE-ONLINE</h2>
 <p><a href="https://www.tp-link.com/kr/support/download/archer-air-r5/">https://www.tp-link.com/kr/support/download/archer-air-r5/</a> </p>
 <p> [Download Archer Air R5 | TP-Link South Korea</p>
 <p>TP Link - Download Center Detail</p>
@@ -111,7 +111,7 @@ fi
  <br>
  </p>
 <hr>
-<h2>FIRMWARE-HARDWARE</h2>
+<h2 id="section-firmware-hardware" tabindex="-1">FIRMWARE-HARDWARE</h2>
 <p>Now, this time, we will extract it from hardware equipment and try to analyze it.<br>
 I eventually acquired the equipment to learn hardware hacking techniques and master the skills properly.<br>
  </p>
@@ -125,7 +125,7 @@ If you look at the state of the board, you can see silver plates, all of which c
  <br>
 Now I just need to find the UART, but the multi-tester I had at home couldn’t measure properly, so I took it to the company and had it done.<br>
  </p>
-<h4>UART</h4>
+<h4 id="section-uart" tabindex="-1">UART</h4>
 <p>UART is one of the hardware-based communication protocols and is a representative serial communication protocol.<br>
 Unlike parallel, it has a structure that receives data sequentially, one bit at a time, so it can easily and stably transmit and receive data.<br>
  From embedded devices, you can obtain various information such as kernel messages, debug logs, and boot logs, and for some devices, you can even obtain a shell right away.<br>
@@ -212,7 +212,7 @@ Standby state… For this router, the web runs in Lua. Therefore, it remains in 
 In this case, you will have to use another method to obtain the firmware.<br>
 There are three main methods.<br>
  </p>
-<h4>Serial Data Output Fault Injection</h4>
+<h4 id="section-serial-data-output-fault-injection" tabindex="-1">Serial Data Output Fault Injection</h4>
 <p>There is a stage in the booting process where firmware is executed. <br>
 At this time, when an interrupt is generated, a bootloader shell is executed, and there is a way to obtain firmware through this method.<br>
  </p>
@@ -306,7 +306,7 @@ The last method is to simply remove the flash memory and read it directly.<br>
  <br>
 Since we are in an environment where we can obtain firmware without having to go through these two methods, we will write more about this as we proceed with the work.</p>
 <hr>
-<h2>Analyze #1</h2>
+<h2 id="section-analyze-1" tabindex="-1">Analyze #1</h2>
 <p>The friend that needs to be analyzed first is /etc/inittab -&gt; /etc/init.d/rcS -&gt; /etc/rc.d/*.</p>
 <p><img src="/assets/images/tistory/tistory-27d29bcca2fa/034.png" alt="">When booting, /etc/init.d/rcS is run with the S argument.</p>
 <pre><code>#!/bin/sh
@@ -460,7 +460,7 @@ failsafe_wait() {
 </code></pre>
 <p>If you trace 99_10_failsafe_login, you can now check whether the actual telnetd execution function is called.</p>
 <p>You can see that it is not used in the target device as it is commented out.</p>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/tp-link-firmware-analyze-4-1-how-to-get-firmware/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -480,6 +480,6 @@ failsafe_wait() {
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

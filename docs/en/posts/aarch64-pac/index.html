@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/aarch64-pac/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/aarch64-pac/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[AArch64] PAC · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Pointer Authentication is a security technique added in ARMv8.3 that guarantees the integrity of the correct memory address by signing the CodePointer. Vulnerabilities in most stacks, including amd64, are achieved by modifying [ret]. go"><meta property="og:url" content="https://whrds.github.io/en/posts/aarch64-pac/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[AArch64] PAC","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ Pointer Authentication is a security technique added in ARMv8.3 that guarantees the integrity of the correct memory address by signing the CodePointer. Vulnerabilities in most stacks, including amd64, are achieved by modifying [ret]. go","datePublished":"2024-04-08","inLanguage":"en","url":"https://whrds.github.io/en/posts/aarch64-pac/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,11 +27,11 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[AArch64] PAC</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Pointer Authentication is a security technique added in ARMv8.3 that guarantees the integrity of the correct memory address by signing the CodePointer. Vulnerabilities in most stacks, including amd64, are achieved by modifying [ret]. go</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-aarch64/">STUDY / PWNABLE_AArch64</a><span>·</span><time datetime="2024-04-08">Apr 8, 2024</time><span>·</span><span>4 min read</span></div></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong><br>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[AArch64] PAC</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Pointer Authentication is a security technique added in ARMv8.3 that guarantees the integrity of the correct memory address by signing the CodePointer. Vulnerabilities in most stacks, including amd64, are achieved by modifying [ret]. go</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-aarch64/">STUDY / PWNABLE_AArch64</a><span>·</span><time datetime="2024-04-08">Apr 8, 2024</time><span>·</span><span>4 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-pointer-authentication-code" data-toc-link>Pointer Authentication Code</a></li><li class="article-toc-level-1"><a href="#section-key-register" data-toc-link>Key register</a></li><li class="article-toc-level-1"><a href="#section-scr-secure-configuration-register" data-toc-link>SCR (Secure Configuration Register)</a></li><li class="article-toc-level-1"><a href="#section-sctlr-system-control-register" data-toc-link>SCTLR (System Control Register)</a></li><li class="article-toc-level-1"><a href="#section-esr-exception-syndrome-register" data-toc-link>ESR (Exception Syndrome Register)</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong><br>
  <br>
  </p>
 <hr>
-<h3>Pointer Authentication Code</h3>
+<h3 id="section-pointer-authentication-code" tabindex="-1">Pointer Authentication Code</h3>
 <p>This is a security technique added in ARMv8.3 that guarantees the integrity of the correct memory address by signing the pointer.<br>
  <br>
 Vulnerabilities in most stacks, including amd64, are achieved by modifying [ret]. <br>
@@ -69,21 +69,21 @@ The algorithm used at this time is an algorithm called QARMA, which is a symmeti
  <br>
 Let’s look at the system registers used with key registers.<br>
  </p>
-<h4>Key register</h4>
+<h4 id="section-key-register" tabindex="-1">Key register</h4>
 <p>For each of the five keys mentioned above, there is a register divided into low and high bits.</p>
 <p><img src="/assets/images/tistory/tistory-176b1d39004b/002.png" alt=""></p>
-<h4>SCR (Secure Configuration Register)</h4>
+<h4 id="section-scr-secure-configuration-register" tabindex="-1">SCR (Secure Configuration Register)</h4>
 <p>Add API bit and APK bit that are accessible only in EL3.<br>
 API: When an instruction fault occurs, it is trapped by EL3.<br>
 APK: Trapped with EL3 when key register access occurs.<br>
 And the corresponding situations are recorded in ESR_ELx.EC.<br>
 It is a register that plays the role of configuring security policies and controlling interactions as a whole.<br>
  </p>
-<h4>SCTLR (System Control Register)</h4>
+<h4 id="section-sctlr-system-control-register" tabindex="-1">SCTLR (System Control Register)</h4>
 <p>It is used to control the operating mode of the system and is set to the default value when booting.<br>
 This may be changed later when setting the cache, endian mode, etc.<br>
  </p>
-<h4>ESR (Exception Syndrome Register)</h4>
+<h4 id="section-esr-exception-syndrome-register" tabindex="-1">ESR (Exception Syndrome Register)</h4>
 <p>When an exception occurs, detailed information about the exception is provided.<br>
  </p>
 <hr>
@@ -123,7 +123,7 @@ This value is the PAC value.<br>
  </p>
 <hr>
 <p><strong>We are looking for additional data on PAC and MTE… We are studying how this can be bypassed in the real world.</strong></p>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/aarch64-pac/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/aarch64-pac/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -143,6 +143,6 @@ This value is the PAC value.<br>
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

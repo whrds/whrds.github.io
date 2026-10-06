@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/linux-memory-structure/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/linux-memory-structure/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[LINUX] Memory structure · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment]. CODE segment This is the area where the code written by the user is stored. The code of the program to be executed is stored."><meta property="og:url" content="https://whrds.github.io/en/posts/linux-memory-structure/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[LINUX] Memory structure","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment]. CODE segment This is the area where the code written by the user is stored. The code of the program to be executed is stored.","datePublished":"2023-09-04","inLanguage":"en","url":"https://whrds.github.io/en/posts/linux-memory-structure/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,17 +27,17 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[LINUX] Memory structure</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment]. CODE segment This is the area where the code written by the user is stored. The code of the program to be executed is stored.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-04">Sep 4, 2023</time><span>·</span><span>3 min read</span></div></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let us know. We will check and correct it. <strong>※</strong></strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[LINUX] Memory structure</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment]. CODE segment This is the area where the code written by the user is stored. The code of the program to be executed is stored.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-04">Sep 4, 2023</time><span>·</span><span>3 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-code-segment" data-toc-link>CODE Segment</a></li><li class="article-toc-level-0"><a href="#section-data-segment" data-toc-link>DATA Segment</a></li><li class="article-toc-level-0"><a href="#section-bss-segment" data-toc-link>BSS Segment</a></li><li class="article-toc-level-0"><a href="#section-stack-segment" data-toc-link>STACK Segment</a></li><li class="article-toc-level-1"><a href="#section-stack-frame" data-toc-link>STACK Frame</a></li><li class="article-toc-level-0"><a href="#section-heap-segment" data-toc-link>HEAP Segment</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ If there are any mistakes, please let us know. We will check and correct it. <strong>※</strong></strong> </p>
 <p><img src="/assets/images/tistory/tistory-e863c2da7c8a/001.png" alt=""></p>
 <p>The memory structure of Linux consists of [CODE segment], [DATA segment], [BSS segment], [HEAP segment], and [STACK segment].</p>
-<h3><strong>CODE Segment</strong></h3>
+<h3 id="section-code-segment" tabindex="-1"><strong>CODE Segment</strong></h3>
 <p>This is the area where the code written by the user is stored, and the code of the program to be executed is stored. </p>
 <p>Because the CPU must read and execute this code, it has read and execute permissions.</p>
 <pre><code>void func1(){ ... }
 void func2(){ ... }
 int main(){ ... }
 </code></pre>
-<h3><strong>DATA Segment</strong></h3>
+<h3 id="section-data-segment" tabindex="-1"><strong>DATA Segment</strong></h3>
 <p>This is an area where initialized global variables or static variables are stored, and is allocated at the start of the program and destroyed at the end.</p>
 <p>It consists of data that can be read and written and rodata (Read Only Data) that can only be read.</p>
 <pre><code>int num1 = 1; //data
@@ -47,7 +47,7 @@ void func1(){
 	static int num3 = 3; //data
 }
 </code></pre>
-<h3><strong>BSS Segment</strong></h3>
+<h3 id="section-bss-segment" tabindex="-1"><strong>BSS Segment</strong></h3>
 <p>Unlike the DATA segment, this is an area where uninitialized global or static variables are stored. </p>
 <pre><code>int num; //bss
 const int num2; //rodata
@@ -56,7 +56,7 @@ void func1(){
 	static int num3 = 3; //bss
 }
 </code></pre>
-<h3><strong>STACK Segment</strong></h3>
+<h3 id="section-stack-segment" tabindex="-1"><strong>STACK Segment</strong></h3>
 <p>This is an area where data including local variables and parameters created while a program is running is stored.</p>
 <p>Therefore, it has read and write permissions.</p>
 <p>A characteristic of STACK is that when its size is expanded, it grows from a high address to a low address. </p>
@@ -66,7 +66,7 @@ void func1(){
 }
 </code></pre>
 <p>See more</p>
-<h4><strong>STACK Frame</strong></h4>
+<h4 id="section-stack-frame" tabindex="-1"><strong>STACK Frame</strong></h4>
 <p>This is the unit used by the STACK segment. A stack frame is created when a function is called and freed when it returns.</p>
 <p><img src="/assets/images/tistory/tistory-e863c2da7c8a/002.png" alt=""></p>
 <p>In the picture above, you can see that the stack frame size is created as 0x20.<br>
@@ -85,7 +85,7 @@ void func1(){
 <p>This is what rsp looks like in func().</p>
 <p><img src="/assets/images/tistory/tistory-e863c2da7c8a/006.png" alt=""></p>
 <p>You can see that 0x7fffffffe260~0x7fffffffe280 is the area of the buf variable, 0x7fffffffe280 is sfp, and 0x7fffffffe288 is ret.</p>
-<h3><strong>HEAP Segment</strong></h3>
+<h3 id="section-heap-segment" tabindex="-1"><strong>HEAP Segment</strong></h3>
 <p>This is a space for dynamically allocating memory during program execution. </p>
 <p>This part will be discussed in detail later when writing about ptmalloc.</p>
 <pre><code>int *num = malloc(1)  //heap
@@ -94,7 +94,7 @@ void func1(){
 	int *ptr = malloc(8). //heap
 }
 </code></pre>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/linux-memory-structure/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/linux-memory-structure/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -114,6 +114,6 @@ void func1(){
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

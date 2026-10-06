@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-protection-technique/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-protection-technique/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Protection technique · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ SMEP (Supervisor Mode Execution Prevention) is a technique that prevents the execution of user space code while executing kernel space code. It is similar to NX (No Exute), which prevents the execution of code in user space. It is a hardware security technique."><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-protection-technique/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Protection technique","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ SMEP (Supervisor Mode Execution Prevention) is a technique that prevents the execution of user space code while executing kernel space code. It is similar to NX (No Exute), which prevents the execution of code in user space. It is a hardware security technique.","datePublished":"2024-06-13","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-protection-technique/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,8 +27,8 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Protection technique</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ SMEP (Supervisor Mode Execution Prevention) is a technique that prevents the execution of user space code while executing kernel space code. It is similar to NX (No Exute), which prevents the execution of code in user space. It is a hardware security technique.</p><div class="article-meta"><a class="post-category" href="/en/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-06-13">Jun 13, 2024</time><span>·</span><span>3 min read</span></div></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong></p>
-<h4>SMEP (Supervisor Mode Execution Prevention)</h4>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[KERNEL] Protection technique</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ SMEP (Supervisor Mode Execution Prevention) is a technique that prevents the execution of user space code while executing kernel space code. It is similar to NX (No Exute), which prevents the execution of code in user space. It is a hardware security technique.</p><div class="article-meta"><a class="post-category" href="/en/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-06-13">Jun 13, 2024</time><span>·</span><span>3 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-smep-supervisor-mode-execution-prevention" data-toc-link>SMEP (Supervisor Mode Execution Prevention)</a></li><li class="article-toc-level-0"><a href="#section-smap-supervisor-mode-access-prevention" data-toc-link>SMAP (Supervisor Mode Access Prevention)</a></li><li class="article-toc-level-0"><a href="#section-kaslr-kgkaslr" data-toc-link>KASLR / KGKASLR</a></li><li class="article-toc-level-0"><a href="#section-kpti-kernel-page-table-isolation" data-toc-link>KPTI (Kernel Page-Table Isolation)</a></li><li class="article-toc-level-0"><a href="#section-kadr-kernel-address-display-restriction" data-toc-link>KADR (Kernel Address Display Restriction)</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will check and correct it. <strong>※</strong></strong></p>
+<h4 id="section-smep-supervisor-mode-execution-prevention" tabindex="-1">SMEP (Supervisor Mode Execution Prevention)</h4>
 <p>This is a technique that prevents the execution of user space code while executing kernel space code.</p>
 <p>It is similar to NX (No Exute), which prevents the execution of code in user space.</p>
 <p>As a hardware security technique, SMEP is triggered when the 21st bit of the CR4 register is activated.</p>
@@ -39,7 +39,7 @@
 <pre><code>cat /proc/cpuinfo | grep smep
 </code></pre>
 <hr>
-<h4>SMAP (Supervisor Mode Access Prevention)</h4>
+<h4 id="section-smap-supervisor-mode-access-prevention" tabindex="-1">SMAP (Supervisor Mode Access Prevention)</h4>
 <p>There are restrictions on not being able to read and write memory in kernel space from user space, but there are no restrictions on reading memory in user space from kernel space. SMAP prevents this from happening.</p>
 <p>Because the Linux kernel is very large, the following gadgets exist.</p>
 <pre><code>mov esp, 0x12345678; ret;
@@ -65,7 +65,7 @@ control_rip(rop_mov_esp_12345678h);
 <pre><code>cat /proc/cpuinfo | grep smap
 </code></pre>
 <hr>
-<h4>KASLR / KGKASLR</h4>
+<h4 id="section-kaslr-kgkaslr" tabindex="-1">KASLR / KGKASLR</h4>
 <p>In user space, there is an ASLR technique that randomizes memory addresses. </p>
 <p>Likewise, in kernel space, there is a KASLR technique that randomizes the address of the code/data area of ​​the Linux kernel or device driver.</p>
 <p>Because the kernel, once loaded, does not change until rebooted, KASLR only runs once on initial boot.</p>
@@ -73,7 +73,7 @@ control_rip(rop_mov_esp_12345678h);
 <pre><code>-append &quot;... nokaslr ...&quot;
 </code></pre>
 <hr>
-<h4>KPTI (Kernel Page-Table Isolation)</h4>
+<h4 id="section-kpti-kernel-page-table-isolation" tabindex="-1">KPTI (Kernel Page-Table Isolation)</h4>
 <p>This is a protection technique that was developed as a response to a vulnerability called Meltdown, which is a vulnerability that allows memory in kernel space to be read with user privileges.</p>
 <p>When converting from a virtual address to a physical address, a page-table is used, which distinguishes between kernel space and user space.</p>
 <p>Generally, this is not a problem for exploits, but it may be blocked during processes such as ret2usr after ROP is performed in the kernel.</p>
@@ -89,14 +89,14 @@ control_rip(rop_mov_esp_12345678h);
 Mitigation: PTI
 </code></pre>
 <hr>
-<h4>KADR (Kernel Address Display Restriction)</h4>
+<h4 id="section-kadr-kernel-address-display-restriction" tabindex="-1">KADR (Kernel Address Display Restriction)</h4>
 <p>The kernel can read the function name and information using /proc/kallsyms or, depending on the driver, printk().</p>
 <p>In this way, the technique to prevent the leakage of address information such as functions, data, and heaps in kernel space is commonly called KADR.</p>
 <p>The level of protection is set based on the value in the /proc/sys/kernel/kptr_restrict file.</p>
 <p>0: address display</p>
 <p>1: Visible only to users with CAP_SYSLOG privileges</p>
 <p>2: Do not display address</p>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-protection-technique/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-protection-technique/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -116,6 +116,6 @@ Mitigation: PTI
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

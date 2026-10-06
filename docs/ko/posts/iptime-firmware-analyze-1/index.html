@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/iptime-firmware-analyze-1/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/iptime-firmware-analyze-1/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[IPTIME] FIRMWARE ANALYZE #1 · whrds.log"><meta property="og:description" content="계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.아직 계속해서 분석해보고, 여러가지 시도를 해보는 등 삽질을 하고 있지만 중간중간 이렇게 정리하도록 하겠다. 삽질만 하고 있기에.. 설명이나 그런 것이라기 보다는 이런이런 시도를 해보았다는 내용이 더 많을 것 같다.N"><meta property="og:url" content="https://whrds.github.io/ko/posts/iptime-firmware-analyze-1/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[IPTIME] FIRMWARE ANALYZE #1","description":"계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.아직 계속해서 분석해보고, 여러가지 시도를 해보는 등 삽질을 하고 있지만 중간중간 이렇게 정리하도록 하겠다. 삽질만 하고 있기에.. 설명이나 그런 것이라기 보다는 이런이런 시도를 해보았다는 내용이 더 많을 것 같다.N","datePublished":"2025-02-13","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/iptime-firmware-analyze-1/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,13 +27,13 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[IPTIME] FIRMWARE ANALYZE #1</h1><p class="article-description">계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.아직 계속해서 분석해보고, 여러가지 시도를 해보는 등 삽질을 하고 있지만 중간중간 이렇게 정리하도록 하겠다. 삽질만 하고 있기에.. 설명이나 그런 것이라기 보다는 이런이런 시도를 해보았다는 내용이 더 많을 것 같다.N</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-02-13">2025년 2월 13일</time><span>·</span><span>9 분 읽기</span></div></div></header><div class="prose"><p>계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.</p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[IPTIME] FIRMWARE ANALYZE #1</h1><p class="article-description">계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.아직 계속해서 분석해보고, 여러가지 시도를 해보는 등 삽질을 하고 있지만 중간중간 이렇게 정리하도록 하겠다. 삽질만 하고 있기에.. 설명이나 그런 것이라기 보다는 이런이런 시도를 해보았다는 내용이 더 많을 것 같다.N</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-02-13">2025년 2월 13일</time><span>·</span><span>9 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-target" data-toc-link>TARGET</a></li><li class="article-toc-level-0"><a href="#section-tools" data-toc-link>TOOLS</a></li><li class="article-toc-level-0"><a href="#section-extraction" data-toc-link>EXTRACTION</a></li><li class="article-toc-level-1"><a href="#section-1-install-firmware" data-toc-link>#1 INSTALL FIRMWARE</a></li><li class="article-toc-level-1"><a href="#section-2-binwalk" data-toc-link>#2 BINWALK</a></li><li class="article-toc-level-1"><a href="#section-3-separation" data-toc-link>#3 SEPARATION</a></li><li class="article-toc-level-1"><a href="#section-part-4" data-toc-link>PART 4</a></li><li class="article-toc-level-1"><a href="#section-part-5" data-toc-link>PART 5</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>계속해서 1-DAY 취약점을 분석하던 중, FIRMWARE에 흥미를 느껴 개인 프로젝트로 진행하게 되었다.</p>
 <p>아직 계속해서 분석해보고, 여러가지 시도를 해보는 등 삽질을 하고 있지만 중간중간 이렇게 정리하도록 하겠다.</p>
 <p>삽질만 하고 있기에… 설명이나 그런 것이라기 보다는 이런이런 시도를 해보았다는 내용이 더 많을 것 같다.</p>
 <p><img src="/assets/images/tistory/tistory-46318ff0b3f2/001.png" alt=""></p>
 <p>NOTION에 정리하면서 하긴 했는데 여기 내용을 다 브롤그로 옮기기에는 너무 길어질 것 같기 떄문에 삽질한 부분을 최대한 제외 해보겠다.</p>
 <hr>
-<h3>TARGET</h3>
+<h3 id="section-target" tabindex="-1">TARGET</h3>
 <p>먼저 target 선정을 해야한다.</p>
 <p>보통 비용, FIRMWARE 추출 가능한지 여부 등등을 고려하며 선정하는게 일반적이다.</p>
 <p>어떤 장비로 해볼까 고민하다가 우리가 가장 흔히 접하는 무선 라우터를 선정하였고, 그 중 FIRMWARE가 공개되어 있는 IPTIME 하기로 했다. </p>
@@ -45,12 +45,12 @@
 <p>장비의 가격대는 80,000 ~ 100,000원이다. </p>
 <p>뜯어보다가 FIRMWARE 망가뜨리면 다시 정상정인 FIRMWARE로 덮어씌우면 되기 떄문에 일단 이렇게 진행했다.</p>
 <hr>
-<h3>TOOLS</h3>
+<h3 id="section-tools" tabindex="-1">TOOLS</h3>
 <p>FIRMWARE 분석을 위해 많은 툴이 존재한다.</p>
 <p>대표적으로 firmware-analysis-toolkit,FirmAE, firmadyne 등 존재하는데 다른 에뮬레이팅까지 해주는 툴들은 아쉽게도 다 실패하게 되었다.</p>
 <p>이번 분석을 위해 저 좋고 많은 툴들을 두고 binwalk를 사용하고, 에뮬레이팅을 위해 QEMU를 사용했다.</p>
 <hr>
-<h3>EXTRACTION</h3>
+<h3 id="section-extraction" tabindex="-1">EXTRACTION</h3>
 <p>FIRMWARE에는 KERNEL IMG, BOOT LOADER, ROOT FILE SYSTEM, Device Tree가 존재한다.</p>
 <p>binwalk의 옵션 중 -e를 사용하게 되면 바로 다 추출할 수 있지만 이번 프로젝트의 주된 목적은 개인적인 학습이기에 저 옵션을 사용해서가 아닌 직접 뜯어서 분리해보았다.</p>
 <p>만약 저 옵션을 그대로 사용하고자 한다면 아래와 같이 사용하면 된다.</p>
@@ -58,14 +58,14 @@
 </code></pre>
 <p>EXPORT하는 옵션은 사용하지 않겠지만 그래도 그 구분은 어떻게 되는지는 확인해야되기에 이건 binwalk를 사용했다.</p>
 <hr>
-<h4>#1 INSTALL FIRMWARE</h4>
+<h4 id="section-1-install-firmware" tabindex="-1">#1 INSTALL FIRMWARE</h4>
 <p>먼저 분석할 FIRMWARE을 설치해야 한다.</p>
 <p><img src="/assets/images/tistory/tistory-46318ff0b3f2/003.png" alt=""></p>
 <p>IPTIME의 게시글에 들어가보면 FIRMWARE 파일들을 다운 받을 수 있다.</p>
 <p>여기서 링크를 얻어 아래 명령을 수행하면 파일을 다운 받을 수 있다.</p>
 <pre><code>wget https://download.iptime.co.kr/release/15_056/firmware/ax2004m_ml_15_056.bin
 </code></pre>
-<h4>#2 BINWALK </h4>
+<h4 id="section-2-binwalk" tabindex="-1">#2 BINWALK </h4>
 <p>이제 firmware 파일의 구성을 확인해보겠다.</p>
 <pre><code>binwalk ax2004m_ml_15_056.bin
 </code></pre>
@@ -78,7 +78,7 @@
 </code></pre>
 <p>다시 저 이미지를 보고 확인을 해보자면 LZMA로 압축된 부분은  커널 이미지와 부트로더가 들어있을 것이고, Squashfs는 rootfs, DTB는 각 구조에 대한 정의 및 하드웨어 정보를 포함하고 있을 것이다.</p>
 <p>이제 이 부분들을 추출해보겠다.</p>
-<h4>#3 SEPARATION</h4>
+<h4 id="section-3-separation" tabindex="-1">#3 SEPARATION</h4>
 <p>저 이미지에서 binwalk로 분리된 부분 4개를 각 part1, part2, part3, part4,part5로 구분하겠다.</p>
 <p><strong>PART 1</strong></p>
 <p>DTB에 해당하는 영역은 56(0x38) ~ 284(0x11c)에 해당이 된다. </p>
@@ -804,7 +804,7 @@ void processEntry entry(void)
 <p><img src="/assets/images/tistory/tistory-46318ff0b3f2/014.png" alt=""></p>
 <p>함수들도 다 정상적으로 있는 것을 볼 수 있다.</p>
 <p>해당 Kernel IMG를 그대로 사용하여 Kernel 환경을 사용하고자 시도했지만 <strong>KERNEL PANNIC!!!</strong></p>
-<h4>PART 4</h4>
+<h4 id="section-part-4" tabindex="-1">PART 4</h4>
 <p>중간에 껴있던 DTB는 어쩌다보니 PART 3에서 본 하드웨어 DTB 친구이다.</p>
 <p>( 정확히는 분석하던 중 binwalk를 다른 버젼으로 재설치 했는데 그 친구 따라하다가 이리 되었다.)</p>
 <p>그럼 그 DTB와 마지막 squash 부분 중간에 위치한 부분을 추출해보겠다.</p>
@@ -812,7 +812,7 @@ void processEntry entry(void)
 </code></pre>
 <p><img src="/assets/images/tistory/tistory-46318ff0b3f2/015.png" alt=""></p>
 <p>그냥 처음부터 끝까지 0x00으로 채워진 빈 파일이다.</p>
-<h4>PART 5</h4>
+<h4 id="section-part-5" tabindex="-1">PART 5</h4>
 <p>드디어 마지막 filesystem 추출이다.</p>
 <pre><code> dd if=ax2004m_ml_15_056.bin of=bin4 bs=1 skip=3801144
  unsquashfs bin4
@@ -821,7 +821,7 @@ void processEntry entry(void)
 <p><img src="/assets/images/tistory/tistory-46318ff0b3f2/016.png" alt=""></p>
 <hr>
 <p>우선 해당 게시글에서는 여기까지 다뤄보고, 이후는 2편에서 이어서 작성을…</p>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/iptime-firmware-analyze-1/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/iptime-firmware-analyze-1/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -841,6 +841,6 @@ void processEntry entry(void)
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

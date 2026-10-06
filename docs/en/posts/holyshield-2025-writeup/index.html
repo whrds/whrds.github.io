@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/holyshield-2025-writeup/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/holyshield-2025-writeup/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="HOLYSHIELD 2025 Writeup · whrds.log"><meta property="og:description" content="A college junior contacted me to participate in the last CTF of undergraduate students, so I decided to just have fun, but the kids were sincere, so I participated while concentrating for the first time in a while... but I ended up getting on the bus unintentionally. There were a total of 3 problems in the PWN field. If you summarize the types, v8, rop, tapo 1-day reproduction? one problem"><meta property="og:url" content="https://whrds.github.io/en/posts/holyshield-2025-writeup/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"HOLYSHIELD 2025 Writeup","description":"A college junior contacted me to participate in the last CTF of undergraduate students, so I decided to just have fun, but the kids were sincere, so I participated while concentrating for the first time in a while... but I ended up getting on the bus unintentionally. There were a total of 3 problems in the PWN field. If you summarize the types, v8, rop, tapo 1-day reproduction? one problem","datePublished":"2025-12-28","inLanguage":"en","url":"https://whrds.github.io/en/posts/holyshield-2025-writeup/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>HOLYSHIELD 2025 Writeup</h1><p class="article-description">A college junior contacted me to participate in the last CTF of undergraduate students, so I decided to just have fun, but the kids were sincere, so I participated while concentrating for the first time in a while... but I ended up getting on the bus unintentionally. There were a total of 3 problems in the PWN field. If you summarize the types, v8, rop, tapo 1-day reproduction? one problem</p><div class="article-meta"><a class="post-category" href="/en/categories/ctf-writeups/">Write-ups / CTF</a><span>·</span><time datetime="2025-12-28">Dec 28, 2025</time><span>·</span><span>5 min read</span></div></div></header><div class="prose"><p>A junior in college contacted me asking me to participate in the last CTF as an undergraduate student, so I decided to participate.</p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">HOLYSHIELD 2025 Writeup</h1><p class="article-description">A college junior contacted me to participate in the last CTF of undergraduate students, so I decided to just have fun, but the kids were sincere, so I participated while concentrating for the first time in a while... but I ended up getting on the bus unintentionally. There were a total of 3 problems in the PWN field. If you summarize the types, v8, rop, tapo 1-day reproduction? one problem</p><div class="article-meta"><a class="post-category" href="/en/categories/ctf-writeups/">Write-ups / CTF</a><span>·</span><time datetime="2025-12-28">Dec 28, 2025</time><span>·</span><span>5 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-avotapo" data-toc-link>AVOTAPO</a></li><li class="article-toc-level-0"><a href="#section-buffer-one-flow" data-toc-link>Buffer_One_Flow</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>A junior in college contacted me asking me to participate in the last CTF as an undergraduate student, so I decided to participate.</p>
 <p>So I thought I should just have fun with them, but the kids were sincere, so I participated and focused for the first time in a while…</p>
 <p>I ended up getting on the bus unintentionally.</p>
 <hr>
@@ -36,7 +36,7 @@
 <p>It’s not just me, my friends who participated in the competition all said that they were so busy solving this problem that they couldn’t see the other problems.</p>
 <p>The person who solved the most problems was the person who solved only one problem, but that was only one person.</p>
 <hr>
-<h3>AVOTAPO</h3>
+<h3 id="section-avotapo" tabindex="-1">AVOTAPO</h3>
 <p><img src="/assets/images/tistory/tistory-a9f7e62c938c/001.png" alt=""></p>
 <p>The problem that most of the players who participated in the competition similar to mine had…</p>
 <p>If you download the attached file, you can see that there are two paths.</p>
@@ -108,7 +108,7 @@ p.interactive()
 <p>There was a hint here about ffmpeg including a specific IP, but when I saw this, I wondered if I should select the flag as the media, but I didn’t try it. I should have tried it…</p>
 <p>To summarize the solution, the IP obtained here is a web server, and a command injection vulnerability exists here. Trigger a reverse shell here… and pull the video through ffmpeg, and that’s it… I can’t believe it was really this…</p>
 <hr>
-<h3>Buffer_One_Flow</h3>
+<h3 id="section-buffer-one-flow" tabindex="-1">Buffer_One_Flow</h3>
 <p>I couldn’t solve this problem during the competition due to time constraints, but I tried to solve it after the competition ended.</p>
 <p>In relation to this, the solver code and official writeup were uploaded one by one on the competition Discord and Git, but they do not work in my environment??</p>
 <p>I even built and ran Docker, but it didn’t work, so I just unpacked it again.</p>
@@ -222,7 +222,7 @@ p.send(payload)
 p.interactive()
 </code></pre>
 <p>Hmm… It was simpler with the official list, but it doesn’t work in my environment… so I tried this method…</p>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/holyshield-2025-writeup/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/holyshield-2025-writeup/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -242,6 +242,6 @@ p.interactive()
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

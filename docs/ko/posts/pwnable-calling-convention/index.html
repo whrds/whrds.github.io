@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-calling-convention/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-calling-convention/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Calling Convention · whrds.log"><meta property="og:description" content="Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. ("><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-calling-convention/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Calling Convention","description":"Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. (","datePublished":"2023-09-18","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-calling-convention/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,12 +27,12 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Calling Convention</h1><p class="article-description">Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. (</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-18">2023년 9월 18일</time><span>·</span><span>1 분 읽기</span></div></div></header><div class="prose"><p>Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[PWNABLE] Calling Convention</h1><p class="article-description">Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, 앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다. 리눅스의 함수 호출 규약은 크게 2종류로 나뉜다. (</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-18">2023년 9월 18일</time><span>·</span><span>1 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-x86" data-toc-link>x86</a></li><li class="article-toc-level-0"><a href="#section-x86-64" data-toc-link>x86-64</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>Stack Buffer OverFlow와 Return Address OverFlow를 진행하고 있는 지금 상황에서 크게 중요하지 않지만, </p>
 <p>앞으로 포스팅을 진행하면서 rtl, rop, fsb 등과 같은 공격 기법들을 이해하기 위해서는 가장 기본이 되는 부분 중 하나이다.</p>
 <p>리눅스의 <strong>함수 호출 규약</strong>은 크게 2종류로 나뉜다. (2개만 있다는 것이 아니라 이 2종류가 기본이 된다는 것이다.)</p>
 <p>x86환경에서는 레지스터를 사용하지 않고 Stack만을 이용하여 인자를 전달하는 cdecl 방식이 있다.</p>
 <p>x86-64환경에서는 레지스터와 Stack 2개를 사용하여 인자를 전달하는 System V라는 호츌 규약이 있다.</p>
-<h3><strong>x86</strong></h3>
+<h3 id="section-x86" tabindex="-1"><strong>x86</strong></h3>
 <p>레지스터를 활용하여 인자를 전달하기에는 그 수가 적기 때문에 Stack을 활용하는 함수 호출 규약을 주로 사용한다.</p>
 <p>방식에 따라서 <strong>cdecl, fastcall</strong> 등이 있겠지만 가장 기본이 되는 cdecl을 다루겠다.</p>
 <p><strong>cdecl 방식</strong>도 간단한 예제를 만들어 확인을 해보도록 하겠다.</p>
@@ -62,7 +62,7 @@ int main(){
 <p>체크한 부분이 func()의 Stack이다.</p>
 <p>위 그림에서 0xffffd3f0을 보면 main()의 Stack Frame을 확인할 수 있다.</p>
 <p>이런 방식으로 Stack을 사용하여 인자를 전달하는 것이 <strong>cdecl 함수 호출 규약</strong>이다.</p>
-<h3>x86-64</h3>
+<h3 id="section-x86-64" tabindex="-1">x86-64</h3>
 <p>x86과는 다르게 레지스터의 수가 충분하기 때문에 인자를 전달할 때 레지스터를 같이 사용한다.</p>
 <p>이때 Stack이 아닌 레지스터를 우선으로 사용한다.</p>
 <p>이유는 컴퓨터 구조를 보면 cpu에 메모리보다 레지스터가 더 가깝게 위치하고 있기 때문인 것으로 알고 있다.</p>
@@ -88,7 +88,7 @@ int main(){
 <p>func()이 호출되기 직전의 레지스터 상태이다.</p>
 <p><img src="/assets/images/tistory/tistory-7be1b58a1192/007.png" alt=""></p>
 <p>인자는 총 7개이기 때문에 마지막 인자는 stack에 들어있는 것을 알 수 있다.</p>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-calling-convention/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-calling-convention/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -108,6 +108,6 @@ int main(){
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

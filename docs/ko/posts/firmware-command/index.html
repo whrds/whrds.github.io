@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/firmware-command/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/firmware-command/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[FIRMWARE] Command · whrds.log"><meta property="og:description" content="펌웨어 분석을 시도할 때 자주 사용하는 명령을 메모해두고자 한다. 분석하는 사람마다 스타일이 다르기 때문에 그냥 참고용으로 이 사람은 이런 명령들을 주로 사용하는 구나 하고 보면 된다. binwalk펌웨어를 한번이라도 본 사람들은 누구나 다뤄보았을 툴이다.펌웨어를 구성하고 있는 세부 요소들을 시그니처 단위로 분석하여 보여"><meta property="og:url" content="https://whrds.github.io/ko/posts/firmware-command/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[FIRMWARE] Command","description":"펌웨어 분석을 시도할 때 자주 사용하는 명령을 메모해두고자 한다. 분석하는 사람마다 스타일이 다르기 때문에 그냥 참고용으로 이 사람은 이런 명령들을 주로 사용하는 구나 하고 보면 된다. binwalk펌웨어를 한번이라도 본 사람들은 누구나 다뤄보았을 툴이다.펌웨어를 구성하고 있는 세부 요소들을 시그니처 단위로 분석하여 보여","datePublished":"2025-08-25","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/firmware-command/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,9 +27,9 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[FIRMWARE] Command</h1><p class="article-description">펌웨어 분석을 시도할 때 자주 사용하는 명령을 메모해두고자 한다. 분석하는 사람마다 스타일이 다르기 때문에 그냥 참고용으로 이 사람은 이런 명령들을 주로 사용하는 구나 하고 보면 된다. binwalk펌웨어를 한번이라도 본 사람들은 누구나 다뤄보았을 툴이다.펌웨어를 구성하고 있는 세부 요소들을 시그니처 단위로 분석하여 보여</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-08-25">2025년 8월 25일</time><span>·</span><span>1 분 읽기</span></div></div></header><div class="prose"><p>펌웨어 분석을 시도할 때 자주 사용하는 명령을 메모해두고자 한다.</p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[FIRMWARE] Command</h1><p class="article-description">펌웨어 분석을 시도할 때 자주 사용하는 명령을 메모해두고자 한다. 분석하는 사람마다 스타일이 다르기 때문에 그냥 참고용으로 이 사람은 이런 명령들을 주로 사용하는 구나 하고 보면 된다. binwalk펌웨어를 한번이라도 본 사람들은 누구나 다뤄보았을 툴이다.펌웨어를 구성하고 있는 세부 요소들을 시그니처 단위로 분석하여 보여</p><div class="article-meta"><a class="post-category" href="/ko/categories/firmware/">STUDY / FirmWare 분석(시도)</a><span>·</span><time datetime="2025-08-25">2025년 8월 25일</time><span>·</span><span>1 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-binwalk" data-toc-link>binwalk</a></li><li class="article-toc-level-0"><a href="#section-dd" data-toc-link>dd</a></li><li class="article-toc-level-0"><a href="#section-xxd" data-toc-link>xxd</a></li><li class="article-toc-level-0"><a href="#section-file" data-toc-link>file</a></li><li class="article-toc-level-0"><a href="#section-grep" data-toc-link>grep</a></li><li class="article-toc-level-0"><a href="#section-find" data-toc-link>find</a></li><li class="article-toc-level-0"><a href="#section-mount-umount" data-toc-link>mount / umount</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>펌웨어 분석을 시도할 때 자주 사용하는 명령을 메모해두고자 한다.</p>
 <p>분석하는 사람마다 스타일이 다르기 때문에 그냥 참고용으로 이 사람은 이런 명령들을 주로 사용하는 구나 하고 보면 된다.</p>
-<h3>binwalk</h3>
+<h3 id="section-binwalk" tabindex="-1">binwalk</h3>
 <p>펌웨어를 한번이라도 본 사람들은 누구나 다뤄보았을 툴이다.</p>
 <p>펌웨어를 구성하고 있는 세부 요소들을 시그니처 단위로 분석하여 보여준다.</p>
 <p><img src="/assets/images/tistory/tistory-058612323cbb/001.png" alt=""></p>
@@ -40,7 +40,7 @@
 <p>-M : 추출된 파일들을 재귀적으로 검색</p>
 <p>이 2가지 옵션을 함께 사용하면 펌웨어에서 1차 추출을 하고, 내부에 나온 파일을 또 타고 들어가서 다시 검사 수행 후 추출한다.</p>
 <p>다시 말해 파일을 더 이상 추출할 파일이 없을 때까지 파고 들어가서 추출하는 것이기 때문에 함께 사용한다.</p>
-<h3>dd</h3>
+<h3 id="section-dd" tabindex="-1">dd</h3>
 <p>data description의 약자로 말 그대로 펌웨어나 디스크 등으로부터 데이터를 복사할 때 사용하는 명령이다.</p>
 <p>저수준 데이터 복사 및 변환 명령이지만 펌웨어에서 필요한 명령을 추출할 수 있기에 많이 사용하는 편이다.</p>
 <pre><code>dd if={firmware_name} of={output_file} bs=1 skip={start_offset} count={data_size}
@@ -48,7 +48,7 @@
 <p><img src="/assets/images/tistory/tistory-058612323cbb/002.png" alt=""></p>
 <p>위 그림을 보면 크기 데이터를 $(( ~~~ ))으로 묶고 있다.</p>
 <p>원래는 skip에서처럼 10진수 숫자 값이 들어가야 하기 때문에 데이터 크기를 직접 계산하고 넣어줘야 하지만 일일이 하기에는 귀찮기 때문에 저렇게 사용하여 자동 계산이 수행되게 한다.</p>
-<h3>xxd</h3>
+<h3 id="section-xxd" tabindex="-1">xxd</h3>
 <p>파일의 HEX 값을 볼 수 있게 해주는 명령이다.</p>
 <p>보통 head | more | tail 명령과 함께 사용한다.</p>
 <p><img src="/assets/images/tistory/tistory-058612323cbb/003.png" alt=""></p>
@@ -61,11 +61,11 @@ xxd {firmware} | tail
 xxd {firmware} &gt; output.txt
 xxd {firmware} | grep &quot;~~&quot;
 </code></pre>
-<h3>file</h3>
+<h3 id="section-file" tabindex="-1">file</h3>
 <p>파일이 어떤 파일인지 알려주는 명령이다.</p>
 <p>binwalk나 dd 명령을 통해 추출한 파일을 확인할 때 주로 사용한다.</p>
 <p><img src="/assets/images/tistory/tistory-058612323cbb/004.png" alt=""></p>
-<h3>grep</h3>
+<h3 id="section-grep" tabindex="-1">grep</h3>
 <p>파일에서 특정 문자열/키워드를 탐색할 때 주로 사용한다.</p>
 <p>-rn 옵션을 붙여서 전체 탐색 용으로 사용한다.</p>
 <pre><code>grep -rn &quot;~~&quot;
@@ -73,18 +73,18 @@ xxd {firmware} | grep &quot;~~&quot;
 <p><img src="/assets/images/tistory/tistory-058612323cbb/005.png" alt=""></p>
 <p>-r : 지정된 디렉터리 및으로 재귀적으로 탐색 수행</p>
 <p>-n : 탐색으로 찾은 문자열이 어느 파일의 몇번째 줄에 있는지 보여줌</p>
-<h3>find</h3>
+<h3 id="section-find" tabindex="-1">find</h3>
 <p>특정 파일을 탐색할 때 주로 사용한다.</p>
 <pre><code>find ./ -name &quot;*cgi*&quot;
 </code></pre>
-<h3>mount / umount</h3>
+<h3 id="section-mount-umount" tabindex="-1">mount / umount</h3>
 <p>펌웨어 파일을 마우트 하여 분석할 때 주로 사용하는 방법이다.</p>
 <p>사용 이미지랑은 이전 게시글들에 있으므로 패스</p>
 <pre><code>sudo mount -t {cramfs,squafs ...} -o loop,ro {firmware} {mnt}
 
 sudo umount {mnt}
 </code></pre>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/firmware-command/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/firmware-command/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -104,6 +104,6 @@ sudo umount {mnt}
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

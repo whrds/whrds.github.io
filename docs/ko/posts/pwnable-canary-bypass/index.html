@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-canary-bypass/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-canary-bypass/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Canary 우회 · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전 포스팅에서 canary에 대해 다루었다. 이번에는 그 우회 방법들을 다루겠다. 1. canary leak 2. got overwrite (간단하게만 설명하고, 자세한 내용은 plt/got에 대한 포스팅 이후 다루겠다.) 3. master can"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-canary-bypass/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Canary 우회","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전 포스팅에서 canary에 대해 다루었다. 이번에는 그 우회 방법들을 다루겠다. 1. canary leak 2. got overwrite (간단하게만 설명하고, 자세한 내용은 plt/got에 대한 포스팅 이후 다루겠다.) 3. master can","datePublished":"2023-09-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-canary-bypass/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Canary 우회</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전 포스팅에서 canary에 대해 다루었다. 이번에는 그 우회 방법들을 다루겠다. 1. canary leak 2. got overwrite (간단하게만 설명하고, 자세한 내용은 plt/got에 대한 포스팅 이후 다루겠다.) 3. master can</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-24">2023년 9월 24일</time><span>·</span><span>2 분 읽기</span></div></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[PWNABLE] Canary 우회</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 이전 포스팅에서 canary에 대해 다루었다. 이번에는 그 우회 방법들을 다루겠다. 1. canary leak 2. got overwrite (간단하게만 설명하고, 자세한 내용은 plt/got에 대한 포스팅 이후 다루겠다.) 3. master can</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-24">2023년 9월 24일</time><span>·</span><span>2 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-canary-leak" data-toc-link>canary leak</a></li><li class="article-toc-level-0"><a href="#section-got-overwrite" data-toc-link>got overwrite</a></li><li class="article-toc-level-0"><a href="#section-master-canary-%EB%B3%80%EC%A1%B0" data-toc-link>master canary 변조</a></li><li class="article-toc-level-0"><a href="#section-thread%EC%98%81%EC%97%AD-%EC%9E%AC%EC%84%A4%EC%A0%95" data-toc-link>thread영역 재설정</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다.</strong> <strong>※</strong> </p>
 <p>이전 포스팅에서 canary에 대해 다루었다.</p>
 <p>이번에는 그 우회 방법들을 다루겠다.</p>
 <p><strong>1. canary leak</strong></p>
@@ -35,7 +35,7 @@
 <p><strong>3. master canary 변조</strong></p>
 <p><strong>4. thread 영역 재설정</strong></p>
 <hr>
-<h3>canary leak</h3>
+<h3 id="section-canary-leak" tabindex="-1">canary leak</h3>
 <p>가장 일반적인 방법으로, 리눅스의 stack 정렬하는 특징과 canary가 \x00으로 끝난다는 특징을 이용한 방법이다.</p>
 <p><img src="/assets/images/tistory/tistory-136d7c463f6c/001.png" alt=""></p>
 <p>실습 예제 코드</p>
@@ -132,7 +132,7 @@ p.send(payload)
 p.interactive()
 </code></pre>
 <hr>
-<h3>got overwrite</h3>
+<h3 id="section-got-overwrite" tabindex="-1">got overwrite</h3>
 <p>해당 방법은 나중에 다룰 plt/got와 got overwrite에 대해 알고 있어야 한다.</p>
 <p>때문에 지금은 어떤 방식인지만 보고 넘어가겠다.</p>
 <p><img src="/assets/images/tistory/tistory-136d7c463f6c/011.png" alt=""></p>
@@ -143,7 +143,7 @@ p.interactive()
 <p>해당 함수의 호출을 막아 비정상 종료를 우회할 수 있게된다.</p>
 <p><img src="/assets/images/tistory/tistory-136d7c463f6c/012.png" alt=""></p>
 <hr>
-<h3>master canary 변조</h3>
+<h3 id="section-master-canary-변조" tabindex="-1">master canary 변조</h3>
 <p>thread 영역에 위치한 canary값을 변조하는 방법이다.</p>
 <p>실습 예제를 만들고자 하였지만 잘 안되었기에 dreamhack.io에서 사용한 예제를 가지고 진행하겠다.</p>
 <pre><code>#include &lt;pthread.h&gt;
@@ -301,9 +301,9 @@ p.interactive()
 <p>최종 수정한 코드이다. </p>
 <p><img src="/assets/images/tistory/tistory-136d7c463f6c/017.png" alt=""></p>
 <hr>
-<h3>thread영역 재설정</h3>
+<h3 id="section-thread영역-재설정" tabindex="-1">thread영역 재설정</h3>
 <p>(작성 중 - 예제 생성 및 실습 단계)</p>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-canary-bypass/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-canary-bypass/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -323,6 +323,6 @@ p.interactive()
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

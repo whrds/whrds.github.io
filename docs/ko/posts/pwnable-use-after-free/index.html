@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-use-after-free/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-use-after-free/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE] Use After Free · whrds.log"><meta property="og:description" content="Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다. 메모리는 malloc 등을 통해 할당되고, free를 통해 해제된다"><meta property="og:url" content="https://whrds.github.io/ko/posts/pwnable-use-after-free/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE] Use After Free","description":"Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다. 메모리는 malloc 등을 통해 할당되고, free를 통해 해제된다","datePublished":"2024-06-24","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/pwnable-use-after-free/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE] Use After Free</h1><p class="article-description">Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다. 메모리는 malloc 등을 통해 할당되고, free를 통해 해제된다</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>2 분 읽기</span></div></div></header><div class="prose"><p>Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다.</p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[PWNABLE] Use After Free</h1><p class="article-description">Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다. 메모리는 malloc 등을 통해 할당되고, free를 통해 해제된다</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2024-06-24">2024년 6월 24일</time><span>·</span><span>2 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-dreamhack-cpp-smart-pointer-1" data-toc-link>dreamhack cpp_smart_pointer_1</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>Use After Free(UAF) 취약점은 메모리 할당 후 해제된 포인터를 여전히 사용할 때 발생하는 보안 취약점이다. 이는 메모리 관리에서 발생하는 오류로, 공격자는 이를 악용하여 프로그램의 비정상적인 동작을 유발하거나 임의의 코드를 실행할 수 있다.</p>
 <p>메모리는 malloc 등을 통해 할당되고, free를 통해 해제된다. 해제된 메모리는 다른 용도로 재사용될 수 있다. 하지만 해제된 포인터가 계속 사용된다면, 이를 <strong>Dangling Pointer</strong>라고 한다.</p>
 <p><img src="/assets/images/tistory/tistory-2656f66a8685/001.png" alt=""></p>
 <p>• <strong>1단계</strong>: 메모리 할당 (malloc)</p>
@@ -37,7 +37,7 @@
 <p>즉, freed된 청크는 할당되어 있던 당시의 data 영역을 fd,bk 영역을 제외한 만큼 다시 가지게 된다.</p>
 <p>그리고 동일한 크기의 청크를 할당하면 다시 freed된 청크가 할당이 되면서 이전에 있던 데이터 혹은 fd,bk의 내용에 접근이 가능하다.</p>
 <hr>
-<h4>dreamhack  cpp_smart_pointer_1</h4>
+<h4 id="section-dreamhack-cpp-smart-pointer-1" tabindex="-1">dreamhack  cpp_smart_pointer_1</h4>
 <p>C++을 잘 몰라서 코드를 제대로 이해하지는 못했다.</p>
 <pre><code>int main(){
     initialize();
@@ -260,7 +260,7 @@ p.interactive()
 </code></pre>
 <p>전체 페이로드이다. 실행하면 다음과  같이 셸을 얻을 수 있다.</p>
 <p><img src="/assets/images/tistory/tistory-2656f66a8685/012.png" alt=""></p>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-use-after-free/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/pwnable-use-after-free/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -280,6 +280,6 @@ p.interactive()
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

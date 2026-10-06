@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/linux-memory-structure/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/linux-memory-structure/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[LINUX] 메모리 구조 · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다. CODE 세그먼트 유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있"><meta property="og:url" content="https://whrds.github.io/ko/posts/linux-memory-structure/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[LINUX] 메모리 구조","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다. CODE 세그먼트 유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있","datePublished":"2023-09-04","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/linux-memory-structure/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,17 +27,17 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[LINUX] 메모리 구조</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다. CODE 세그먼트 유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-04">2023년 9월 4일</time><span>·</span><span>1 분 읽기</span></div></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[LINUX] 메모리 구조</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ 리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다. CODE 세그먼트 유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있</p><div class="article-meta"><a class="post-category" href="/ko/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-04">2023년 9월 4일</time><span>·</span><span>1 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-code-%EC%84%B8%EA%B7%B8%EB%A8%BC%ED%8A%B8" data-toc-link>CODE 세그먼트</a></li><li class="article-toc-level-0"><a href="#section-data-%EC%84%B8%EA%B7%B8%EB%A8%BC%ED%8A%B8" data-toc-link>DATA 세그먼트</a></li><li class="article-toc-level-0"><a href="#section-bss-%EC%84%B8%EA%B7%B8%EB%A8%BC%ED%8A%B8" data-toc-link>BSS 세그먼트</a></li><li class="article-toc-level-0"><a href="#section-stack-%EC%84%B8%EA%B7%B8%EB%A8%BC%ED%8A%B8" data-toc-link>STACK 세그먼트</a></li><li class="article-toc-level-1"><a href="#section-%EC%8A%A4%ED%83%9D-%ED%94%84%EB%A0%88%EC%9E%84-stack-frame" data-toc-link>스택 프레임(STACK Frame)</a></li><li class="article-toc-level-0"><a href="#section-heap-%EC%84%B8%EA%B7%B8%EB%A8%BC%ED%8A%B8" data-toc-link>HEAP 세그먼트</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong> </p>
 <p><img src="/assets/images/tistory/tistory-e863c2da7c8a/001.png" alt=""></p>
 <p>리눅스의 메모리 구조는 [CODE 세그먼트], [DATA 세그먼트], [BSS 세그먼트], [HEAP 세그먼트], [STACK 세그먼트]로 구성되어 있다.</p>
-<h3><strong>CODE 세그먼트</strong></h3>
+<h3 id="section-code-세그먼트" tabindex="-1"><strong>CODE 세그먼트</strong></h3>
 <p>유저가 작성한 코드가 저장되는 영역으로 실행할 프로그램의 코드가 저장되어 있다. </p>
 <p>CPU에서 이 코드를 읽고 실행을 시켜야 하기 때문에 읽기 권한과 실행 권한을 가지고 있다.</p>
 <pre><code>void func1(){ ... }
 void func2(){ ... }
 int main(){ ... }
 </code></pre>
-<h3><strong>DATA 세그먼트</strong></h3>
+<h3 id="section-data-세그먼트" tabindex="-1"><strong>DATA 세그먼트</strong></h3>
 <p>초기화된 전역 변수 혹은 정 변수가 저장되는 영역으로 프로그램 시작과 함께 할당되며 종료시 같이 소멸된다.</p>
 <p>읽고 쓰기까지 가능한 data와 읽기만 가능한 rodata(Read Only Data)로 구성된다.</p>
 <pre><code>int num1 = 1; //data
@@ -47,7 +47,7 @@ void func1(){
 	static int num3 = 3; //data
 }
 </code></pre>
-<h3><strong>BSS 세그먼트</strong></h3>
+<h3 id="section-bss-세그먼트" tabindex="-1"><strong>BSS 세그먼트</strong></h3>
 <p>DATA 세그먼트와난 다르게 초기화 되지 않은 전역 변수 혹은 정적 변수가 저장되는 영역이다. </p>
 <pre><code>int num; //bss
 const int num2; //rodata
@@ -56,7 +56,7 @@ void func1(){
 	static int num3 = 3; //bss
 }
 </code></pre>
-<h3><strong>STACK 세그먼트</strong></h3>
+<h3 id="section-stack-세그먼트" tabindex="-1"><strong>STACK 세그먼트</strong></h3>
 <p>프로그램이 실행되는 동안 생성되는 지역변수, 매개변수 등을 포함한 데이터들이 저장되는 영역이다.</p>
 <p>때문에 읽기와 쓰기 권한을 가지게 된다.</p>
 <p>STACK의 특징으로는 크기가 확장될 때 높은 주소에서 낮은 주소로 자란다는 것이다. </p>
@@ -66,7 +66,7 @@ void func1(){
 }
 </code></pre>
 <p>더보기</p>
-<h4><strong>스택 프레임(STACK Frame)</strong></h4>
+<h4 id="section-스택-프레임-stack-frame" tabindex="-1"><strong>스택 프레임(STACK Frame)</strong></h4>
 <p>STACK 세그먼트가 사용하는 단위이다. 스텍 프레임은 함수가 호출될 때 생성되고 반환할 때 해제된다.</p>
 <p><img src="/assets/images/tistory/tistory-e863c2da7c8a/002.png" alt=""></p>
 <p>위 그림에서 보면 스택 프레임의 크기를 0x20만큼 생성하는 것을 볼 수 있다.<br>
@@ -85,7 +85,7 @@ void func1(){
 <p>func()에서 rsp를 확인한 모습이다.</p>
 <p><img src="/assets/images/tistory/tistory-e863c2da7c8a/006.png" alt=""></p>
 <p>0x7fffffffe260~0x7fffffffe280이 buf 변수의 영역, 0x7fffffffe280이 sfp, 0x7fffffffe288이 ret인 것을 확인할 수 있다.</p>
-<h3><strong>HEAP 세그먼트</strong></h3>
+<h3 id="section-heap-세그먼트" tabindex="-1"><strong>HEAP 세그먼트</strong></h3>
 <p>프로그램 실행 중 동적으로 메모리를 할당하기 위한 공간이다. </p>
 <p>이 부분에 대해서는 나중에 ptmalloc에 대한 내용을 작성할 때 본격적으로 다룰 예정이다.</p>
 <pre><code>int *num = malloc(1)  //heap
@@ -94,7 +94,7 @@ void func1(){
 	int *ptr = malloc(8). //heap
 }
 </code></pre>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/linux-memory-structure/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/linux-memory-structure/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -114,6 +114,6 @@ void func1(){
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

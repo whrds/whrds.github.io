@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/chrome-m152-externalstring-race/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[V8] Chrome M152 ExternalString Race: EPT Entry Identity와 Native Resource Lifetime · whrds.log"><meta property="og:description" content="Chrome M152 ExternalString double-fetch race에서 EPT entry identity와 native resource lifetime이 어긋나는 원인, UAF 증거와 exchange 패치를 분석한다."><meta property="og:url" content="https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[V8] Chrome M152 ExternalString Race: EPT Entry Identity와 Native Resource Lifetime","description":"Chrome M152 ExternalString double-fetch race에서 EPT entry identity와 native resource lifetime이 어긋나는 원인, UAF 증거와 exchange 패치를 분석한다.","datePublished":"2026-10-01","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/chrome-m152-externalstring-race/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[V8] Chrome M152 ExternalString Race: EPT Entry Identity와 Native Resource Lifetime</h1><p class="article-description">Chrome M152 ExternalString double-fetch race에서 EPT entry identity와 native resource lifetime이 어긋나는 원인, UAF 증거와 exchange 패치를 분석한다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">2026년 10월 1일</time><span>·</span><span>23 분 읽기</span></div></div></header><div class="prose"><p>이번에는 Chrome M152에서 분석했던 <code>ExternalString</code> double-fetch race를 정리해보겠다.</p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[V8] Chrome M152 ExternalString Race: EPT Entry Identity와 Native Resource Lifetime</h1><p class="article-description">Chrome M152 ExternalString double-fetch race에서 EPT entry identity와 native resource lifetime이 어긋나는 원인, UAF 증거와 exchange 패치를 분석한다.</p><div class="article-meta"><a class="post-category" href="/ko/categories/v8/">V8</a><span>·</span><time datetime="2026-10-01">2026년 10월 1일</time><span>·</span><span>23 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-%ED%95%B5%EC%8B%AC-%EC%9A%94%EC%95%BD" data-toc-link>핵심 요약</a></li><li class="article-toc-level-0"><a href="#section-1-%EC%B4%88%EA%B8%B0-%EC%B7%A8%EC%95%BD%EC%A0%90-%EB%B6%84%EC%84%9D%EA%B3%BC-%EC%8B%A4%ED%96%89-%EC%A0%84%EC%A0%9C" data-toc-link>1. 초기 취약점 분석과 실행 전제</a></li><li class="article-toc-level-1"><a href="#section-1-1-%EB%8C%80%EC%83%81-%EB%B9%8C%EB%93%9C%EC%99%80-%EC%B6%9C%EC%B2%98%EB%A5%BC-%EA%B3%A0%EC%A0%95%ED%95%98%EA%B8%B0" data-toc-link>1.1 대상 빌드와 출처를 고정하기</a></li><li class="article-toc-level-1"><a href="#section-1-2-%EC%8B%A4%ED%96%89-%EB%AA%A8%EB%8D%B8%EA%B3%BC-%EA%B2%B0%EA%B3%BC%EC%9D%98-%EB%B2%94%EC%9C%84" data-toc-link>1.2 실행 모델과 결과의 범위</a></li><li class="article-toc-level-0"><a href="#section-2-externalstring%EA%B3%BC-%EC%99%B8%EB%B6%80-%EB%A6%AC%EC%86%8C%EC%8A%A4" data-toc-link>2. ExternalString과 외부 리소스</a></li><li class="article-toc-level-1"><a href="#section-2-1-%EA%B3%B5%EA%B0%9C-api%EC%97%90%EC%84%9C-%ED%99%95%EC%9D%B8%ED%95%A0-%EC%88%98-%EC%9E%88%EB%8A%94-%EC%88%98%EB%AA%85-%EA%B3%84%EC%95%BD" data-toc-link>2.1 공개 API에서 확인할 수 있는 수명 계약</a></li><li class="article-toc-level-1"><a href="#section-2-2-%EB%AC%B8%EC%9E%90%EC%97%B4-%EA%B0%9D%EC%B2%B4%EC%99%80-%EB%A6%AC%EC%86%8C%EC%8A%A4-%EA%B0%9D%EC%B2%B4%EB%A5%BC-%EB%82%98%EB%88%84%EC%96%B4-%EB%B3%B4%EA%B8%B0" data-toc-link>2.2 문자열 객체와 리소스 객체를 나누어 보기</a></li><li class="article-toc-level-0"><a href="#section-3-%EB%A0%88%EC%9D%B4%EC%8A%A4%EC%97%90%EC%84%9C-%EC%82%B4%ED%8E%B4%EB%B3%B8-%EC%88%98%EB%AA%85-%EB%B6%88%EC%9D%BC%EC%B9%98" data-toc-link>3. 레이스에서 살펴본 수명 불일치</a></li><li class="article-toc-level-1"><a href="#section-3-1-%EC%95%88%EC%A0%84%ED%95%9C-%EC%82%AC%EC%9A%A9-%EC%A1%B0%EA%B1%B4%EC%9D%84-%EC%8B%9D%EC%9C%BC%EB%A1%9C-%EC%A0%95%EB%A6%AC%ED%95%98%EA%B8%B0" data-toc-link>3.1 안전한 사용 조건을 식으로 정리하기</a></li><li class="article-toc-level-1"><a href="#section-3-2-%EA%B0%9C%EB%B3%84-%EC%9D%BD%EA%B8%B0%EC%9D%98-%EC%9B%90%EC%9E%90%EC%84%B1%EA%B3%BC-%EC%9E%91%EC%97%85-%EC%A0%84%EC%B2%B4%EC%9D%98-%EC%9D%BC%EA%B4%80%EC%84%B1" data-toc-link>3.2 개별 읽기의 원자성과 작업 전체의 일관성</a></li><li class="article-toc-level-2"><a href="#section-3-2-1-%EC%88%98%EC%A0%95-%EC%A0%84-%EC%BD%94%EB%93%9C%EC%99%80-h1-h2-interleaving" data-toc-link>3.2.1 수정 전 코드와 h1/h2 interleaving</a></li><li class="article-toc-level-2"><a href="#section-3-2-2-%EC%9E%AC%ED%98%84-%EB%AA%A8%EB%8D%B8%EA%B3%BC-11-150%EC%9D%98-uaf-%ED%8C%90%EC%A0%95-%EA%B8%B0%EC%A4%80" data-toc-link>3.2.2 재현 모델과 11/150의 UAF 판정 기준</a></li><li class="article-toc-level-1"><a href="#section-3-3-%EC%8B%A4%EC%A0%9C-%EC%A0%95%EB%A6%AC-%ED%95%A8%EC%88%98-%EC%A0%84%EC%B2%B4%EB%A5%BC-%EC%9D%BD%EA%B8%B0" data-toc-link>3.3 실제 정리 함수 전체를 읽기</a></li><li class="article-toc-level-1"><a href="#section-3-4-%EC%BD%94%EB%93%9C%EC%97%90%EC%84%9C-%ED%99%95%EC%9D%B8%ED%95%9C-%EC%82%AC%EC%8B%A4%EA%B3%BC-%EC%9B%90%EC%9D%B8-%ED%95%B4%EC%84%9D" data-toc-link>3.4 코드에서 확인한 사실과 원인 해석</a></li><li class="article-toc-level-1"><a href="#section-3-5-%EC%A0%95%EB%A6%AC-%ED%95%A8%EC%88%98%EC%9D%98-%EC%9E%85%EB%A0%A5-%EB%B6%84%EA%B8%B0-%EA%B2%B0%EA%B3%BC" data-toc-link>3.5 정리 함수의 입력·분기·결과</a></li><li class="article-toc-level-1"><a href="#section-3-6-%EB%8C%80%EC%83%81-%EC%84%A0%ED%83%9D%EC%9D%98-%EC%9D%BC%EA%B4%80%EC%84%B1%EA%B3%BC-%EC%82%AC%EC%9A%A9-%EC%A4%91-%EC%88%98%EB%AA%85%EC%9D%80-%EB%B3%84%EA%B0%9C%EC%9D%98-%EA%B3%84%EC%95%BD%EC%9D%B4%EB%8B%A4" data-toc-link>3.6 대상 선택의 일관성과 사용 중 수명은 별개의 계약이다</a></li><li class="article-toc-level-0"><a href="#section-4-%EC%9A%B0%ED%9A%8C%EA%B0%80-%EA%B2%A8%EB%83%A5%ED%95%9C-%EB%B3%B4%ED%98%B8-%EA%B0%80%EC%A0%95" data-toc-link>4. 우회가 겨냥한 보호 가정</a></li><li class="article-toc-level-1"><a href="#section-4-1-%EA%B3%B5%EA%B0%84%EC%A0%81-%EC%95%88%EC%A0%84%EC%84%B1%EA%B3%BC-%EC%8B%9C%EA%B0%84%EC%A0%81-%EC%95%88%EC%A0%84%EC%84%B1" data-toc-link>4.1 공간적 안전성과 시간적 안전성</a></li><li class="article-toc-level-0"><a href="#section-5-%EC%97%B0%EA%B5%AC%EB%8A%94-%EC%96%B4%EB%96%A4-%EC%A7%88%EB%AC%B8%EC%9D%84-%EB%94%B0%EB%9D%BC-%EC%A7%84%ED%96%89%ED%96%88%EB%8A%94%EA%B0%80" data-toc-link>5. 연구는 어떤 질문을 따라 진행했는가</a></li><li class="article-toc-level-1"><a href="#section-5-1-%EC%9B%90%EC%9D%B8-%ED%9B%84%EB%B3%B4%EC%99%80-%EC%8B%A4%ED%96%89-%EA%B4%80%EC%B8%A1" data-toc-link>5.1 원인 후보와 실행 관측</a></li><li class="article-toc-level-1"><a href="#section-5-2-%EB%B8%8C%EB%9D%BC%EC%9A%B0%EC%A0%80%EC%9D%98-%EA%B0%9D%EC%B2%B4-%EC%88%98%EB%AA%85-%EA%B2%80%ED%86%A0" data-toc-link>5.2 브라우저의 객체 수명 검토</a></li><li class="article-toc-level-1"><a href="#section-5-3-%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%99%80-%EA%B0%9D%EC%B2%B4-%EC%88%98%EB%AA%85%EC%9D%98-%EA%B5%AC%EB%B6%84" data-toc-link>5.3 데이터와 객체 수명의 구분</a></li><li class="article-toc-level-1"><a href="#section-5-4-%EC%A4%91%EA%B0%84-%EA%B4%80%EC%B8%A1%EA%B3%BC-%EC%B5%9C%EC%A2%85-%EC%99%84%EB%A3%8C" data-toc-link>5.4 중간 관측과 최종 완료</a></li><li class="article-toc-level-1"><a href="#section-5-5-%EC%B4%88%EA%B8%B0-7-33-%EC%97%90%EC%84%9C-controller-%EB%8B%A8%EC%9C%84-%EB%AC%B4%EC%8B%A4%ED%8C%A8-%EA%B4%80%EC%B8%A1%EA%B9%8C%EC%A7%80" data-toc-link>5.5 초기 7.33%에서 controller 단위 무실패 관측까지</a></li><li class="article-toc-level-0"><a href="#section-6-d8%EC%97%90%EC%84%9C-%EB%B8%8C%EB%9D%BC%EC%9A%B0%EC%A0%80%EB%A1%9C-%EC%98%AE%EA%B2%BC%EC%9D%84-%EB%95%8C" data-toc-link>6. d8에서 브라우저로 옮겼을 때</a></li><li class="article-toc-level-0"><a href="#section-7-%EC%86%8C%EC%9C%A0%EA%B6%8C%EA%B3%BC-%EA%B0%9D%EC%B2%B4-%EC%A0%95%EC%B2%B4%EC%84%B1%EC%9D%84-%EB%8B%A4%EC%8B%9C-%ED%99%95%EC%9D%B8%ED%95%9C-%EC%9D%B4%EC%9C%A0" data-toc-link>7. 소유권과 객체 정체성을 다시 확인한 이유</a></li><li class="article-toc-level-1"><a href="#section-7-1-%ED%95%84%EB%93%9C-%ED%83%80%EC%9E%85%EA%B3%BC-api-%EA%B3%84%EC%95%BD%EC%9C%BC%EB%A1%9C-%EC%BA%90%EC%8B%9C%EB%A5%BC-%EC%9D%BD%EA%B8%B0" data-toc-link>7.1 필드 타입과 API 계약으로 캐시를 읽기</a></li><li class="article-toc-level-0"><a href="#section-8-cfi%EC%99%80-%EB%A9%94%EB%AA%A8%EB%A6%AC-%EC%95%88%EC%A0%84%EC%84%B1%EC%9D%84-%EA%B5%AC%EB%B6%84%ED%95%9C-%EC%9D%B4%EC%9C%A0" data-toc-link>8. CFI와 메모리 안전성을 구분한 이유</a></li><li class="article-toc-level-0"><a href="#section-9-%EA%B4%80%EC%B8%A1-%EB%8F%84%EA%B5%AC%EB%8F%84-%EC%8B%A4%ED%96%89-%EC%A1%B0%EA%B1%B4%EC%9D%B4%EC%97%88%EB%8B%A4" data-toc-link>9. 관측 도구도 실행 조건이었다</a></li><li class="article-toc-level-1"><a href="#section-9-1-%EC%A6%9D%EA%B1%B0%EC%9D%98-%EC%B6%9C%EC%B2%98%EC%99%80-%ED%99%95%EC%9D%B8-%EB%B2%94%EC%9C%84" data-toc-link>9.1 증거의 출처와 확인 범위</a></li><li class="article-toc-level-0"><a href="#section-10-%EA%B0%9D%EC%B2%B4-%EC%88%98%EB%AA%85-%EA%B0%9C%EB%85%90-%EB%8D%B0%EB%AA%A8" data-toc-link>10. 객체 수명 개념 데모</a></li><li class="article-toc-level-0"><a href="#section-11-%EA%B2%80%EC%A6%9D-%EA%B2%B0%EA%B3%BC%EC%99%80-%EB%B3%B4%EC%95%88-%EA%B2%BD%EA%B3%84%EC%9D%98-%EB%B2%94%EC%9C%84" data-toc-link>11. 검증 결과와 보안 경계의 범위</a></li><li class="article-toc-level-1"><a href="#section-11-1-%EA%B3%B5%EA%B0%9C-%EA%B2%B0%EA%B3%BC%EC%9D%98-%EB%B2%94%EC%9C%84" data-toc-link>11.1 공개 결과의 범위</a></li><li class="article-toc-level-1"><a href="#section-11-2-%EA%B4%80%EC%B8%A1%EA%B0%92%EA%B3%BC-%EB%8B%A8%EC%88%9C-%ED%99%95%EB%A5%A0-%EB%AA%A8%ED%98%95" data-toc-link>11.2 관측값과 단순 확률 모형</a></li><li class="article-toc-level-1"><a href="#section-11-3-%EB%8B%A8%EA%B3%84%EB%B3%84-%EC%B8%A1%EC%A0%95%EA%B3%BC-%EC%B5%9C%EC%A2%85-%EB%B0%98%EB%B3%B5-%EA%B8%B0%EB%A1%9D" data-toc-link>11.3 단계별 측정과 최종 반복 기록</a></li><li class="article-toc-level-0"><a href="#section-12-%ED%8C%A8%EC%B9%98-%EA%B4%80%EC%A0%90%EC%97%90%EC%84%9C-%EB%82%A8%EB%8A%94-%EB%B6%88%EB%B3%80%EC%8B%9D" data-toc-link>12. 패치 관점에서 남는 불변식</a></li><li class="article-toc-level-1"><a href="#section-12-1-%ED%8C%A8%EC%B9%98-%EC%9D%98%EB%AF%B8%EB%A5%BC-%EC%A4%84%EC%9D%B8-%EC%9D%98%EC%82%AC%EC%BD%94%EB%93%9C" data-toc-link>12.1 패치 의미를 줄인 의사코드</a></li><li class="article-toc-level-1"><a href="#section-12-2-%ED%9A%8C%EA%B7%80-%EA%B2%80%EC%A6%9D%EC%97%90%EC%84%9C-%ED%99%95%EC%9D%B8%ED%95%B4%EC%95%BC-%ED%95%A0-%EC%86%8D%EC%84%B1" data-toc-link>12.2 회귀 검증에서 확인해야 할 속성</a></li><li class="article-toc-level-0"><a href="#section-13-%EB%A7%88%EB%AC%B4%EB%A6%AC" data-toc-link>13. 마무리</a></li><li class="article-toc-level-0"><a href="#section-%EB%B6%80%EB%A1%9D-a-%EA%B5%90%ED%99%98-%EA%B2%BD%EB%A1%9C%EC%9D%98-%ED%95%A8%EC%88%98-%EC%A0%84%EB%AC%B8" data-toc-link>부록 A. 교환 경로의 함수 전문</a></li><li class="article-toc-level-2"><a href="#section-1-%EB%8B%A8%EC%9D%BC-%ED%83%9C%EA%B7%B8-%EC%98%A4%EB%B2%84%EB%A1%9C%EB%93%9C" data-toc-link>1. 단일 태그 오버로드</a></li><li class="article-toc-level-2"><a href="#section-2-%EB%A9%A4%EB%B2%84-%ED%95%A8%EC%88%98%EC%97%90%EC%84%9C-%ED%95%84%EB%93%9C-%EC%97%B0%EC%82%B0%EC%9C%BC%EB%A1%9C-%EC%A0%84%EB%8B%AC" data-toc-link>2. 멤버 함수에서 필드 연산으로 전달</a></li><li class="article-toc-level-2"><a href="#section-3-sandbox%EC%99%80-%EB%B9%84-sandbox%EC%9D%98-%EA%B5%90%ED%99%98-%EA%B2%BD%EB%A1%9C" data-toc-link>3. sandbox와 비 sandbox의 교환 경로</a></li><li class="article-toc-level-2"><a href="#section-4-%ED%95%B8%EB%93%A4%EC%9D%98-%EC%9B%90%EC%9E%90%EC%A0%81-%EC%9D%BD%EA%B8%B0" data-toc-link>4. 핸들의 원자적 읽기</a></li><li class="article-toc-level-2"><a href="#section-5-ept%EC%97%90%EC%84%9C-%ED%95%AD%EB%AA%A9-%EC%84%A0%ED%83%9D" data-toc-link>5. EPT에서 항목 선택</a></li><li class="article-toc-level-2"><a href="#section-6-%ED%95%AD%EB%AA%A9-payload%EC%9D%98-%EA%B5%90%ED%99%98" data-toc-link>6. 항목 payload의 교환</a></li><li class="article-toc-level-0"><a href="#section-%EB%B6%80%EB%A1%9D-b-%EB%8B%A8%EC%88%9C-%ED%99%95%EB%A5%A0-%EB%AA%A8%ED%98%95" data-toc-link>부록 B. 단순 확률 모형</a></li><li class="article-toc-level-0"><a href="#section-reference" data-toc-link>Reference</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>이번에는 Chrome M152에서 분석했던 <code>ExternalString</code> double-fetch race를 정리해보겠다.</p>
 <p>공개 범위에서는 빌드 전용 주소와 전체 PoC를 제외하고, 초기 취약점 분석, 실행 전제, 객체 수명 변화와 반복 실험을 안정화한 과정을 설명한다. 승인된 로컬 환경과 작성자가 관리한 별도 원격 검증 환경에서는 동일 계열의 후속 primitive를 거쳐 <code>/etc/hosts</code> 읽기까지 확인했다. 결과의 보안 경계는 1.2절과 11.1절에 고정해 설명한다. [5]</p>
 <blockquote>
 <p><strong>Research Question</strong></p>
@@ -35,7 +35,7 @@
 </blockquote>
 <p>레이스가 한 번 관측되는 것과 브라우저에서 후속 동작까지 완료되는 것은 서로 다른 결과였다. 초기 d8 기록은 <code>11/150</code>의 UAF 관측을 남겼고, 이후 연구는 객체 소유권, allocator 재사용, 관측 개입을 차례로 대조하는 방향으로 이어졌다. 이 글은 공개 가능한 실행 결과와 실험 단위별 차이를 정리한다. [18]</p>
 <p>이 글의 핵심 불변식은 하나다. <strong><code>Dispose()</code>할 native resource와 null로 교환한 EPT entry의 이전 payload가 같은 객체를 가리켜야 한다.</strong> 본문은 이 불변식이 깨지는 과정과 복구되는 과정을 실험 기록에 연결하고, 부록 A는 교환 helper의 구현을 남긴다. [18]</p>
-<h2>핵심 요약</h2>
+<h2 id="section-핵심-요약" tabindex="-1">핵심 요약</h2>
 <table>
 <thead>
 <tr>
@@ -79,7 +79,7 @@
 </tbody>
 </table>
 <p>V8 Sandbox와 Chrome의 OS process sandbox는 서로 다른 방어 계층이며, 이 글의 분석 범위는 전자에 한정한다. [1, 2]</p>
-<h2>1. 초기 취약점 분석과 실행 전제</h2>
+<h2 id="section-1-초기-취약점-분석과-실행-전제" tabindex="-1">1. 초기 취약점 분석과 실행 전제</h2>
 <p>이 연구는 완성된 선행 primitive에 issue532를 붙이는 단계에서 시작한 것이 아니다. 먼저 M152의 <code>DisposeResource</code>와 수정 패치를 대조해 handle이 두 번 해석되는 정리 경로를 찾고, 가능한 interleaving과 최종 EPT 상태를 모델링했다. 그 뒤 회귀 테스트와 d8에서 UAF 가설을 검증하고, 브라우저의 소유권·allocator·소비 경로를 차례로 연결했다.</p>
 <pre><code class="language-text">대상·패치 고정
   → load/store 대상 불일치 분석
@@ -89,7 +89,7 @@
   → 반복 race 축소와 controller 안정화
 </code></pre>
 <p>기록상 대상은 Chrome 152.0.7977.64 / V8 M152이며, 분석 대상은 ExternalString 외부 리소스의 정리와 수명 관리다. 대상 식별값과 실행 전제는 아래에, 자료별 확인 범위는 9.1절에 정리했다.</p>
-<h3>1.1 대상 빌드와 출처를 고정하기</h3>
+<h3 id="section-1-1-대상-빌드와-출처를-고정하기" tabindex="-1">1.1 대상 빌드와 출처를 고정하기</h3>
 <p>후속 기술 개정 자료는 대상을 버전 이름뿐 아니라 소스 리비전과 바이너리 지문으로 식별한다. 여기서는 공개 저장소에서 확인한 관계와 연구 자료에 보고된 값을 나누어 기록했다. [15, 16]</p>
 <p>Chromium 리비전 <code>506c834eccea</code>의 <code>chrome/VERSION</code>에서 Chrome <code>152.0.7977.64</code>를 확인했다. 같은 리비전의 DEPS에 지정된 <code>v8_revision</code>은 <code>6aacaf6256a0</code>이며, 해당 V8의 <code>include/v8-version.h</code>에는 <code>15.2.124.18</code>이 정의되어 있다. Upstream tag <code>15.2.124.18</code>도 같은 전체 커밋을 가리키며 2026년 8월 24일 기록이다. [15]</p>
 <p>축약하지 않은 식별값은 다음과 같다. Chrome 바이너리의 SHA-256은 <strong>연구 자료에 보고된 값</strong>이다.</p>
@@ -99,31 +99,31 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
 </code></pre>
 <p>공개 소스로 확인한 연결은 <code>Chrome VERSION → Chromium DEPS → V8 VERSION</code>이며, 버전 표기의 정합성을 뒷받침한다. 바이너리·빌드 기록과의 대조 범위는 9.1절에 정리했다.</p>
 <p>본문의 패치 함수는 수정 리비전 <code>7d1fb25</code>의 코드다. 대상 리비전은 조사한 버전을, 수정 리비전은 정리 경로의 변경을 식별한다.</p>
-<h3>1.2 실행 모델과 결과의 범위</h3>
+<h3 id="section-1-2-실행-모델과-결과의-범위" tabindex="-1">1.2 실행 모델과 결과의 범위</h3>
 <p>연구의 시작점과 exploit chain의 진입 조건은 구분해야 한다. <strong>초기 연구는 M152 정리 코드의 double-fetch와 패치 차이를 분석하는 데서 시작했다.</strong> 다만 소스에서 도출한 interleaving을 실제 실행으로 만들려면 대상 <code>resource_</code> 핸들을 경쟁적으로 바꿀 수 있어야 한다. 공식 회귀 테스트는 <code>Sandbox.MemoryView</code>로 이 조건을 실험적으로 제공하고, 전체 체인은 별도의 in-cage primitive로 같은 필드 변경을 수행한다. [8]</p>
 <p>따라서 cage 내부 쓰기는 이 취약점을 발견하기 전에 주어진 연구 출발점이 아니라, <strong>issue532를 실행·체인화할 때 필요한 공격 모델</strong>이다. 이 글은 초기 소스 분석부터 d8 재현, 브라우저 검증과 안정화까지 issue532 연구 전부를 다룬다. 반면 전체 체인에서 사용한 별도 in-cage primitive 자체의 원리와 개발 과정은 범위에서 제외한다.</p>
 <p>V8의 메모리 경계는 샌드박스 내부 상태와 외부 메모리를 구분한다. Chrome 프로세스의 OS 경계는 접근 가능한 파일과 OS 자원을 제한한다. 이 두 경계의 역할을 나누어 3절의 수명 분석과 11절의 파일 읽기 결과를 읽는다. [1, 2]</p>
 <p>보고된 <strong>로컬 시험은 Linux x86-64에서 process sandbox가 비활성화된 문맥</strong>이었다. 로컬 체크포인트의 높은 권한도 사전에 주어졌다. 따라서 파일 읽기는 주어진 OS 권한 안에서 후속 동작이 완료됐다는 검증이며, 새 OS 권한을 얻었다는 뜻은 아니다. 원격 검증 결과도 RCE나 OS sandbox escape의 증거로 사용하지 않는다. 파일 접근 결과의 의미는 11.1절에서 다룬다. [3, 5, 16]</p>
-<h2>2. ExternalString과 외부 리소스</h2>
+<h2 id="section-2-externalstring과-외부-리소스" tabindex="-1">2. ExternalString과 외부 리소스</h2>
 <p>문자열이라고 하면 JavaScript 힙 안에 문자 데이터까지 모두 들어 있다고 생각하기 쉽다. 하지만 <code>ExternalString</code>은 문자열 데이터를 외부 리소스와 연결해서 사용하는 표현이다. 따라서 문자열을 바라보는 V8 쪽 상태와 외부 리소스를 관리하는 네이티브 쪽 상태를 함께 생각해야 한다.</p>
 <p>이때 문제가 되는 것은 문자열의 내용만이 아니다. 해당 리소스를 누가 소유하는지, 언제 정리할 수 있는지, 마지막 사용자가 사라졌는지까지 맞아야 한다. 포인터가 가리키는 위치가 그럴듯하더라도, 그 위치에 있어야 할 객체의 수명이 끝났다면 더 이상 정상적인 참조가 아니다.</p>
 <p>V8 Sandbox는 내부 힙 손상이 같은 프로세스의 다른 메모리로 확장되는 것을 제한한다. 외부 리소스 참조에는 External Pointer Table, 즉 EPT를 통한 간접 참조가 사용된다. 내부 객체의 값이 곧바로 외부 네이티브 주소가 되는 것을 막기 위한 구조다. [1]</p>
 <p>따라서 이번 분석에서는 두 가지를 나누어 봤다. 하나는 외부 리소스에 접근하는 <strong>참조 경로의 정당성</strong>이고, 다른 하나는 그 경로가 가리키는 <strong>대상 객체의 생존 여부</strong>다. 이 둘은 함께 맞아야 한다.</p>
 <p><img src="/assets/research/chrome-m152-externalstring-race/01-boundaries.svg" alt="V8 메모리 격리와 렌더러 프로세스의 OS 격리를 구분한 도식"></p>
 <p><em>그림 1. 같은 렌더러 프로세스 안의 메모리 경계와 OS 자원 접근 경계는 별개다. 이 그림은 보호 범위를 설명하며, 실제 주소 배치나 우회 경로는 나타내지 않는다.</em></p>
-<h3>2.1 공개 API에서 확인할 수 있는 수명 계약</h3>
+<h3 id="section-2-1-공개-api에서-확인할-수-있는-수명-계약" tabindex="-1">2.1 공개 API에서 확인할 수 있는 수명 계약</h3>
 <p>구조를 이해하기 위해 공개 헤더의 <code>ExternalStringResourceBase</code>와 <code>ExternalStringResource</code>를 먼저 보겠다. <code>data()</code>는 문자 버퍼, <code>length()</code>는 그 버퍼의 길이를 다룬다. 리소스의 기본 정리 구현에는 다음 코드가 있다. 서로 다른 클래스의 역할을 함께 설명하는 발췌다. [6]</p>
 <pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">Dispose</span><span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>; }
 </code></pre>
 <p>이 한 줄의 의도는 리소스가 더 이상 필요 없을 때 소유자가 정리를 수행하도록 하는 것이다. 하위 클래스는 정리 방법을 바꿀 수 있다. 문자 데이터의 불변성과 리소스 객체의 생존은 서로 다른 조건이다. 같은 문자열 내용을 계속 볼 수 있어도, 그 내용을 제공하던 리소스 객체의 수명이 끝났다면 그 객체를 다시 호출할 수는 없다. [6]</p>
-<h3>2.2 문자열 객체와 리소스 객체를 나누어 보기</h3>
+<h3 id="section-2-2-문자열-객체와-리소스-객체를-나누어-보기" tabindex="-1">2.2 문자열 객체와 리소스 객체를 나누어 보기</h3>
 <p>이 글에서는 관계를 설명하기 위해 다음 기호를 사용하겠다. 실제 필드 이름이나 바이트 단위 레이아웃을 나타낸 것은 아니다.</p>
 <p>이 글에서 <strong>H</strong>는 V8 힙에 있는 문자열 객체, <strong>h</strong>는 외부 대상을 표현하는 핸들, <strong>E</strong>는 외부 포인터 테이블의 항목을 뜻한다. H의 생존은 엔진이 추적하며, h와 E는 어느 대상을 참조하고 그 참조가 유효한 대상으로 연결되는지 검토하는 요소다.</p>
 <p><strong>R</strong>은 네이티브 리소스 객체이고, <strong>B</strong>는 그 리소스가 제공하는 문자 버퍼다. R의 소유권과 수명이 유지되는지, B에 대한 데이터 접근이 유효한지는 별도로 확인한다.</p>
 <p><code>H</code>가 관측된다고 <code>R</code>의 수명이 자동으로 증명되는 것은 아니다. <code>B</code>의 내용이 남아 있다고 해서 <code>R</code>도 살아 있다고 볼 수 없다. 각각 다른 상태를 보고 있기 때문이다. 외부 객체를 분석할 때 이 구분을 하지 않으면 문자 데이터가 정상으로 보인다는 이유로 리소스의 UAF를 놓칠 수 있다.</p>
 <p><img src="/assets/research/chrome-m152-externalstring-race/06-external-reference.svg" alt="문자열 객체, 외부 참조, EPT, 네이티브 리소스, 문자 버퍼의 개념적 관계"></p>
 <p><em>그림 2. H, h, E, R, B의 관계를 표현한 구조도다. 테이블 항목과 리소스의 수명 일관성이 유지되어야 한다. 목표 빌드의 메모리 배치를 복제한 그림은 아니다.</em></p>
-<h2>3. 레이스에서 살펴본 수명 불일치</h2>
+<h2 id="section-3-레이스에서-살펴본-수명-불일치" tabindex="-1">3. 레이스에서 살펴본 수명 불일치</h2>
 <p>분석의 출발점은 외부 리소스를 정리하는 <code>ExternalString::DisposeResource</code> 경로였다. 분석에서는 이 경로의 double-fetch를 핵심 원인으로 다룬다. [3] 공개 수정 커밋도 이슈 <code>532204454</code>를 명시하며, 리소스 정리 중 EPT 항목의 일관성이 깨지는 문제를 설명한다. [8]</p>
 <p>Double-fetch는 같은 공유 상태를 서로 다른 시점에 다시 읽는 패턴을 뜻한다. 두 번 읽는 행위 자체가 항상 잘못된 것은 아니다. 다만 두 읽기 사이에 상태가 바뀔 수 있다면, 앞에서 확인한 대상과 뒤에서 처리하는 대상이 같다는 가정을 계속 사용할 수 있는지 확인해야 한다.</p>
 <p>리소스를 정리하는 작업에는 적어도 두 가지 의미가 있다. 실제 객체의 수명을 끝내는 것과, 그 객체로 이어지는 참조를 더 이상 유효하게 취급하지 않도록 하는 것이다. 이 처리가 서로 어긋나면 객체는 사라졌는데 접근 경로는 남는 상태가 생길 수 있다.</p>
@@ -131,7 +131,7 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
 <p>남은 참조를 나중에 사용하면 use-after-free, 즉 UAF로 이어질 수 있다. 참조의 잔존, 실제 사용, 외부 메모리 영향에 대응하는 관측 기준은 9.1절에 정리했다.</p>
 <p><img src="/assets/research/chrome-m152-externalstring-race/02-lifetime.svg" alt="정상 종료와 수명 불일치에서 객체 상태와 참조 상태가 달라지는 모습"></p>
 <p><em>그림 3. 정상 종료에서는 객체 수명과 참조의 유효성이 함께 정리된다. 수명 불일치에서는 이미 종료된 객체를 향한 접근 경로가 남을 수 있다.</em></p>
-<h3>3.1 안전한 사용 조건을 식으로 정리하기</h3>
+<h3 id="section-3-1-안전한-사용-조건을-식으로-정리하기" tabindex="-1">3.1 안전한 사용 조건을 식으로 정리하기</h3>
 <p>앞의 설명을 분석용 조건으로 표현하면 다음과 같다. 아래는 실제 V8 코드가 아니라, 어떤 상태가 동시에 성립해야 하는지 정리한 논리식이다.</p>
 <pre><code class="language-text">SafeUse(h, R, t) =
     ResolvesTo(h, R, t)
@@ -141,11 +141,11 @@ Chrome SHA-256:    3ed7df7904694145caf8da676d053f68300e8d2778a507e27b15f142c4efd
 </code></pre>
 <p>참조가 <code>R</code>로 해석되는 것, 기대하는 종류의 대상인 것, 실제로 살아 있는 것, 이번 사용이 끝날 때까지 소유권이 유지되는 것을 구분했다. 앞의 일부 조건만 맞으면 나머지도 맞을 것이라고 가정할 수는 없다.</p>
 <p>특히 사용 시작 시점의 확인만으로 충분하지 않다. 안전한 소유권 모델에서는 <strong>사용 구간 전체가 리소스의 생존 구간 안에 포함</strong>되어야 한다. 이 관계가 깨지면 주소가 유효하게 해석되는 동안에도 시간적 메모리 안전성은 무너질 수 있다.</p>
-<h3>3.2 개별 읽기의 원자성과 작업 전체의 일관성</h3>
+<h3 id="section-3-2-개별-읽기의-원자성과-작업-전체의-일관성" tabindex="-1">3.2 개별 읽기의 원자성과 작업 전체의 일관성</h3>
 <p>공유 상태를 읽는 연산 하나의 원자성과 정리 작업 전체의 대상 일치는 다른 보장이다. 원자적 읽기는 부분적으로 섞인 값을 막지만, 뒤의 작업도 같은 대상을 처리한다는 계약까지 만들지는 않는다.</p>
 <p>이 경로에서 개발자가 의도한 결과는 <strong>실제 정리한 리소스와 정리한 참조의 이전 대상이 일치하는 것</strong>이다. 이전 경로의 결함은 참조를 해석하는 작업들이 이 대상 일치를 하나의 계약으로 유지하지 못할 수 있었다는 점이다. 객체 정리와 참조 정리가 서로 다른 대상을 처리하면, 종료된 객체로 이어지는 경로가 유효하게 남는 시간적 안전성 문제가 된다. [8, 18]</p>
 <p>수정 코드는 선택한 항목을 교환한 결과를 지역 값으로 보관해 정리한다. 3.3절 수정 함수의 <code>value</code>와 부록 A의 반환 경로를 연결해 읽으면, 패치가 바꾼 핵심은 읽기 횟수보다 <strong>대상 선택과 정리 사이의 데이터 의존성</strong>이라는 점이 드러난다. null 검사와 메모리 집계 분기는 그 이후의 콜백 처리를 정한다.</p>
-<h4>3.2.1 수정 전 코드와 <code>h1/h2</code> interleaving</h4>
+<h4 id="section-3-2-1-수정-전-코드와-h1-h2-interleaving" tabindex="-1">3.2.1 수정 전 코드와 <code>h1/h2</code> interleaving</h4>
 <p>다음은 대상 M152 리비전에서 문제가 된 의미만 남긴 축약 코드다. 실제 분기와 타입 정의는 더 많지만, 원인을 설명하는 핵심은 첫 <code>load()</code>와 마지막 <code>store()</code>가 <code>resource_</code>를 서로 다른 시점에 해석한다는 점이다.</p>
 <pre><code class="hljs language-cpp"><span class="hljs-comment">// Vulnerable shape — target M152 revision, simplified</span>
 Address value = resource_.<span class="hljs-built_in">load</span>(isolate);
@@ -227,7 +227,7 @@ EPT[h1]은 비워지고 EPT[h2]는 해제된 R2를 유지
 }
 </code></pre>
 <p>아래의 실제 수정 함수와 부록 A의 교환 helper를 함께 보면, 축약 코드에서 생략한 shared-space 분기와 GC mark 보존까지 확인할 수 있다.</p>
-<h4>3.2.2 재현 모델과 <code>11/150</code>의 UAF 판정 기준</h4>
+<h4 id="section-3-2-2-재현-모델과-11-150의-uaf-판정-기준" tabindex="-1">3.2.2 재현 모델과 <code>11/150</code>의 UAF 판정 기준</h4>
 <p>공식 회귀 테스트는 소스 분석에서 도출한 interleaving을 실행으로 검증하는 최소 harness다. <code>--sandbox-testing --use-external-strings</code>에서 두 <code>ExternalString</code>을 만들고, <code>Sandbox.MemoryView</code>로 <code>content1.resource_</code>에 <code>content2</code>의 핸들을 먼저 쓴다. 이후 Worker가 같은 필드에 원래 <code>content1</code> 핸들을 반복해서 쓰는 동안 <code>content1</code>의 정리 경로를 실행하고, 마지막에 <code>content2</code>를 소비한다. 즉 정상 API가 리소스 소유권을 바꾸는 시험이 아니라, <strong>harness가 제공한 cage 내부 쓰기로 handle-field race를 재현하는 시험</strong>이다. 실제 체인에서는 별도 in-cage primitive가 이 역할을 맡는다. [8]</p>
 <p>초기 d8의 <code>11/150</code>에서 UAF로 센 조건은 다음과 같다.</p>
 <ol>
@@ -237,7 +237,7 @@ EPT[h1]은 비워지고 EPT[h2]는 해제된 R2를 유지
 <li>그 주소가 기록된 V8 cage 상한보다 높은 네이티브 힙 주소임을 확인한다.</li>
 </ol>
 <p>따라서 단순 크래시, 핸들 값 변화, 해제 뒤 남은 주소, 또는 주소 재사용 하나만으로는 이 <code>11/150</code>의 UAF 성공으로 세지 않았다. release 빌드에서 같은 48바이트 슬롯을 제어 데이터로 되채웠을 때만 나타난 <code>4/40</code>의 controlled-address fault와 no-reclaim <code>0/40</code>은 별도의 A/B 근거이며, ASan 집계의 판정 기준과 섞지 않았다. [3, 18]</p>
-<h3>3.3 실제 정리 함수 전체를 읽기</h3>
+<h3 id="section-3-3-실제-정리-함수-전체를-읽기" tabindex="-1">3.3 실제 정리 함수 전체를 읽기</h3>
 <p>아래는 수정 리비전 <code>7d1fb25</code>의 <a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/objects/string-inl.h#L1525"><code>src/objects/string-inl.h</code></a>에 있는 <code>DisposeResource</code> 함수 전체다. 조건 분기, 메모리 집계 콜백, 정리 호출과 GC 관련 스코프를 모두 포함했다. [9]</p>
 <pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">ExternalString::DisposeResource</span><span class="hljs-params">(Isolate* isolate)</span> </span>{
   DisallowGarbageCollection no_gc;
@@ -263,51 +263,51 @@ EPT[h1]은 비워지고 EPT[h2]는 해제된 R2를 유지
 <p><code>Unaccount</code>는 외부 메모리 집계용 콜백이다. 기본 구현은 비어 있고 구체 처리는 하위 클래스에 달려 있어 객체 정리와 역할이 다르다. [12] 실제 정리 구현은 <code>Dispose()</code>가 호출하며, 기본 구현과 하위 클래스의 계약은 2.1절에서 설명했다.</p>
 <p><code>value</code>는 교환 전의 값을 담고, 그 값으로 표현한 리소스가 null이 아닐 때만 정리 블록에 들어간다. <code>Unaccount</code>는 두 shared-space 관련 조건이 모두 해당하지 않는 경로에서만 호출된다. 이어지는 <code>Dispose</code> 호출의 수명 계약과 EPT의 교환 구현을 함께 봐야 전체 의미를 읽을 수 있다.</p>
 <p>이 함수의 의도는 <strong>같은 외부 리소스에 대한 참조 정리와 객체 정리를 일관되게 수행하는 것</strong>이다. 캐스팅이나 null 검사가 있다고 해서 그 수명 계약이 자동으로 성립하는 것은 아니다.</p>
-<h3>3.4 코드에서 확인한 사실과 원인 해석</h3>
+<h3 id="section-3-4-코드에서-확인한-사실과-원인-해석" tabindex="-1">3.4 코드에서 확인한 사실과 원인 해석</h3>
 <p>공개 패치와 관측을 연결할 때 먼저 고정한 것은 <strong>정리한 리소스와 포인터 값을 비운 EPT 항목의 이전 대상이 같아야 한다</strong>는 불변식이다. <code>R</code>의 수명이 끝났다면 그 정리 작업에서 갱신한 <code>E</code>도 바로 그 <code>R</code>을 참조하던 항목이어야 한다. 참조 처리와 객체 정리가 서로 다른 대상을 다루면, 객체가 종료된 뒤에도 유효하게 취급되는 접근 경로가 남을 수 있다. [8]</p>
 <p><strong>원인 쪽의 계약 실패</strong>는 분리된 참조 처리가 이 대상 일치를 유지하지 못할 수 있었다는 점이다. 개별 읽기가 원자적이어도 작업의 앞뒤가 같은 대상을 처리한다는 보장은 따로 필요하다. 메모리 순서를 강하게 지정하는 것만으로 그 대상의 동일성이 만들어지지는 않는다. 이 때문에 결함을 캐스팅 문법, null 검사의 유무나 <code>Unaccount</code> 콜백의 존재로 설명하지 않았다.</p>
 <p><strong>패치 쪽의 대응</strong>은 선택한 항목의 교환 결과를 정리 대상으로 사용하는 것이다. 수정된 sandbox 경로는 핸들로 항목을 선택하고, 그 항목의 payload를 교환한다. 성공한 CAS에서는 새 payload로의 교체와 교체 직전 payload의 확정이 <strong>한 원자적 연산에 묶인다</strong>. 이전 값을 따로 확정한 뒤 별도의 단계에서 새 값을 쓰는 것으로 읽으면 이 관계를 놓친다. [10]</p>
 <p>entry 함수가 반환한 이전 주소는 위임 계층을 거쳐 <code>DisposeResource</code>의 지역 변수 <code>value</code>가 된다. 캐스팅과 콜백은 그 지역 값으로 표현한 리소스를 사용한다. 따라서 코드 흐름 A–C를 함께 읽으면 <strong>선택한 항목의 교환 결과가 같은 리소스의 정리로 이어진다</strong>는 대응을 확인할 수 있다. 여기서 힙 멤버의 핸들, EPT 슬롯의 존재, payload의 포인터 값은 서로 다른 상태이며, sandbox 교환 경로가 바꾸는 것은 선택한 payload다. [9, 10]</p>
 <p><strong>실행에서 대조할 질문</strong>은 어느 객체의 수명이 끝났고, 그 객체를 유효하게 취급하는 참조가 사용됐는가다. 이 질문을 따라 5절에서 연구 진행을, 11절에서 최종 결과를 설명한다. 소스와 실행 기록의 확인 범위는 9.1절에 모았다.</p>
-<h3>3.5 정리 함수의 입력·분기·결과</h3>
+<h3 id="section-3-5-정리-함수의-입력-분기-결과" tabindex="-1">3.5 정리 함수의 입력·분기·결과</h3>
 <p>최상위 함수는 <code>void</code>를 반환한다. 내부의 교환 연산이 이전 주소를 반환하는 것과, <code>DisposeResource</code> 자체가 리소스 주소를 호출자에게 돌려주는 것은 다른 이야기다. 이 함수는 자신의 멤버와 <code>isolate</code> 문맥을 사용해 정리를 수행한다. [9]</p>
 <p>교환 결과가 null이면 처리할 이전 리소스 주소가 없으므로 리소스 콜백 블록을 건너뛴다. 이전 리소스가 있고 두 shared-state 조건이 모두 false이면 <code>Unaccount</code> 이후 <code>Dispose</code>를 호출한다. 이때 집계 콜백과 실제 정리 콜백의 역할은 구분해야 한다.</p>
 <p>shared-state 조건 중 하나라도 true이면 <code>Unaccount</code>만 건너뛰고 <code>Dispose</code>는 호출한다. 이 분기가 리소스 정리 자체를 생략하는 것은 아니다.</p>
 <p>교환 이후 <code>value</code>는 지역 변수에 보관된다. 캐스팅은 이 값을 콜백 호출에 사용할 포인터 타입으로 표현하며, 별도의 객체 생성이나 생존 판정을 수행하지 않는다. 또한 <code>Unaccount</code>는 가상 콜백이므로 기본 구현이 비어 있다는 사실과 실제 하위 클래스의 동작은 구분해서 읽어야 한다. [9, 12]</p>
 <p>이 코드의 핵심은 테이블의 참조 상태를 바꾸는 연산과 리소스 객체의 정리 콜백을 함께 보는 것이다. 전자는 EPT 상태의 변화이고, 후자는 리소스 계약의 수행이다. 어느 한쪽의 코드만 보고 전체 수명 처리가 끝났다고 판단하기 어렵다.</p>
-<h3>3.6 대상 선택의 일관성과 사용 중 수명은 별개의 계약이다</h3>
+<h3 id="section-3-6-대상-선택의-일관성과-사용-중-수명은-별개의-계약이다" tabindex="-1">3.6 대상 선택의 일관성과 사용 중 수명은 별개의 계약이다</h3>
 <p>패치가 직접 해결하는 것은 선택한 EPT 항목과 정리할 리소스의 일치다. 선택한 항목의 교환 결과를 지역 변수로 받아 그 값만 <code>Dispose()</code>에 전달한다. 이미 리소스를 사용 중인 다른 경로의 수명은 별도의 소유권 계약이다. [8–10]</p>
 <pre><code class="language-text">exchange()            → 선택한 entry와 반환한 resource의 identity consistency
 reference ownership   → 이미 사용 중인 resource의 전체 lifetime 보장
 </code></pre>
 <p><code>exchange()</code>는 다른 사용자의 종료를 기다리거나 소유권을 획득하지 않는다. CAS 성공도 한 payload의 교환을 확정할 뿐, 뒤의 가상 콜백까지 원자적으로 만들지 않는다. 따라서 이후 절에서는 패치가 복구한 <strong>cleanup-target identity</strong>를 기준 모델로 삼고, 객체 소유권·데이터 캐시·CFI는 실행 결과를 판정하는 별도 조건으로만 다룬다. 부록 A의 helper들도 이 한 정리 경로를 구현하는 계층이지 별도 취약점이 아니다. [9, 10, 17]</p>
-<h2>4. 우회가 겨냥한 보호 가정</h2>
+<h2 id="section-4-우회가-겨냥한-보호-가정" tabindex="-1">4. 우회가 겨냥한 보호 가정</h2>
 <p>EPT는 sandbox 내부 handle을 외부 포인터로 바로 사용하지 못하게 막는 indirection이지만, 타입 검사만 하는 장치는 아니다. 공식 소스는 유효한 entry를 살아 있는 객체와 연결해 시간적 안전성을 유지한다는 설계 의도를 설명한다. <code>Verify()</code>와 <code>ManagedResource</code>의 주석도 테이블 상태와 외부 리소스 수명의 일관성을 강조한다. [7]</p>
 <p>이번 연구의 질문은 <strong>그 일관성을 유지해야 하는 정리 경로에서, 선택한 entry와 실제로 정리한 resource가 갈라질 수 있는가</strong>였다. <code>h2</code>로 <code>R2</code>를 얻은 뒤 <code>h1</code>을 비우면 indirection과 태그 검사를 거쳤더라도 <code>EPT[h2] → freed R2</code>가 남는다.</p>
 <p>따라서 방어 검토의 기준도 간단하다. 참조가 허용된 형식인가에 더해, 정리 전후에 같은 entry와 같은 resource의 대응관계가 유지되는지를 확인해야 한다.</p>
-<h3>4.1 공간적 안전성과 시간적 안전성</h3>
+<h3 id="section-4-1-공간적-안전성과-시간적-안전성" tabindex="-1">4.1 공간적 안전성과 시간적 안전성</h3>
 <p>타입 일관성은 기대한 종류의 대상을 사용하는지 확인하고 참조의 해석 범위를 제한한다. 공간적 안전성은 허용된 객체의 범위 안에 접근하는지, 즉 접근 위치와 범위를 다룬다.</p>
 <p>시간적 안전성은 사용 시점에도 객체가 살아 있는지 확인하는 해제·사용의 관계다. 정체성 일관성은 여러 단계의 작업에서 처음 확인한 바로 그 객체를 끝까지 처리하는지에 관한 조건이다.</p>
 <p>이번 분석의 중심은 이 가운데 외부 객체의 시간적 안전성과 정체성 일관성이다.</p>
-<h2>5. 연구는 어떤 질문을 따라 진행했는가</h2>
+<h2 id="section-5-연구는-어떤-질문을-따라-진행했는가" tabindex="-1">5. 연구는 어떤 질문을 따라 진행했는가</h2>
 <p>연구에서는 <strong>그 관측이 어떤 판단을 허용했고, 다음에 무엇을 확인해야 했는가</strong>를 따라갔다. 아래는 소스, d8 시험, 브라우저 진행 기록과 완료 요약에 남은 검토 질문을 연결한 것이다. 자료별 출처는 9.1절에 정리했다. [3, 16]</p>
 <p><img src="/assets/research/chrome-m152-externalstring-race/04-research.svg" alt="원인, 실행 관측, 브라우저 환경, 결과 해석이라는 연구 질문의 관계"></p>
 <p><em>그림 4. 연구에서 다룬 질문을 묶은 도식이다. 실행 가능한 익스플로잇 단계나 의존 순서를 나타낸 것은 아니다.</em></p>
-<h3>5.1 원인 후보와 실행 관측</h3>
+<h3 id="section-5-1-원인-후보와-실행-관측" tabindex="-1">5.1 원인 후보와 실행 관측</h3>
 <p>초기 취약점 연구에서는 M152 코드와 수정 커밋을 나란히 놓고 <code>load() → Dispose() → store()</code>의 두 handle 해석을 먼저 확인했다. 여기서 EPT 참조가 유지되는 동안 외부 리소스의 수명이 끝날 수 있다는 가설과 <code>h1/h2</code> interleaving을 세웠다. 3.4절의 대상 일치 불변식은 이 가설을 검토할 기준을 제공한다.</p>
 <p>공식 회귀 harness와 초기 d8 실험은 이 소스 가설을 실행으로 옮긴 단계였다. 공유 환경의 <code>0/약 950</code>을 실패 기준선으로 남긴 뒤 CPU를 분리한 ASan d8에서 3.2.2절의 판정을 만족하는 <code>11/150</code> UAF를 관측했다. 다음 질문은 <strong>브라우저에서도 동일한 수명 관계가 깨지는가</strong>였으며, 환경 차이와 판정 단위는 6절에서 다룬다. [3, 18]</p>
-<h3>5.2 브라우저의 객체 수명 검토</h3>
+<h3 id="section-5-2-브라우저의-객체-수명-검토" tabindex="-1">5.2 브라우저의 객체 수명 검토</h3>
 <p>공유 호스트와 별도 d8 시험에서 관측 수가 달랐다는 것은 실행 조건이 해석에 중요하다는 신호였다. 함께 바뀐 조건 가운데 하나를 원인으로 단정하기보다, 어떤 사건을 세고 있는지와 관측 개입이 같았는지부터 대조해야 했다. 이 차이만으로 취약점의 존재나 부재를 확정할 수는 없었다.</p>
 <p>브라우저에서는 페이지와 Worker의 수명, 문자열 보관 경로, 캐시와 네이티브 할당이 함께 움직인다. 따라서 d8에서 세운 해석을 옮길 때 확인할 대상도 늘어났다. <strong>같은 종류의 증상이 보였는가</strong>에 더해, <strong>그 증상에 쓰인 리소스가 실제로 정리된 바로 그 객체인가</strong>를 물어야 했다. 후속 연구 기록의 소유권·소비 경로 검토는 이 질문에 대응한다. [3]</p>
-<h3>5.3 데이터와 객체 수명의 구분</h3>
+<h3 id="section-5-3-데이터와-객체-수명의-구분" tabindex="-1">5.3 데이터와 객체 수명의 구분</h3>
 <p>이 단계에서 문자열 데이터가 남아 있다는 관측은 리소스 객체도 살아 있다는 가정을 뒷받침하지 못했다. <code>resource_</code>는 리소스 객체, <code>resource_data_</code>는 문자 데이터와 관련된 참조다. 데이터가 보관되는 계약과 객체를 소유하는 계약을 구분하는 근거는 7.1절의 필드 타입과 API 계약에 있다. [17]</p>
 <p>다른 소유자가 객체를 유지한다면 일부 참조가 사라져도 아직 수명 종료를 입증하지 못한 것이다. 반대로 객체가 종료된 뒤 데이터나 주소 값이 남았다면, 그 값이 남았다는 이유로 객체의 생존을 인정할 수 없다. 기대한 수명 종료가 확인되지 않거나 후속 소비자가 예상한 대상을 사용하지 않는 실험에서는 원래의 설명을 다시 검토해야 했다. [3]</p>
 <p>이 검토의 결과는 <strong>주소 변화, 문자 데이터의 가시성, 객체 정리, 실제 사용을 서로 다른 관측으로 읽는 것</strong>이었다. 다음 판단에 필요한 것은 특정 위치에 값이 있다는 사실보다 그 값을 어느 객체와 어느 수명 구간의 상태로 해석할 수 있는지였다. 참조 카운트와 캐시를 별도로 다룬 7절은 이 판단 기준을 구체화한다.</p>
-<h3>5.4 중간 관측과 최종 완료</h3>
+<h3 id="section-5-4-중간-관측과-최종-완료" tabindex="-1">5.4 중간 관측과 최종 완료</h3>
 <p>브라우저 연구 기록은 외부 네이티브 메모리 영향과 후속 동작을 검토한 내용으로 이어진다. 여기서도 외부 메모리 오류, 간접 호출에서의 관측, 파일 입출력의 완료는 각각 다른 판정이었다. CFI가 확인하는 호출 관계와 객체 생존을 분리한 8절, 디버거 개입과 실행 결과를 분리한 9절은 이 판정에 필요한 조건이다. [3]</p>
 <p>기술 개정 자료의 근거 지도는 초기 브라우저 시험에서 최종 동작이 완료되지 않은 결과도 남긴다. 이는 중간 관측과 완료 판정을 대조하는 실패 기준선이다. 이후 로컬 완료 요약과 <code>hosts</code> 읽기에 대한 후속 확인이 추가되면서 <strong>최종 파일 읽기까지 완료한 사례가 있다</strong>는 결과가 남았다. 성공률의 실행 단위와 분모는 11.2~11.3절에서 다룬다. [5, 16]</p>
 <p>따라서 연구의 연결은 UAF라는 이름에 파일 읽기 결과를 바로 붙이는 방식이 아니다. 소스에서 대상을 고정하고, 실행에서 수명 관계를 검토하고, 브라우저의 객체 정체성을 대조한 뒤, 완료 기록이 답하는 결과를 구분하는 과정이다. 11절은 마지막 결과의 근거를, 12절은 같은 원인에 대한 패치의 구현을 자세히 다룬다.</p>
-<h3>5.5 초기 7.33%에서 controller 단위 무실패 관측까지</h3>
+<h3 id="section-5-5-초기-7-33-에서-controller-단위-무실패-관측까지" tabindex="-1">5.5 초기 7.33%에서 controller 단위 무실패 관측까지</h3>
 <p>초기 체인은 레이스 하나가 어려운 수준을 넘어, 같은 우연을 후속 단계에서 다시 요구하는 구조였다. 연구의 핵심 성과는 단일 race의 <code>p</code>를 100%로 만든 것이 아니라, timing-sensitive winner의 수를 줄이고 남은 실패를 격리된 재시도로 흡수한 것이다.</p>
 <table>
 <thead>
@@ -363,7 +363,7 @@ reference ownership   → 이미 사용 중인 resource의 전체 lifetime 보�
 </ol>
 <p>이 변경들의 목적은 각 레이스를 “무조건 이기게” 만드는 것이 아니라, 우연한 상태를 다음 단계가 다시 요구하지 않도록 체인을 재구성하는 것이었다. 독립·동일확률을 가정한 단순 모형에서 필요한 레이스 수를 세 번에서 한 번으로 줄이면, <code>p = 11/150</code>을 적용한 앞부분의 성공 확률은 <code>p³ ≈ 1/2,536</code>에서 <code>p ≈ 1/14</code>로 달라진다.</p>
 <p>초기 설계의 복잡도는 위의 단순 모형으로 비교했고, 최종 안정화 결과는 controller 실행 묶음의 관측으로 확인했다. 이 글에서 <strong>“관측상 100%”는 최종 controller 캠페인의 실행 묶음에서 실패가 기록되지 않았다는 뜻</strong>이다. 단일 race나 단일 renderer의 성공률이 100%가 됐다는 뜻은 아니며, 정확한 최종 <code>N/N</code> 분모가 없으므로 통계적·보편적 100%로 확장하지 않는다. 단계별 관측값은 11.3절, 전체 단순 확률표는 부록 B에 정리했다.</p>
-<h2>6. d8에서 브라우저로 옮겼을 때</h2>
+<h2 id="section-6-d8에서-브라우저로-옮겼을-때" tabindex="-1">6. d8에서 브라우저로 옮겼을 때</h2>
 <p>초기에는 실행 환경에 따라 관측 결과가 크게 달랐다. 공유 호스트에서 약 950회 실행하는 동안 3.2.2절의 UAF 판정이 관측되지 않았고, CPU를 분리한 ASan d8에서는 150회 중 11회 관측됐다. 이 수치는 각각의 시험 조건과 표본에 한정해 읽어야 한다. [3]</p>
 <p>공식 d8 회귀 테스트와 브라우저 검증은 <strong>같은 소스 결함과 <code>h2 → R2</code> dangling 상태</strong>를 목표로 하지만 실행 경로는 같지 않다. 회귀 테스트는 <code>Sandbox.MemoryView</code>와 d8의 <code>read()</code>로 전제를 직접 구성한다. 브라우저에서는 페이지가 만든 외부 문자열의 실제 소유권, Worker 수명, 캐시 경로와 renderer의 네이티브 allocator가 함께 작동한다. 따라서 “같은 root cause를 사용했다”와 “d8 PoC를 브라우저에서 그대로 실행했다”를 구분했다.</p>
 <p>브라우저 기록에서 역할은 다음처럼 나뉜다.</p>
@@ -375,30 +375,30 @@ main isolate   : 같은 주소의 네이티브 할당과 stale consumer를 실�
 <p>같은 Worker가 dangling holder와 allocator 정리를 모두 맡으면 Worker 종료와 함께 필요한 참조도 사라졌다. 최종 설계는 <strong>참조를 보존하는 수명</strong>과 <strong>allocator 상태를 만드는 수명</strong>을 분리했다. Worker 종료 후 정확한 48바이트 주소 재사용이 증가하고, Worker가 살아 있는 control에서는 기대한 dispose가 나오지 않은 A/B가 이 판단을 뒷받침했다. [3, 18]</p>
 <p>문자열 소비 경로도 따로 확인했다. cached external string은 별도의 <code>resource_data_</code> 값을 사용할 수 있어, <code>resource_</code>를 되찾았다는 사실만으로 stale consumer가 그 포인터를 읽는다고 볼 수 없었다. 후속 검증은 uncached external one-byte 경로에서 <code>resource_</code>가 제공하는 데이터를 실제로 소비하는지 대조했다. 그래서 브라우저 단계의 primitive 판정은 “같은 주소가 보였다”가 아니라 <strong>해제 객체, exact-address reclaim, 실제 소비 경로가 같은 객체 정체성을 잇는가</strong>를 기준으로 삼았다. [3, 17, 18]</p>
 <p>이 구분을 거친 뒤에야 브라우저에서 관측한 native read를 동일 root cause의 후속 primitive로 연결했다. d8의 UAF 관측과 브라우저의 완료 판정은 별도로 집계했다.</p>
-<h2>7. 소유권과 객체 정체성을 다시 확인한 이유</h2>
+<h2 id="section-7-소유권과-객체-정체성을-다시-확인한-이유" tabindex="-1">7. 소유권과 객체 정체성을 다시 확인한 이유</h2>
 <p>브라우저 판정에서는 주소, 객체와 데이터의 생존을 분리했다. 같은 주소가 다시 보이거나 참조 카운트가 양수여도 동일 객체의 수명과 정당한 소유권이 입증되지는 않는다. 그래서 <code>값 변화</code>, <code>객체 해제</code>, <code>exact-address reclaim</code>, <code>후속 소비</code>를 별도 사건으로 기록하고, 기대한 객체 정체성을 잇지 못한 실험은 성공에서 제외했다.</p>
-<h3>7.1 필드 타입과 API 계약으로 캐시를 읽기</h3>
+<h3 id="section-7-1-필드-타입과-api-계약으로-캐시를-읽기" tabindex="-1">7.1 필드 타입과 API 계약으로 캐시를 읽기</h3>
 <p>대상 리비전의 <code>src/objects/string.h</code>와 <code>include/v8-primitive.h</code>를 대조하면 문자열 리소스 객체와 문자열 데이터 주소를 더 구체적으로 구분할 수 있다. [17]</p>
 <p><code>UncachedExternalString::resource_</code>는 <code>kExternalStringResourceTag</code> 범위의 외부 리소스 멤버로, 리소스 객체를 참조한다. <code>ExternalString::resource_data_</code>는 <code>kExternalStringResourceDataTag</code> 범위의 외부 데이터 멤버다. 이 데이터 주소와 리소스 객체의 참조는 역할이 다르다.</p>
 <p><code>IsCacheable()</code>과 <code>Lock()</code>/<code>Unlock()</code>은 <code>data()</code> 주소의 캐시 여부와 안정 구간을 설명할 뿐 리소스 소유권을 만들지 않는다. <code>Unaccount()</code>는 외부 메모리 집계 콜백이고, 실제 정리는 기본 구현이 <code>delete this</code>인 <code>Dispose()</code>가 담당한다. 따라서 데이터 주소의 잔존, 집계 상태와 resource 객체의 생존을 같은 증거로 취급하지 않았다.</p>
-<h2>8. CFI와 메모리 안전성을 구분한 이유</h2>
+<h2 id="section-8-cfi와-메모리-안전성을-구분한-이유" tabindex="-1">8. CFI와 메모리 안전성을 구분한 이유</h2>
 <p>CFI는 허용된 간접 호출 관계를 제한하지만, 호출에 쓰인 객체가 아직 살아 있는지는 보장하지 않는다. 따라서 CFI를 이 취약점의 루트 커즈로 다루지 않고, 후속 단계의 별도 제약으로만 기록했다. 메모리 값에 영향을 준 실행, CFI가 허용한 호출, 최종 동작까지 완료한 실행도 서로 다른 판정이다. [4]</p>
 <p><img src="/assets/research/chrome-m152-externalstring-race/05-guarantees.svg" alt="참조 경로, 객체 수명, 제어 흐름, OS 권한을 서로 다른 검토 항목으로 나타낸 도식"></p>
 <p><em>그림 5. 각 보호 기법이 다루는 속성을 분리해 본 개념도다. 특정 빌드의 모든 검사나 우회 경로를 나열한 그림은 아니다.</em></p>
 <p>대상 빌드의 모든 CFI 검사 지점을 독립적으로 재검증한 것은 아니다. 확인 범위와 빠진 검증은 9.1절에 남겼다.</p>
-<h2>9. 관측 도구도 실행 조건이었다</h2>
+<h2 id="section-9-관측-도구도-실행-조건이었다" tabindex="-1">9. 관측 도구도 실행 조건이었다</h2>
 <p>레이스를 분석하려면 중간 상태를 보고 싶어진다. 그런데 중간 상태를 보기 위해 넣은 코드나 디버거가 실행 순서에 영향을 줄 수 있다. 이번 기록에도 관측을 위한 개입과 실제 실행 결과를 분리한 내용이 남아 있다. [3]</p>
 <p>중단점을 걸고 살펴본 상태는 원인 분석에 도움이 된다. 하지만 그 상태가 관측 도구 없이도 같은 방식으로 나타난다는 사실까지 자동으로 입증해주지는 않는다. 특히 디버거가 값을 강제로 바꾼 시험이라면, 그 이후 구간의 가능성을 확인한 것이지 앞부분까지 자연스럽게 완료됐다고 볼 수 없다.</p>
 <p>그래서 결과를 읽을 때는 원인을 설명하기 위한 실험과 반복 실행의 결과를 측정한 실험을 나누어 보았다. 전자는 “무엇이 일어나는가”를, 후자는 “정해진 조건에서 무엇이 얼마나 관측됐는가”를 설명한다.</p>
 <p>또한 하나의 실행 안에서도 레이스의 관측, 메모리 오류의 확인, 정해 둔 최종 동작의 완료는 서로 다른 판정이었다. 앞부분의 표시 하나만 보고 전체 실행을 성공으로 세면 후반부의 실패가 사라져 버린다.</p>
 <p>실패 기록을 남기는 이유도 여기에 있다. 마지막 출력이 없었다는 결과만 모으면 원인을 알 수 없고, 중간 결과만 모으면 완료 여부를 알 수 없다. 어떤 주장에 어떤 기록을 붙일 것인지 먼저 정리해야 했다.</p>
-<h3>9.1 증거의 출처와 확인 범위</h3>
+<h3 id="section-9-1-증거의-출처와-확인-범위" tabindex="-1">9.1 증거의 출처와 확인 범위</h3>
 <p>기존 기술 개정 자료의 <code>EVIDENCE-MAP.md</code>는 주장과 보고서 절을 연결했다. 이번 전면 검토 ZIP에는 그 지도에 언급된 <strong>연구보고서와 일부 원본 체크포인트·집계 자료가 실제로 포함</strong>되어 있다. 이를 대조한 공개 근거 요약을 Reference 18에 연결했다. [16, 18]</p>
 <p><strong>직접 확인한 소스:</strong> <code>Chrome VERSION → Chromium DEPS → V8 VERSION</code>의 연결과 대상 API 계약, 수정 리비전 <code>7d1fb25</code>의 정리·교환 함수다. 대상 소스와 수정 소스는 서로 다르다. 실행 바이너리를 확보해 SHA-256을 다시 계산하거나 빌드 옵션을 대조하지 않아, 그 바이너리와 대상 소스의 동일성은 확정하지 않았다. 수정 바이너리의 회귀 실행, M153을 포함한 배포 버전별 적용 여부와 이슈 본문의 공개 상태도 별도로 확인하지 않았다. [8–10, 15, 17]</p>
 <p><strong>증상과 원인 관측:</strong> 호출 위치, 객체의 생존, 참조의 사용, 외부 메모리 영향은 각각 대응하는 기록으로 대조한다. 새 보고서는 단순 크래시와 강제 중간 상태 이후의 실행을 전체 완료로 세지 않는 판정 기준을 명시한다. 이 글의 확인된 원인은 정리 대상의 일관성 문제이며, 소유권·캐시·CFI 검토 항목을 추가 취약점으로 세지 않는다. 공간·타입 오류와 목표 빌드의 모든 CFI 검사 지점을 별도로 확인한 결과도 아니다. [3, 4, 18]</p>
 <p><strong>완료 결과와 후속 확인:</strong> 보고서는 로컬 <code>/etc/hosts</code> 읽기 결과를 뒷받침한다. 별도 원격 검증 환경의 같은 파일 읽기는 작성자의 후속 확인에 근거하고, v147 체크포인트는 별도의 로컬 시험용 출력 기록이다. 후반 반복 검증의 전체 원시 로그와 정확한 최종 세션 수는 직접 대조하지 않았으므로, 공개 글은 분모가 확인되는 수치만 확정값으로 사용한다. 보안 경계의 해석은 11.1절에 모았다. [5, 18]</p>
 <p><strong>자료 무결성과 검증 범위:</strong> 앞선 기술 개정 ZIP의 manifest 15개 파일과 이번 전면 검토 ZIP의 <code>SHA256SUMS</code> 20개 파일은 각각 모두 일치했다. 원본 보고서가 추가됐다는 사실은 근거 확인 범위를 넓히지만, manifest 일치는 파일 무결성 검사다. 이번 편집에서 원본 PoC를 실행하거나 모든 단계를 한 실행으로 재검증하지 않았다. 공개 근거 요약의 해시도 배포한 요약 파일 자체를 식별한다. [16, 18]</p>
-<h2>10. 객체 수명 개념 데모</h2>
+<h2 id="section-10-객체-수명-개념-데모" tabindex="-1">10. 객체 수명 개념 데모</h2>
 <p>아래는 동일한 객체의 수명을 세 가지로 비교하는 <strong>개념 모형</strong>이다. 미리 정한 객체·참조 상태를 표시하며, 타이머는 장면을 넘기는 데만 쓴다. 실제 Chrome/V8 취약점이나 특정 패치의 회귀 테스트를 실행하지 않는다.</p>
 <ul>
 <li><strong>정상 정리:</strong> 객체의 사용이 끝나면 참조도 무효화된다.</li>
@@ -408,11 +408,11 @@ main isolate   : 같은 주소의 네이티브 할당과 stale consumer를 실�
 <div class="concept-demo-embed"><iframe data-concept-demo src="/assets/research/chrome-m152-externalstring-race/m152-lifetime-demo.html#ko" title="객체 수명 개념 데모" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></div>
 <p><a href="/assets/research/chrome-m152-externalstring-race/m152-lifetime-demo.html#ko">개념 데모를 별도 창에서 열기</a></p>
 <p>데모에서 봐야 할 것은 빨간 표시 자체가 아니다. <strong>객체의 생존 상태와 참조의 유효 상태가 같은 의미를 유지하고 있는가</strong>다. 실제 분석에서는 이 관계를 추측으로 채울 수 없고, 관측 기록으로 확인해야 한다.</p>
-<h2>11. 검증 결과와 보안 경계의 범위</h2>
+<h2 id="section-11-검증-결과와-보안-경계의-범위" tabindex="-1">11. 검증 결과와 보안 경계의 범위</h2>
 <p>연구를 이어가 <strong>승인된 로컬 환경과 작성자가 관리한 별도 원격 검증 환경에서 <code>/etc/hosts</code> 읽기까지 완료했다.</strong> [5] 초기 d8의 UAF 관측, 브라우저의 중간 상태, 최종 파일 읽기는 서로 다른 성공 판정으로 유지했다. 그래야 어느 변경이 레이스 자체를 개선했고, 어느 변경이 후반 단계를 안정화했는지 구분할 수 있다. [18]</p>
 <p><img src="/assets/research/chrome-m152-externalstring-race/03-evidence.svg" alt="증상, 원인, 결과, 관측 비율을 뒷받침하는 증거를 구분한 도식"></p>
 <p><em>그림 6. 크래시 하나로 원인·최종 결과·반복 성공률까지 설명할 수는 없다. 각각 필요한 기록이 다르다.</em></p>
-<h3>11.1 공개 결과의 범위</h3>
+<h3 id="section-11-1-공개-결과의-범위" tabindex="-1">11.1 공개 결과의 범위</h3>
 <p>로컬 <code>/etc/hosts</code> 읽기 성공은 <strong>승인된 시험 환경에서 사전에 정한 파일 읽기 동작까지 완료했다</strong>는 결과다. 보고서 9절은 초기 출력과 별도의 로컬 시험용 출력을 구분하고, 14절은 디버거나 상위 프로세스의 메모리 관측에 의존하지 않은 로컬 완료 사례를 기록한다. [5, 18]</p>
 <table>
 <thead>
@@ -446,9 +446,9 @@ main isolate   : 같은 주소의 네이티브 할당과 stale consumer를 실�
 </tbody>
 </table>
 <p>공개 글에서는 빌드 전용 주소, 제어 흐름 세부와 전체 PoC를 제외했다. 대신 원인 코드, <code>h1/h2</code>의 상태 변화, 크기 클래스별 재사용 판정과 성공률 해석을 남겨 결과가 어떤 실험에 근거하는지 확인할 수 있게 했다.</p>
-<h3>11.2 관측값과 단순 확률 모형</h3>
+<h3 id="section-11-2-관측값과-단순-확률-모형" tabindex="-1">11.2 관측값과 단순 확률 모형</h3>
 <p>초기 <code>11/150</code>을 독립·동일확률 <code>p</code>로 놓은 <code>pⁿ</code> 계산은 반복 race의 구조적 비용을 비교할 뿐 브라우저 완주율을 예측하지 않는다. 5.5절은 <code>p³ ≈ 1/2,536</code>, <code>p⁵ ≈ 1/471,512</code>에서 최종 controller 기록까지의 변화를 요약하고, 부록 B는 전체 <code>p¹</code>~<code>p⁶</code> 계산을 남긴다.</p>
-<h3>11.3 단계별 측정과 최종 반복 기록</h3>
+<h3 id="section-11-3-단계별-측정과-최종-반복-기록" tabindex="-1">11.3 단계별 측정과 최종 반복 기록</h3>
 <p>관측값을 실행 환경과 측정 단위별로 정리하면 다음과 같다.</p>
 <table>
 <thead>
@@ -488,18 +488,18 @@ main isolate   : 같은 주소의 네이티브 할당과 stale consumer를 실�
 </table>
 <p><code>5/5</code>는 조건부 성공률이고 <code>2/60</code>은 전체 시행의 결과이므로 서로 바꿔 쓸 수 없다. 후반 반복 검증 기록에는 <strong>실행 묶음 단위에서 실패가 관측되지 않았다</strong>고 남아 있다. 다만 정확한 최종 세션 수가 확인되지 않아 확정된 <code>N/N</code>, 통계적 신뢰구간이나 보편적인 “100% 성공률”로 표현할 수는 없다. 실행 묶음에서 실패가 관측되지 않았다는 기록이 단일 레이스의 성공을 보장하는 것은 아니다. [18]</p>
 <p>이 수치의 근거 역할도 나뉜다. 소스는 원인 계약을, 실행 기록은 객체와 사건을, 완료 기록은 최종 결과를 설명한다. 전체 출처와 확인 범위는 9.1절에 모았다.</p>
-<h2>12. 패치 관점에서 남는 불변식</h2>
+<h2 id="section-12-패치-관점에서-남는-불변식" tabindex="-1">12. 패치 관점에서 남는 불변식</h2>
 <p>패치가 직접 회복한 불변식은 다음 한 줄로 정리된다.</p>
 <pre><code class="language-text">disposed resource == previous payload of the EPT entry cleared by this cleanup
 </code></pre>
 <p>수정 전에는 <code>load()</code>와 <code>store()</code>가 서로 다른 핸들을 선택할 수 있었다. 수정 후에는 한 번 선택한 entry를 <code>exchange(null)</code>로 비우고, 그 연산이 반환한 이전 payload만 <code>Dispose()</code>한다. [8–10]</p>
-<h3>12.1 패치 의미를 줄인 의사코드</h3>
+<h3 id="section-12-1-패치-의미를-줄인-의사코드" tabindex="-1">12.1 패치 의미를 줄인 의사코드</h3>
 <pre><code class="language-text">old_resource = exchange(selected_entry, null)
 if old_resource != null:
     Dispose(old_resource)
 </code></pre>
 <p>여기서 중요한 데이터 의존성은 <code>selected_entry → old_resource → Dispose</code>다. <code>exchange()</code>는 이 identity consistency를 보장하지만, 다른 소유자의 사용 종료를 기다리는 일반적인 lifetime 관리까지 대신하지는 않는다.</p>
-<h3>12.2 회귀 검증에서 확인해야 할 속성</h3>
+<h3 id="section-12-2-회귀-검증에서-확인해야-할-속성" tabindex="-1">12.2 회귀 검증에서 확인해야 할 속성</h3>
 <p>회귀 검증에서는 다음 조건을 확인해야 한다.</p>
 <ul>
 <li>핸들 필드는 entry 선택 시 한 번만 읽힌다.</li>
@@ -510,20 +510,20 @@ if old_resource != null:
 </ul>
 <p>수정 전후 비교는 동일한 회귀 조건과 식별된 빌드에서 수행해야 한다. 이 목록은 소스에서 도출한 검증 속성이며, 이번 편집에서 수정 바이너리의 회귀 시험을 새로 실행했다는 뜻은 아니다.</p>
 <p>수정은 리소스 추출과 null 교환을 같은 EPT entry에 묶는다. 교환되는 것은 그 entry의 payload이며 모든 힙 handle이나 외부 참조가 동시에 무효화되는 것은 아니다. compare-and-exchange 구현과 GC mark 보존을 포함한 계층별 근거는 부록 A에 남겼다. [8, 10]</p>
-<h2>13. 마무리</h2>
+<h2 id="section-13-마무리" tabindex="-1">13. 마무리</h2>
 <p>이번 연구에서 계속 따라간 질문은 결국 “지금 보고 있는 참조가, 지금도 살아 있는 같은 객체를 가리키고 있는가?”였다.</p>
 <p>처음에는 double-fetch와 UAF라는 원인에 집중했다. 브라우저로 넘어가면서는 소유권과 객체 정체성, 제어 흐름 보호, 관측 도구의 개입까지 함께 봐야 했다. 한 단계에서 확인한 결과가 다음 단계의 결론까지 대신해주지는 않았다.</p>
 <p>이 과정을 이어가 승인된 로컬 환경과 별도 원격 검증 환경에서 <code>hosts</code> 파일 읽기까지 완료했다. 결과의 범위는 11.1절의 경계 표를 따른다.</p>
 <p>공개 글로 정리하면서도 이 흐름은 남기고 싶었다. 결과만 적으면 중간에 어떤 가정을 세웠고 왜 다시 확인했는지가 빠진다. 그렇다고 실패한 모든 실험을 나열하면 정작 무엇을 배웠는지 잘 보이지 않는다. 이번에는 질문이 어떻게 바뀌었는지와 그 질문에 필요한 증거를 중심으로 정리했다.</p>
 <p>특히 보호 기법을 볼 때는 이름만 외우는 것보다 그 기법이 유지하려는 조건을 확인하는 것이 중요하다고 느꼈다. 참조를 통제하는 것, 객체의 수명을 보장하는 것, 호출을 제한하는 것은 함께 작동하지만 같은 일은 아니다.</p>
 <p>연구 기록도 마찬가지다. “됐다”라는 한 줄보다 어떤 환경에서 무엇을 관측했고, 어디까지 확인했는지를 남겨야 나중에 다시 읽을 수 있다. 당시에는 분명 기억할 것 같았는데… 시간이 지나면 생각보다 빨리 헷갈린다.</p>
-<h2>부록 A. 교환 경로의 함수 전문</h2>
+<h2 id="section-부록-a-교환-경로의-함수-전문" tabindex="-1">부록 A. 교환 경로의 함수 전문</h2>
 <p>루트 커즈와 수정의 의미는 3.2~3.6절만으로 완결된다. 이 부록은 <code>exchange()</code>가 실제로 어느 핸들을 한 번 읽고, 어느 EPT entry의 payload를 교환하며, 이전 값을 어떻게 반환하는지 구현까지 대조하려는 독자를 위한 선택 자료다.</p>
 <p>아래 코드는 같은 수정 리비전 <code>7d1fb25</code>에서 가져왔다. 함수 안의 문장과 원문 주석을 생략하지 않았고, 클래스 안의 오버로드는 바깥 들여쓰기만 정리했다. 이 함수들은 V8의 클래스·타입·헤더 문맥 안에서 사용된다. 좁은 화면에서는 코드 블록을 가로로 스크롤할 수 있다. [10, 13]</p>
 <p>먼저 호출과 반환의 방향을 나누어 보겠다. 새 값과 태그는 아래 계층으로 전달되고, 이전 주소는 반환 경로를 따라 <code>DisposeResource</code>로 올라온다. 그래프 B의 두 분기는 빌드 시 선택되는 서로 다른 필드 표현이다. entry 내부의 CAS 반복은 그래프 C에서 따로 살펴본다.</p>
 <p><img src="/assets/research/chrome-m152-externalstring-race/08-exchange-flow.ko.svg" alt="교환 helper의 호출 관계와 sandbox 빌드 분기"></p>
 <p><em>코드 흐름 B. 단일 태그 오버로드에서 필드 연산으로 이어지는 호출과 빌드 분기다. 두 분기 모두 이전 주소를 반환하지만 갱신하는 저장소가 다르다.</em></p>
-<h4>1. 단일 태그 오버로드</h4>
+<h4 id="section-1-단일-태그-오버로드" tabindex="-1">1. 단일 태그 오버로드</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer.h#L60"><code>src/sandbox/external-pointer.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-function"><span class="hljs-keyword">inline</span> Address <span class="hljs-title">exchange</span><span class="hljs-params">(IsolateForSandbox isolate, Address value)</span>
   <span class="hljs-title">requires</span><span class="hljs-params">(kTagRange.Size() == <span class="hljs-number">1</span>)</span>
@@ -556,7 +556,7 @@ if old_resource != null:
 </table>
 <p>호출자는 태그를 쓰지 않았지만, 이 오버로드는 단일 태그 범위에서 <code>kTagRange.first</code>를 템플릿 인자로 선택한다. 다음 함수에는 그 태그와 <code>isolate</code>, 새 값이 전달된다. 여기에는 필드 읽기나 payload 변경이 없다. <strong>호출 표기를 정적 태그가 있는 연산으로 연결하는 단계</strong>다. <code>requires</code>는 컴파일 시 오버로드 선택 조건이며 객체의 생존 검사나 실행 중 동기화를 수행하지 않는다.</p>
 <p>정리 경로에서 새 값은 <code>kNullAddress</code>다. 이 값은 아래 계층으로 내려가는 입력이고, 이전 리소스 주소는 아래 계층에서 반환되어 올라오는 결과다. 전달 방향이 반대인 두 값을 구분하면 왜 <code>DisposeResource</code>가 교환 결과를 지역 변수에 보관하는지 이해할 수 있다.</p>
-<h4>2. 멤버 함수에서 필드 연산으로 전달</h4>
+<h4 id="section-2-멤버-함수에서-필드-연산으로-전달" tabindex="-1">2. 멤버 함수에서 필드 연산으로 전달</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L77"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-keyword">template</span> &lt;ExternalPointerTagRange kTagRange&gt;
 <span class="hljs-keyword">template</span> &lt;ExternalPointerTag tag&gt;
@@ -592,7 +592,7 @@ if old_resource != null:
 </table>
 <p>이 단계의 데이터는 필드 주소, 새 주소 값, 실행 문맥이라는 세 가지다. <code>storage_</code>를 <code>Address</code>로 표현한 값은 <strong>핸들을 읽을 위치</strong>이고, 매개변수 <code>value</code>는 <strong>교체할 포인터 값</strong>이다. 두 값의 C++ 타입이 같아도 역할은 다르다.</p>
 <p><code>static_assert</code>는 태그가 멤버의 허용 범위 안에 있는지 컴파일 시 확인한다. 검증한 태그는 템플릿 인자로 전달된다. 함수는 자체적으로 필드를 읽지 않고 <code>ExchangeExternalPointerField&lt;tag&gt;</code>가 반환한 값을 그대로 돌려준다. 따라서 원인 분석에서는 이 전달 함수에서 새로운 리소스를 선택했다고 보지 않고, 실제 선택과 변경이 일어나는 다음 계층을 확인한다. 저장 위치의 캐스팅과 위임이 객체 소유권을 새로 만들지는 않는다.</p>
-<h4>3. sandbox와 비 sandbox의 교환 경로</h4>
+<h4 id="section-3-sandbox와-비-sandbox의-교환-경로" tabindex="-1">3. sandbox와 비 sandbox의 교환 경로</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L260"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-keyword">template</span> &lt;ExternalPointerTag tag&gt;
 <span class="hljs-function">V8_INLINE Address <span class="hljs-title">ExchangeExternalPointerField</span><span class="hljs-params">(Address field_address,
@@ -637,7 +637,7 @@ if old_resource != null:
 <p>그래프 B의 갈림길은 실행 중의 <code>if</code>가 아니라 <code>#ifdef</code>다. sandbox 빌드에서는 <code>field_address</code>에서 핸들을 한 번 얻고, 태그로 사용할 테이블을 선택한 뒤 그 핸들을 <code>Exchange</code>에 넘긴다. <strong>테이블 선택에는 태그, 항목 선택에는 핸들</strong>을 사용한다.</p>
 <p>비 sandbox 빌드는 같은 위치에 주소 값이 직접 저장된다는 표현을 따른다. 기존 주소를 <code>old_value</code>로 보관하고 새 값을 쓴 뒤 <code>old_value</code>를 반환한다. 이 분기에는 EPT 조회나 entry CAS가 없으므로, sandbox 분기의 payload 원자성을 그대로 적용해 설명하지 않았다.</p>
 <p>두 분기의 공통 인터페이스는 새 값을 반영하고 이전 주소를 반환한다는 점이다. sandbox 경로에서 바뀌는 상태는 힙 핸들 필드가 아니라 선택한 EPT 항목이다. 이 차이가 정리 대상과 갱신 대상을 대조하는 기준이 된다.</p>
-<h4>4. 핸들의 원자적 읽기</h4>
+<h4 id="section-4-핸들의-원자적-읽기" tabindex="-1">4. 핸들의 원자적 읽기</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-inl.h#L193"><code>src/sandbox/external-pointer-inl.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> V8_ENABLE_SANDBOX</span>
 <span class="hljs-function">V8_INLINE ExternalPointerHandle
@@ -679,7 +679,7 @@ if old_resource != null:
 <p><code>location</code>은 외부 리소스의 주소가 아니라 핸들 필드를 가리킨다. <code>AsAtomic32::Relaxed_Load</code>가 반환하는 것은 그 필드에서 읽은 핸들 값이다. 실제 네이티브 리소스 주소를 얻는 일은 이후 EPT 항목 연산에서 이루어진다.</p>
 <p>따라서 이 경로에는 원자적 작업의 대상이 둘 있다. 여기서는 <strong>힙 필드의 핸들 값</strong>을 읽고, entry 함수에서는 <strong>테이블 항목의 payload</strong>를 교환한다. 둘이 각각 원자적이라고 해서 전체 함수나 모든 사용자의 수명이 하나의 원자적 구간이 되지는 않는다.</p>
 <p>수정된 호출에서는 반환된 핸들이 지역 값으로 테이블 연산에 전달된다. entry CAS의 반복도 그 선택된 항목 안에서 이루어진다. payload 재시도와 힙 핸들의 재선택을 같은 동작으로 해석하지 않는 것이 중요하다.</p>
-<h4>5. EPT에서 항목 선택</h4>
+<h4 id="section-5-ept에서-항목-선택" tabindex="-1">5. EPT에서 항목 선택</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L206"><code>src/sandbox/external-pointer-table-inl.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-function">Address <span class="hljs-title">ExternalPointerTable::Exchange</span><span class="hljs-params">(ExternalPointerHandle handle,
                                        Address value, ExternalPointerTag tag)</span> </span>{
@@ -716,7 +716,7 @@ if old_resource != null:
 <p>첫 assertion이 확인하는 null은 <code>kNullExternalPointerHandle</code>이다. 이는 새 포인터 값으로 전달한 <code>kNullAddress</code>와 역할이 다르다. <strong>선택할 항목의 핸들은 존재해야 하지만, 그 항목에 넣을 포인터 값은 null일 수 있다.</strong></p>
 <p><code>HandleToIndex(handle)</code>는 항목 선택에 사용할 인덱스를 만들고, <code>at(index)</code>가 그 항목의 교환 함수를 호출한다. 이 함수는 리소스 정리 콜백을 실행하지 않는다. 반환은 entry 함수에서 필드 함수, 멤버 함수 순서로 올라가며 최종적으로 <code>DisposeResource</code>의 <code>value</code>가 된다.</p>
 <p>managed 태그를 배제하는 assertion도 이 위임 경로의 전제를 보여 준다. 앞서 설명한 <code>ManagedResource</code>의 일반 설계와 이 함수의 동작을 구분해야 하는 이유다. 항목 선택과 객체 소유권 관리는 같은 연산이 아니다.</p>
-<h4>6. 항목 payload의 교환</h4>
+<h4 id="section-6-항목-payload의-교환" tabindex="-1">6. 항목 payload의 교환</h4>
 <p><a href="https://github.com/v8/v8/blob/7d1fb25f99755c0380cb386e591a532efd7d2b03/src/sandbox/external-pointer-table-inl.h#L70"><code>src/sandbox/external-pointer-table-inl.h</code></a> · <code>7d1fb25</code></p>
 <pre><code class="hljs language-cpp"><span class="hljs-function">Address <span class="hljs-title">ExternalPointerTableEntry::ExchangeExternalPointer</span><span class="hljs-params">(
     Address value, ExternalPointerTag tag)</span> </span>{
@@ -770,7 +770,7 @@ if old_resource != null:
 <p>CAS가 실패하면 다음 반복은 expected 인자로 갱신된 <code>old_payload</code>를 사용한다. weak CAS의 일시적 실패도 이 경로로 처리한다. 다시 만드는 것은 선택된 entry의 payload 후보이며, 힙 필드에서 다른 핸들을 다시 읽는 루프가 아니다. [14]</p>
 <p><code>MaybeUpdateRawPointerForLSan(value)</code>는 성공한 분기 안에서 새 값을 기준으로 호출된다. 이전 포인터를 반환하는 것과 LSan 보조 상태에 새 값을 반영하는 것 역시 구분한다. 이 함수에는 <code>Dispose()</code> 호출이 없으며, 실제 리소스 정리는 반환을 받은 상위 함수의 역할이다. LSan 보조 상태의 갱신이 객체 소유권을 획득하는 것도 아니다.</p>
 <p>원문 출처: V8 project authors, Copyright 2017 / 2020 / 2021. 코드의 BSD-style 라이선스와 원문 저작권 고지는 <a href="/assets/research/chrome-m152-externalstring-race/v8-source-license.txt">라이선스 파일</a>에 함께 제공한다. [13]</p>
-<h2>부록 B. 단순 확률 모형</h2>
+<h2 id="section-부록-b-단순-확률-모형" tabindex="-1">부록 B. 단순 확률 모형</h2>
 <p>격리된 d8에서 관측한 단일 UAF 비율 <code>p = 11/150</code>을 독립·동일확률이라고 가정한 계산이다.</p>
 <pre><code class="language-text">P(N개의 연속 winner) = (11 / 150)^N
 평균 시도 수          = (150 / 11)^N
@@ -817,7 +817,7 @@ if old_resource != null:
 </tbody>
 </table>
 <p>각 행의 마지막 값은 이미 <code>1/pⁿ</code>으로 계산한 누적 평균 시도 수다. <code>14 × 186 × 2,536</code>처럼 행별 분모를 다시 곱하지 않는다. 이 모형은 초기 설계 비교용이며 실제 브라우저 완주율이 아니다.</p>
-<h2>Reference</h2>
+<h2 id="section-reference" tabindex="-1">Reference</h2>
 <ol>
 <li><a href="https://v8.dev/blog/sandbox">V8 — The V8 Sandbox</a>. 보호 목적과 외부 참조에 관한 공식 배경 자료.</li>
 <li><a href="https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md">Chromium — Sandbox</a>. OS 기반 프로세스 격리의 목적에 관한 공식 자료. 세부 설계 설명은 Windows 중심이다.</li>
@@ -838,7 +838,7 @@ if old_resource != null:
 <li>대상 V8 리비전의 <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/src/objects/string.h">string.h</a> 및 <a href="https://github.com/v8/v8/blob/6aacaf6256a069ee455142333b7d38cad1c8d6e0/include/v8-primitive.h">v8-primitive.h</a>. 리소스·데이터 멤버의 타입, 캐시 가능성, 잠금·정리 콜백 계약을 직접 확인했다.</li>
 <li>작성자가 제공한 <code>m152-blog-full-review-20261001.zip</code>의 전면 개정 검토서, <code>RESEARCH_REPORT.md</code>, 로컬 체크포인트·진행 기록 및 최종 아카이브 설명. <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.ko.md">공개 근거 요약</a> · <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.en.md">영문 요약</a> · <a href="/assets/research/chrome-m152-externalstring-race/evidence-summary.SHA256SUMS">요약 파일 SHA-256</a>. 원본 실행 자료의 주장과 이번 편집의 대조 범위를 구분했다.</li>
 </ol>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/chrome-m152-externalstring-race/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/chrome-m152-externalstring-race/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -858,6 +858,6 @@ if old_resource != null:
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

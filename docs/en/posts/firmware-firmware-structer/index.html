@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/firmware-firmware-structer/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/firmware-firmware-structer/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[FIRMWARE] FIRMWARE STRUCTER · whrds.log"><meta property="og:description" content="Until now, I had only written about my attempts in firmware analysis posts as a secret post. In the future, I will try to write additional posts with the parts I tried + technical content. Before writing this, let me briefly talk about my current situation. I am currently in my 4th year of university, but I was fortunate enough to find a job early and am now working for a company in Seoul. Of course, I&#039;m still an undergraduate student,"><meta property="og:url" content="https://whrds.github.io/en/posts/firmware-firmware-structer/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[FIRMWARE] FIRMWARE STRUCTER","description":"Until now, I had only written about my attempts in firmware analysis posts as a secret post. In the future, I will try to write additional posts with the parts I tried + technical content. Before writing this, let me briefly talk about my current situation. I am currently in my 4th year of university, but I was fortunate enough to find a job early and am now working for a company in Seoul. Of course, I'm still an undergraduate student,","datePublished":"2025-08-23","inLanguage":"en","url":"https://whrds.github.io/en/posts/firmware-firmware-structer/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[FIRMWARE] FIRMWARE STRUCTER</h1><p class="article-description">Until now, I had only written about my attempts in firmware analysis posts as a secret post. In the future, I will try to write additional posts with the parts I tried + technical content. Before writing this, let me briefly talk about my current situation. I am currently in my 4th year of university, but I was fortunate enough to find a job early and am now working for a company in Seoul. Of course, I&#039;m still an undergraduate student,</p><div class="article-meta"><a class="post-category" href="/en/categories/firmware/">STUDY / Firmware Analysis</a><span>·</span><time datetime="2025-08-23">Aug 23, 2025</time><span>·</span><span>9 min read</span></div></div></header><div class="prose"><p>Previously, I had only written a record of my attempts to analyze firmware in a secret post.<br>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[FIRMWARE] FIRMWARE STRUCTER</h1><p class="article-description">Until now, I had only written about my attempts in firmware analysis posts as a secret post. In the future, I will try to write additional posts with the parts I tried + technical content. Before writing this, let me briefly talk about my current situation. I am currently in my 4th year of university, but I was fortunate enough to find a job early and am now working for a company in Seoul. Of course, I&#039;m still an undergraduate student,</p><div class="article-meta"><a class="post-category" href="/en/categories/firmware/">STUDY / Firmware Analysis</a><span>·</span><time datetime="2025-08-23">Aug 23, 2025</time><span>·</span><span>9 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-isp-fdt" data-toc-link>ISP/FDT</a></li><li class="article-toc-level-0"><a href="#section-ufs" data-toc-link>UFS</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>Previously, I had only written a record of my attempts to analyze firmware in a secret post.<br>
 From now on, I will try to write more with the parts I tried + technical content.<br>
  <br>
 Before writing, let me briefly talk about my current situation:<br>
@@ -87,7 +87,7 @@ We will discuss how to use each in another post. (To make it easier to find and 
  <br>
 The firmware basically consists of ISP/FDT - UBOOT - RFS - UFS.<br>
  </p>
-<h4>ISP/FDT</h4>
+<h4 id="section-isp-fdt" tabindex="-1">ISP/FDT</h4>
 <p>Equipment, including computers, has a main board and numerous chips on it.<br>
 Among them, there is ROM, a non-volatile memory called Read Only Memory.<br>
 The firmware is located right in this ROM.<br>
@@ -168,7 +168,7 @@ That doesn’t mean there isn’t a way. In the process of booting and operating
  <br>
 Just because something isn’t there doesn’t mean you can’t analyze the firmware, so just proceed.<br>
  </p>
-<h4>UFS</h4>
+<h4 id="section-ufs" tabindex="-1">UFS</h4>
 <p>It is also used for user settings, logs, and data storage.<br>
  <br>
 If the firmware is encrypted, there is a high possibility that there is a decryption binary in this section.<br>
@@ -238,7 +238,7 @@ Another way is to just decompress it.</p>
 <p> <br>
  <br>
 Now all you have to do is do the analysis!! Ugh!!</p>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/firmware-firmware-structer/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/firmware-firmware-structer/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -258,6 +258,6 @@ Now all you have to do is do the analysis!! Ugh!!</p>
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

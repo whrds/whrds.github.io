@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-slab-allocator/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-slab-allocator/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] Slab Allocator · whrds.log"><meta property="og:description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action. ※ In the case of the image, I took the reference image I referenced because it has a good explanation. (It is at the bottom of the link.) In the User area, you can see malloc, free, etc."><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-slab-allocator/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] Slab Allocator","description":"※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action. ※ In the case of the image, I took the reference image I referenced because it has a good explanation. (It is at the bottom of the link.) In the User area, you can see malloc, free, etc.","datePublished":"2024-11-14","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-slab-allocator/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[KERNEL] Slab Allocator</h1><p class="article-description">※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action. ※ In the case of the image, I took the reference image I referenced because it has a good explanation. (It is at the bottom of the link.) In the User area, you can see malloc, free, etc.</p><div class="article-meta"><a class="post-category" href="/en/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-11-14">Nov 14, 2024</time><span>·</span><span>7 min read</span></div></div></header><div class="prose"><p><strong>※ Since the analysis was conducted with reference to the data, there may be errors.</strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[KERNEL] Slab Allocator</h1><p class="article-description">※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action. ※ In the case of the image, I took the reference image I referenced because it has a good explanation. (It is at the bottom of the link.) In the User area, you can see malloc, free, etc.</p><div class="article-meta"><a class="post-category" href="/en/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-11-14">Nov 14, 2024</time><span>·</span><span>7 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-fastpath" data-toc-link>fastpath</a></li><li class="article-toc-level-0"><a href="#section-slowpath-1" data-toc-link>Slowpath-1</a></li><li class="article-toc-level-0"><a href="#section-slowpath-2" data-toc-link>Slowpath-2</a></li><li class="article-toc-level-0"><a href="#section-slowpath-3" data-toc-link>Slowpath-3</a></li><li class="article-toc-level-0"><a href="#section-slowpath-4" data-toc-link>Slowpath-4</a></li><li class="article-toc-level-0"><a href="#section-reference" data-toc-link>Reference</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ Since the analysis was conducted with reference to the data, there may be errors.</strong> </p>
 <p><strong>※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action.</strong></p>
 <p><strong>※ In the case of images, I took the reference image I referenced because it has a good explanation. (It is at the bottom of the link.)</strong></p>
 <p>Memory allocation by functions such as malloc and free in the user area is managed by ptmalloc.</p>
@@ -186,7 +186,7 @@
 <p>As you can see from the picture above, when it is released by the current CPU, the inuse value of the page is maintained at 8. However, when it is released by another CPU, it is not managed by cpu-&gt;freelist and is managed by cpu-&gt;page-&gt;freelist, so you can see that the inuse is reduced by 2, making it 6.</p>
 <hr>
 <p>There are five main memory allocation methods.</p>
-<h4>fastpath</h4>
+<h4 id="section-fastpath" tabindex="-1">fastpath</h4>
 <ul>
 <li>The fastest allocation method</li>
 <li>If there is an object that can be allocated in cpu-&gt;freelist, it is allocated immediately.
@@ -196,14 +196,14 @@
 </li>
 </ul>
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/011.png" alt=""></p>
-<h4>Slowpath-1</h4>
+<h4 id="section-slowpath-1" tabindex="-1">Slowpath-1</h4>
 <ul>
 <li>Executed when there are no objects available in cpu-&gt;freelist</li>
 <li>Upload objects in cpu-&gt;page-&gt;freelist to cpu-&gt;freelist and then perform fastpath</li>
 </ul>
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/012.png" alt=""></p>
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/013.png" alt=""></p>
-<h4>Slowpath-2</h4>
+<h4 id="section-slowpath-2" tabindex="-1">Slowpath-2</h4>
 <ul>
 <li>When there is no object in cpu-&gt;page-&gt;freelist (situation where fastpath and slowpath-1 cannot be used)</li>
 <li>Utilize cpu-&gt;partial page
@@ -215,7 +215,7 @@
 </li>
 </ul>
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/014.png" alt=""></p>
-<h4>Slowpath-3</h4>
+<h4 id="section-slowpath-3" tabindex="-1">Slowpath-3</h4>
 <ul>
 <li>When there is no object that can be assigned to cpu-&gt;partial (a situation where fastpath, slowpath-1, and slowpath-2 cannot be used)</li>
 </ul>
@@ -233,7 +233,7 @@
 </li>
 </ul>
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/016.png" alt=""></p>
-<h4>Slowpath-4</h4>
+<h4 id="section-slowpath-4" tabindex="-1">Slowpath-4</h4>
 <ul>
 <li>Steps to use when all previous methods cannot be used</li>
 <li>New page allocation from Buddy System</li>
@@ -247,7 +247,7 @@
 <p><img src="/assets/images/tistory/tistory-d01af56b9754/020.png" alt=""></p>
 <p>In the case of fastpath, since what is in cpu-&gt;freelist is immediately allocated, it is returned to that location as is.</p>
 <hr>
-<h4>Reference</h4>
+<h4 id="section-reference" tabindex="-1">Reference</h4>
 <ul>
 <li><a href="http://jake.dothome.co.kr/slub/#comment-304534">http://jake.dothome.co.kr/slub/#comment-304534</a></li>
 </ul>
@@ -260,7 +260,7 @@
 <p> [[Linux Kernel] What is Slab Memory Allocator?</p>
 <p>Table of Contents</p>
 <p><a href="http://jeongzero.oopy.io">jeongzero.oopy.io</a>](<a href="https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4">https://jeongzero.oopy.io/132fed8f-5cfd-4f43-990c-61584744b4d0#8099faea-22d5-41e5-a168-3287129d4ed4</a>)</p>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-slab-allocator/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-slab-allocator/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -280,6 +280,6 @@
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

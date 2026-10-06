@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/pwnable-stack-buffer-overflow/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/pwnable-stack-buffer-overflow/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[PWNABLE]Stack Buffer OverFlow · whrds.log"><meta property="og:description" content="※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written."><meta property="og:url" content="https://whrds.github.io/en/posts/pwnable-stack-buffer-overflow/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PWNABLE]Stack Buffer OverFlow","description":"※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written.","datePublished":"2023-09-06","inLanguage":"en","url":"https://whrds.github.io/en/posts/pwnable-stack-buffer-overflow/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,7 +27,7 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[PWNABLE]Stack Buffer OverFlow</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-06">Sep 6, 2023</time><span>·</span><span>5 min read</span></div></div></header><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> <br>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[PWNABLE]Stack Buffer OverFlow</h1><p class="article-description">※ If there are any mistakes, please let us know. We will check and correct it. ※ Buffer OverFlow is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs. Since the Heap will be discussed next, only Stack Buffer OverFlow will be written.</p><div class="article-meta"><a class="post-category" href="/en/categories/pwnable-amd64/">STUDY / PWNABLE_AMD64</a><span>·</span><time datetime="2023-09-06">Sep 6, 2023</time><span>·</span><span>5 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-stack-buffer-overflow-example" data-toc-link>Stack Buffer OverFlow Example</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ If there are any mistakes, please let me know. We will make corrections after confirmation.</strong> <strong>※</strong> <br>
  <br>
 <strong>Buffer OverFlow</strong> is divided into Stack Buffer OverFlow and Heap Buffer OverFlow depending on the area in which it occurs.<br>
 Since we will cover the Heap later, we will only write about Stack Buffer OverFlow.<br>
@@ -43,7 +43,7 @@ Now let’s check this perspective from a computer’s perspective. When program
  </p>
 <p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/001.png" alt=""></p>
 <hr>
-<h3><strong>Stack Buffer OverFlow Example</strong></h3>
+<h3 id="section-stack-buffer-overflow-example" tabindex="-1"><strong>Stack Buffer OverFlow Example</strong></h3>
 <pre><code>#include &lt;stdio.h&gt;
 
 int main(){
@@ -136,7 +136,7 @@ I will also check the name string.</p>
  <br>
 The final result looks like this:</p>
 <p><img src="/assets/images/tistory/tistory-bc8b2be0d67f/010.png" alt=""></p>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-stack-buffer-overflow/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/pwnable-stack-buffer-overflow/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -156,6 +156,6 @@ The final result looks like this:</p>
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

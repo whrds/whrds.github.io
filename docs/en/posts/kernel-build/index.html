@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-build/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-build/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] build · whrds.log"><meta property="og:description" content="※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. To analyze Kernel 1-day, build a Kernel version that matches the vulnerable version, just as you built the environment for 1-day analysis in the user space."><meta property="og:url" content="https://whrds.github.io/en/posts/kernel-build/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] build","description":"※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. To analyze Kernel 1-day, build a Kernel version that matches the vulnerable version, just as you built the environment for 1-day analysis in the user space.","datePublished":"2024-11-12","inLanguage":"en","url":"https://whrds.github.io/en/posts/kernel-build/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,12 +27,12 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[KERNEL] build</h1><p class="article-description">※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. To analyze Kernel 1-day, build a Kernel version that matches the vulnerable version, just as you built the environment for 1-day analysis in the user space.</p><div class="article-meta"><a class="post-category" href="/en/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-11-12">Nov 12, 2024</time><span>·</span><span>4 min read</span></div></div></header><div class="prose"><p><strong>※ Since the analysis was conducted with reference to the data, there may be errors.</strong> </p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[KERNEL] build</h1><p class="article-description">※ Since the analysis was conducted with reference to the data, there may be errors. ※ If there is anything that needs to be supplemented or corrected, please let us know and we will take action after checking. To analyze Kernel 1-day, build a Kernel version that matches the vulnerable version, just as you built the environment for 1-day analysis in the user space.</p><div class="article-meta"><a class="post-category" href="/en/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-11-12">Nov 12, 2024</time><span>·</span><span>4 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-1-kernel-source-install" data-toc-link>1. Kernel source install</a></li><li class="article-toc-level-0"><a href="#section-2-install-package" data-toc-link>2. Install package</a></li><li class="article-toc-level-0"><a href="#section-3-version-check" data-toc-link>3. Version check</a></li><li class="article-toc-level-0"><a href="#section-4-prepare-config" data-toc-link>4. Prepare.config</a></li><li class="article-toc-level-0"><a href="#section-5-make" data-toc-link>5. make</a></li><li class="article-toc-level-0"><a href="#section-6-rootfs-img" data-toc-link>6. rootfs img</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ Since the analysis was conducted with reference to the data, there may be errors.</strong> </p>
 <p><strong>※ If there is anything that needs to be supplemented or corrected, please let us know and we will check and take action.</strong></p>
 <p>  In order to analyze Kernel 1-day, you must build a Kernel version that matches the vulnerable version, just as you built the environment for 1-day analysis in the user space. What you need to prepare for this is bzimage, vmlinux, and a rootfs image file that contains the binaries for PoC operation that match the vulnerable version.</p>
 <p>In order to analyze CVE-2022-1015, one of the Kernel 1-days, I studied Kernel environment construction and would like to write it.</p>
 <hr>
-<h4>1. Kernel source install</h4>
+<h4 id="section-1-kernel-source-install" tabindex="-1">1. Kernel source install</h4>
 <p>First, you must install the Kernel file appropriate for the vulnerable version. For this we will use git.</p>
 <pre><code>git clone git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 </code></pre>
@@ -45,11 +45,11 @@ tar -xzvf ./kernel.tar.gz
 </code></pre>
 <p>You can also proceed with installation using wget.</p>
 <p>If you proceed this way, you must also proceed with decompression.</p>
-<h4>2. Install package</h4>
+<h4 id="section-2-install-package" tabindex="-1">2. Install package</h4>
 <pre><code>sudo apt-get install git-all fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison
 </code></pre>
 <p>If you install these packages, you can perform subsequent tasks normally.</p>
-<h4>3. Version check</h4>
+<h4 id="section-3-version-check" tabindex="-1">3. Version check</h4>
 <pre><code>git checkout -b CV5.12.2 v5.12.2
 
 ____________________________________________________________________________________
@@ -58,7 +58,7 @@ git checkout[commit code]
 -&gt; ex)  git checkout 9f4ad9e425a1d3b6a34617b8ea226d56a119a717
 </code></pre>
 <p>If you know the commit value of git in the later method, you can write that value or write the version you want to install in the format above.</p>
-<h4>4. Prepare.config</h4>
+<h4 id="section-4-prepare-config" tabindex="-1">4. Prepare.config</h4>
 <p>Here, the methods are divided into two.</p>
 <p>There is a way to either use the .config file of the Linux environment kernel currently in use or create a new one.</p>
 <p>4-1. Copy Kernel config</p>
@@ -92,7 +92,7 @@ CONFIG_SYSTEM_TRUSTED_KEYScd
 <p>The second setting says that there is KGPG in the [Kernel hacking] section, but that setting did not exist in my environment.</p>
 <p><img src="/assets/images/tistory/tistory-696de103e19e/005.png" alt=""></p>
 <p>When you have completed the settings, save with [SAVE] and exit. A .config file will be created.</p>
-<h4>5. make </h4>
+<h4 id="section-5-make" tabindex="-1">5. make </h4>
 <pre><code>make -j$(nproc) O=../build/
 </code></pre>
 <p>Once you have completed the settings, enter the following to execute the build.</p>
@@ -107,7 +107,7 @@ CONFIG_SYSTEM_TRUSTED_KEYScd
 <p><img src="/assets/images/tistory/tistory-696de103e19e/008.png" alt=""></p>
 <p>If you enter the arch/x86/boot/ path, you can see that bzImage is there. You can then run the Kernel using this file and the vmlinux file.</p>
 <hr>
-<h4>6. rootfs img</h4>
+<h4 id="section-6-rootfs-img" tabindex="-1">6. rootfs img</h4>
 <p>A rootfs image is required to run the kernel. For this, debootstrap is used.</p>
 <pre><code>sudo debootstrap --arch amd64 jammy /path/to/rootfs http://archive.ubuntu.com/ubuntu
 </code></pre>
@@ -130,7 +130,7 @@ qemu-system-x86_64 \
     -net nic,model=virtio \
     -net user
 </code></pre>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-build/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/kernel-build/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -150,6 +150,6 @@ qemu-system-x86_64 \
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/kernel-protection-technique/"><link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/kernel-protection-technique/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · KO" href="/ko/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[KERNEL] 보호 기법 · whrds.log"><meta property="og:description" content="※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SMEP (Supervisor Mode Execution Prevention)커널 공간의 코드를 실행하는 동안 유저 공간의 코드를 실행하는 것을 막는 기법이다.유저 공간에서의 코드의 실행을 막는 NX(No Exute)와 유사하다.하드웨어 보안 기법으"><meta property="og:url" content="https://whrds.github.io/ko/posts/kernel-protection-technique/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[KERNEL] 보호 기법","description":"※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SMEP (Supervisor Mode Execution Prevention)커널 공간의 코드를 실행하는 동안 유저 공간의 코드를 실행하는 것을 막는 기법이다.유저 공간에서의 코드의 실행을 막는 NX(No Exute)와 유사하다.하드웨어 보안 기법으","datePublished":"2024-06-13","inLanguage":"ko","url":"https://whrds.github.io/ko/posts/kernel-protection-technique/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,8 +27,8 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="밝은 테마로 전환">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[KERNEL] 보호 기법</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SMEP (Supervisor Mode Execution Prevention)커널 공간의 코드를 실행하는 동안 유저 공간의 코드를 실행하는 것을 막는 기법이다.유저 공간에서의 코드의 실행을 막는 NX(No Exute)와 유사하다.하드웨어 보안 기법으</p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-06-13">2024년 6월 13일</time><span>·</span><span>2 분 읽기</span></div></div></header><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong></p>
-<h4>SMEP (Supervisor Mode Execution Prevention)</h4>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[KERNEL] 보호 기법</h1><p class="article-description">※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. ※ SMEP (Supervisor Mode Execution Prevention)커널 공간의 코드를 실행하는 동안 유저 공간의 코드를 실행하는 것을 막는 기법이다.유저 공간에서의 코드의 실행을 막는 NX(No Exute)와 유사하다.하드웨어 보안 기법으</p><div class="article-meta"><a class="post-category" href="/ko/categories/kernel/">STUDY / KERNEL</a><span>·</span><time datetime="2024-06-13">2024년 6월 13일</time><span>·</span><span>2 분 읽기</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>이 글의 목차<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="이 글의 목차"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>글 처음</a></li><li class="article-toc-level-0"><a href="#section-smep-supervisor-mode-execution-prevention" data-toc-link>SMEP (Supervisor Mode Execution Prevention)</a></li><li class="article-toc-level-0"><a href="#section-smap-supervisor-mode-access-prevention" data-toc-link>SMAP (Supervisor Mode Access Prevention)</a></li><li class="article-toc-level-0"><a href="#section-kaslr-kgkaslr" data-toc-link>KASLR / KGKASLR</a></li><li class="article-toc-level-0"><a href="#section-kpti-kernel-page-table-isolation" data-toc-link>KPTI (Kernel Page-Table Isolation)</a></li><li class="article-toc-level-0"><a href="#section-kadr-kernel-address-display-restriction" data-toc-link>KADR (Kernel Address Display Restriction)</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p><strong>※ 잘못된 부분이 있으면 알려주세요. 확인 후 수정하도록 하겠습니다. <strong>※</strong></strong></p>
+<h4 id="section-smep-supervisor-mode-execution-prevention" tabindex="-1">SMEP (Supervisor Mode Execution Prevention)</h4>
 <p>커널 공간의 코드를 실행하는 동안 유저 공간의 코드를 실행하는 것을 막는 기법이다.</p>
 <p>유저 공간에서의 코드의 실행을 막는 NX(No Exute)와 유사하다.</p>
 <p>하드웨어 보안 기법으로, CR4 레지스터의 21번째 비트가 활성화되면 SMEP가 걸린 것이다.</p>
@@ -39,7 +39,7 @@
 <pre><code>cat /proc/cpuinfo | grep smep
 </code></pre>
 <hr>
-<h4>SMAP (Supervisor Mode Access Prevention)</h4>
+<h4 id="section-smap-supervisor-mode-access-prevention" tabindex="-1">SMAP (Supervisor Mode Access Prevention)</h4>
 <p>유저 공간에서 커널 공간의 메모리를 읽고 쓸 수 없는 것은 제한되어 있지만 커널 공간에서 유저 공간의 메모리를 읽는 것은 제한이 되어있지 않다. 이런 경우를 막는 것이 방지하는 것이 SMAP이다.</p>
 <p>리눅스 커널은 매우 크기 때문에 아래와 같은 gadget이 존재한다.</p>
 <pre><code>mov esp, 0x12345678; ret;
@@ -65,7 +65,7 @@ control_rip(rop_mov_esp_12345678h);
 <pre><code>cat /proc/cpuinfo | grep smap
 </code></pre>
 <hr>
-<h4>KASLR /  KGKASLR</h4>
+<h4 id="section-kaslr-kgkaslr" tabindex="-1">KASLR /  KGKASLR</h4>
 <p>유저 공간에는 메모리 주소를 랜덤화하는 ASLR 기법이 있다. </p>
 <p>동일하게 커널 공간에서 역시 리눅스 커널이나 디바이스 드라이버의 코드/데이터 영역의 주소를 랜덤화 KASLR 기법이 있다.</p>
 <p>커널은 한번 로딩되면 재부팅하기 전까지 바뀌지 않기 때문에 KASLR은 초기 부팅 시 한번만 작동하게 된다.</p>
@@ -73,7 +73,7 @@ control_rip(rop_mov_esp_12345678h);
 <pre><code>-append &quot;... nokaslr ...&quot;
 </code></pre>
 <hr>
-<h4>KPTI (Kernel Page-Table Isolation)</h4>
+<h4 id="section-kpti-kernel-page-table-isolation" tabindex="-1">KPTI (Kernel Page-Table Isolation)</h4>
 <p>커널 공간의 메모리를 유저 권한으로 읽을 수 있는 취약점인 Meltdown이라는 취약점에 대한 대응 방안으로 나오게된 보호 기법이다.</p>
 <p>가상 주소에서 물리 주소로 변환할 때 page-table을 사용되는데, 이는 커널 공간과 유저 공간을 구분해주는 역할을 한다.</p>
 <p>일반적으로 exploit에는 문제가 되지 않지만 Kernel에서 ROP를 수행 후 ret2usr 등의 과정에서 차단될 수 있다.</p>
@@ -89,14 +89,14 @@ control_rip(rop_mov_esp_12345678h);
 Mitigation: PTI
 </code></pre>
 <hr>
-<h4>KADR (Kernel Address Display Restriction)</h4>
+<h4 id="section-kadr-kernel-address-display-restriction" tabindex="-1">KADR (Kernel Address Display Restriction)</h4>
 <p>커널는 함수의 이름과 정보를 /proc/kallsyms, 드라이버에 따라서 printk() 등을 활용하여 읽을 수 있다.</p>
 <p>이와 같이 커널 공간에서 함수나 데이터, 힙 등의 주소 정보의 유출을 막기 위한 기법을 통상 KADR이라고 한다.</p>
 <p>/proc/sys/kernel/kptr_restrict 파일의 값을 기반으로 보호 정도가 설정된다.</p>
 <p>0 : 주소 표시</p>
 <p>1 : CAP_SYSLOG 권한의 사용자에게만 표시</p>
 <p>2 : 주소 표시 안함</p>
-</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-protection-technique/" hreflang="en">이 글을 영어로 읽기 →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="새 글 구독"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>다음 기록도 함께 읽어요.</h2><p>RSS 앱에서 새 글을 받아보세요.</p></div><a class="subscribe-button" href="/ko/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>구독</span></a></aside><div class="article-end"><a href="/ko/">← 모든 글 보기</a><a href="/en/posts/kernel-protection-technique/" hreflang="en">이 글을 영어로 읽기 →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>관찰하고, 검증하고, 기록합니다.</span><div class="footer-tools"><a href="/ko/feed.xml" data-subscribe-open>RSS 구독 ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>이 페이지는 본문·이미지·코드의 복사와 저장을 제한합니다.</p>
@@ -116,6 +116,6 @@ Mitigation: PTI
     <div class="image-viewport" tabindex="0" aria-label="확대 이미지, 방향키로 스크롤"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>

@@ -6,7 +6,7 @@
   <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/firmware-command/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/firmware-command/">
   <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
   <meta property="og:type" content="article"><meta property="og:title" content="[FIRMWARE] Command · whrds.log"><meta property="og:description" content="I would like to take note of frequently used commands when attempting firmware analysis. Since the style of each analyst is different, you can assume that this person mainly uses these commands just for reference. This is a tool that anyone who has seen binwalk firmware at least once has used it. It analyzes the detailed elements that make up the firmware in signature units."><meta property="og:url" content="https://whrds.github.io/en/posts/firmware-command/">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=e2210a0e93ad"><link rel="stylesheet" href="/assets/site-tools.css?v=e2210a0e93ad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
   <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[FIRMWARE] Command","description":"I would like to take note of frequently used commands when attempting firmware analysis. Since the style of each analyst is different, you can assume that this person mainly uses these commands just for reference. This is a tool that anyone who has seen binwalk firmware at least once has used it. It analyzes the detailed elements that make up the firmware in signature units.","datePublished":"2025-08-25","inLanguage":"en","url":"https://whrds.github.io/en/posts/firmware-command/","author":{"@type":"Person","name":"whrds"}}</script>
 </head><body>
@@ -27,9 +27,9 @@
       <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
     </div>
   </div></header>
-  <main id="main"><article class="article-wrap"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1>[FIRMWARE] Command</h1><p class="article-description">I would like to take note of frequently used commands when attempting firmware analysis. Since the style of each analyst is different, you can assume that this person mainly uses these commands just for reference. This is a tool that anyone who has seen binwalk firmware at least once has used it. It analyzes the detailed elements that make up the firmware in signature units.</p><div class="article-meta"><a class="post-category" href="/en/categories/firmware/">STUDY / Firmware Analysis</a><span>·</span><time datetime="2025-08-25">Aug 25, 2025</time><span>·</span><span>2 min read</span></div></div></header><div class="prose"><p>I would like to take note of frequently used commands when attempting firmware analysis.</p>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[FIRMWARE] Command</h1><p class="article-description">I would like to take note of frequently used commands when attempting firmware analysis. Since the style of each analyst is different, you can assume that this person mainly uses these commands just for reference. This is a tool that anyone who has seen binwalk firmware at least once has used it. It analyzes the detailed elements that make up the firmware in signature units.</p><div class="article-meta"><a class="post-category" href="/en/categories/firmware/">STUDY / Firmware Analysis</a><span>·</span><time datetime="2025-08-25">Aug 25, 2025</time><span>·</span><span>2 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-binwalk" data-toc-link>binwalk</a></li><li class="article-toc-level-0"><a href="#section-dd" data-toc-link>dd</a></li><li class="article-toc-level-0"><a href="#section-file" data-toc-link>file</a></li><li class="article-toc-level-0"><a href="#section-grep" data-toc-link>grep</a></li><li class="article-toc-level-0"><a href="#section-find" data-toc-link>find</a></li><li class="article-toc-level-0"><a href="#section-mount-umount" data-toc-link>mount / umount</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>I would like to take note of frequently used commands when attempting firmware analysis.</p>
 <p>Since the style of each analyst is different, you can assume that this person mainly uses these commands just for reference.</p>
-<h3>binwalk</h3>
+<h3 id="section-binwalk" tabindex="-1">binwalk</h3>
 <p>It is a tool that anyone who has ever seen firmware has used.</p>
 <p>The detailed elements that make up the firmware are analyzed and displayed in signature units.</p>
 <p><img src="/assets/images/tistory/tistory-058612323cbb/001.png" alt=""></p>
@@ -40,7 +40,7 @@
 <p>-M: Recursively search extracted files</p>
 <p>If you use these two options together, the firmware will be extracted first, the files inside will be downloaded again, the test will be performed again, and then extracted.</p>
 <p>In other words, it is used together because it digs into and extracts files until there are no more files to extract.</p>
-<h3>dd</h3>
+<h3 id="section-dd" tabindex="-1">dd</h3>
 <p>This is an abbreviation for data description and is literally a command used when copying data from firmware or disk.</p>
 <p>Although it is a low-level data copy and conversion command, it is often used because the necessary commands can be extracted from the firmware.</p>
 <pre><code>dd if={firmware_name} of={output_file} bs=1 skip={start_offset} count={data_size}
@@ -61,11 +61,11 @@ xxd {firmware} | tail
 xxd {firmware} &gt; output.txt
 xxd {firmware} | grep &quot;~~&quot;
 </code></pre>
-<h3>file</h3>
+<h3 id="section-file" tabindex="-1">file</h3>
 <p>This command tells you what type of file it is.</p>
 <p>It is mainly used to check files extracted through the binwalk or dd command.</p>
 <p><img src="/assets/images/tistory/tistory-058612323cbb/004.png" alt=""></p>
-<h3>grep</h3>
+<h3 id="section-grep" tabindex="-1">grep</h3>
 <p>It is mainly used when searching for specific strings/keywords in a file.</p>
 <p>Use the -rn option for full search.</p>
 <pre><code>grep -rn &quot;~~&quot;
@@ -73,18 +73,18 @@ xxd {firmware} | grep &quot;~~&quot;
 <p><img src="/assets/images/tistory/tistory-058612323cbb/005.png" alt=""></p>
 <p>-r : Perform a recursive search to the specified directories and.</p>
 <p>-n: Shows which line of the file the string found by searching is on.</p>
-<h3>find</h3>
+<h3 id="section-find" tabindex="-1">find</h3>
 <p>It is mainly used when searching for specific files.</p>
 <pre><code>find ./ -name &quot;*cgi*&quot;
 </code></pre>
-<h3>mount / umount</h3>
+<h3 id="section-mount-umount" tabindex="-1">mount / umount</h3>
 <p>This method is mainly used when analyzing a firmware file by mounting it.</p>
 <p>The images used are in previous posts, so pass.</p>
 <pre><code>sudo mount -t {cramfs,squafs ...} -o loop,ro {firmware} {mnt}
 
 sudo umount {mnt}
 </code></pre>
-</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/firmware-command/" hreflang="ko">Read this post in Korean →</a></div></article></main>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/firmware-command/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
   <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
 
   <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
@@ -104,6 +104,6 @@ sudo umount {mnt}
     <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
     <p class="image-caption" data-image-caption></p>
   </dialog>
-  <script src="/assets/app.js?v=e2210a0e93ad" defer></script>
-  <script type="module" src="/assets/site-tools.js?v=e2210a0e93ad"></script>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
 </body></html>
