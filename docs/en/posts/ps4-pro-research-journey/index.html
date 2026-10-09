@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en" data-theme="dark"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PS4] PS4 Pro Research: From a Flash Dump to Kernel Code Analysis · whrds.log</title><meta name="description" content="Following the work from opening a PS4 Pro and reading its flash to reviewing raw13g, distinguishing CoreOS and SELF files, and obtaining the code region of a running kernel.">
+  <meta name="theme-color" content="#101215"><link rel="canonical" href="https://whrds.github.io/en/posts/ps4-pro-research-journey/">
+  <link rel="alternate" hreflang="en" href="https://whrds.github.io/en/posts/ps4-pro-research-journey/"><link rel="alternate" hreflang="ko" href="https://whrds.github.io/ko/posts/ps4-pro-research-journey/">
+  <link rel="alternate" type="application/rss+xml" title="whrds.log · EN" href="/en/feed.xml">
+  <meta property="og:type" content="article"><meta property="og:title" content="[PS4] PS4 Pro Research: From a Flash Dump to Kernel Code Analysis · whrds.log"><meta property="og:description" content="Following the work from opening a PS4 Pro and reading its flash to reviewing raw13g, distinguishing CoreOS and SELF files, and obtaining the code region of a running kernel."><meta property="og:url" content="https://whrds.github.io/en/posts/ps4-pro-research-journey/">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/styles.css?v=98c0c0348b94"><link rel="stylesheet" href="/assets/site-tools.css?v=98c0c0348b94">
+  <script>try{if(localStorage.getItem('theme')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]').content='#edf0f3'}}catch(e){}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"[PS4] PS4 Pro Research: From a Flash Dump to Kernel Code Analysis","description":"Following the work from opening a PS4 Pro and reading its flash to reviewing raw13g, distinguishing CoreOS and SELF files, and obtaining the code region of a running kernel.","datePublished":"2026-10-09","inLanguage":"en","url":"https://whrds.github.io/en/posts/ps4-pro-research-journey/","author":{"@type":"Person","name":"whrds"}}</script>
+</head><body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="whrds.log home"><span class="brand-mark">W_</span><span class="brand-text">whrds.log</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="/en/" aria-current="page">Notes</a>
+      <a href="/en/categories/">Categories</a>
+      <a href="/en/about/">About</a>
+    </nav>
+    <div class="header-tools">
+      <a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a>
+      <div class="language-switch" aria-label="Language">
+        <a href="/ko/posts/ps4-pro-research-journey/" class="" lang="ko">KO</a>
+        <a href="#" class="active" lang="en" aria-current="true">EN</a>
+      </div>
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Use light theme">☀</button>
+    </div>
+  </div></header>
+  <main id="main"><article class="article-wrap article-with-toc"><header class="article-header"><div class="article-heading-copy"><p class="eyebrow">Security research notes</p><h1 id="article-start" tabindex="-1">[PS4] PS4 Pro Research: From a Flash Dump to Kernel Code Analysis</h1><p class="article-description">Following the work from opening a PS4 Pro and reading its flash to reviewing raw13g, distinguishing CoreOS and SELF files, and obtaining the code region of a running kernel.</p><div class="article-meta"><a class="post-category" href="/en/categories/firmware/">STUDY / Firmware Analysis</a><span>·</span><time datetime="2026-10-09">Oct 9, 2026</time><span>·</span><span>12 min read</span></div></div></header><aside class="article-toc"><details data-article-toc><summary>ON THIS PAGE<span class="article-toc-chevron" aria-hidden="true"></span></summary><nav class="article-toc-nav" aria-label="ON THIS PAGE"><ol><li class="article-toc-level-0"><a href="#article-start" data-toc-link>Overview</a></li><li class="article-toc-level-0"><a href="#section-1-starting-with-the-console" data-toc-link>1. Starting with the console</a></li><li class="article-toc-level-0"><a href="#section-2-a-familiar-winbond-chip" data-toc-link>2. A familiar Winbond chip</a></li><li class="article-toc-level-0"><a href="#section-3-obtaining-a-dump-was-different-from-understanding-it" data-toc-link>3. Obtaining a dump was different from understanding it</a></li><li class="article-toc-level-0"><a href="#section-4-reviewing-raw13g-and-observing-goldhen" data-toc-link>4. Reviewing raw13g and observing GoldHEN</a></li><li class="article-toc-level-0"><a href="#section-5-firmware-related-files-were-not-all-the-same-thing" data-toc-link>5. Firmware-related files were not all the same thing</a></li><li class="article-toc-level-0"><a href="#section-6-obtaining-the-running-kernel-s-code-region" data-toc-link>6. Obtaining the running kernel’s code region</a></li><li class="article-toc-level-0"><a href="#section-7-separating-the-layers-of-update-processing" data-toc-link>7. Separating the layers of update processing</a></li><li class="article-toc-level-0"><a href="#section-8-revisiting-what-the-observations-showed" data-toc-link>8. Revisiting what the observations showed</a></li><li class="article-toc-level-0"><a href="#section-9-bringing-the-code-and-the-console-together" data-toc-link>9. Bringing the code and the console together</a></li><li class="article-toc-level-0"><a href="#section-references" data-toc-link>References</a></li></ol></nav></details></aside><div class="article-reading"><div class="prose"><p>For a while, I had been working on NAS vulnerability research with Synology and QNAP products. Then I started wondering what it would be like to analyze a PlayStation.</p>
+<p>I initially thought that obtaining firmware and opening its filesystem would reveal the next step. Well… on the PS4, the bytes read from flash, the executable files in storage, and the code actually running on the device did not fit together quite so easily.</p>
+<p>I began by opening the console and obtaining a dump. Later, reviewing raw13g and examining the GoldHEN environment led to obtaining the code region of the running kernel. This post follows what I confirmed along the way and where I got stuck again.</p>
+<blockquote>
+<p><strong>Related reading</strong></p>
+<p>I covered the JavaScript files and their main functions in <a href="/en/posts/ps4-raw13g-review/">[PS4] raw13g Code Review</a>. This post connects the hardware work that came before that review with the observations I made on the console afterward.</p>
+</blockquote>
+<h2 id="section-1-starting-with-the-console" tabindex="-1">1. Starting with the console</h2>
+<p>As soon as the console arrived, I powered it on and checked its system version. The first version I observed was <strong>13.50</strong>. I later continued the investigation on <strong>13.52</strong> as well.</p>
+<p><img src="/assets/research/ps4-pro-research-journey/01-console.webp" alt="The white PS4 Pro and controller prepared for this research"></p>
+<p><em>The PS4 Pro prepared for the project. I could not afford to replace it, so I wanted to be careful.</em></p>
+<p>With NAS devices, I had sometimes started by obtaining firmware files or examining the system through management features and SSH. I could not immediately find that familiar starting point on the PS4. I decided to begin with what I could inspect directly on the hardware.</p>
+<p>Fortunately, the official PlayStation channel had a <a href="https://www.youtube.com/watch?v=euBlNq5kda0">PS4 Pro teardown video</a>. I referred to the screw and connector locations while opening the console far enough to expose its motherboard.</p>
+<p><img src="/assets/research/ps4-pro-research-journey/02-open-board.webp" alt="The PS4 Pro opened far enough to expose its motherboard"></p>
+<p>The marking on the board was <strong>NVG-004</strong>. Board revisions can differ even within the PS4 family, so I first compared the reference photographs with the hardware in front of me.</p>
+<p><img src="/assets/research/ps4-pro-research-journey/03-board-revision.webp" alt="The NVG-004 marking printed on the motherboard"></p>
+<p><img src="/assets/research/ps4-pro-research-journey/04-board-reference.webp" alt="Board revisions and service headers from the PS4 reference used during the investigation"></p>
+<p><em>The <a href="https://github.com/andy-man/ps4-wee-tools">board comparison from ps4-wee-tools</a> used during the investigation. I compared my board with the NVG family shown on the right.</em></p>
+<p>The UART points also caught my attention. Finding them did not automatically provide boot logs or a shell, though. At this stage, I identified communication points on the board; I did not record that as having obtained a UART shell.</p>
+<h2 id="section-2-a-familiar-winbond-chip" tabindex="-1">2. A familiar Winbond chip</h2>
+<p><img src="/assets/research/ps4-pro-research-journey/05-flash-chip.webp" alt="Close-up of the Winbond W25Q256JV flash memory on the board"></p>
+<p>The flash-memory marking identified a <strong>Winbond W25Q256JV</strong>. I first checked its package and pin functions in the <a href="https://www.winbond.com/hq/support/documentation/?__locale=en&amp;category=%2F.categories%2Fresources%2Fdatasheet%2F&amp;family=%2Fproduct%2Fcode-storage-flash%2Fqspi-nor%2Findex.html&amp;line=%2Fproduct%2Fcode-storage-flash%2Findex.html&amp;pno=W25Q256JV">official datasheet</a>.</p>
+<p>The W25Q256JV is a 256Mbit SPI NOR flash device, equivalent to <strong>32MiB</strong> in bytes. That is the capacity of this chip, which needs to be distinguished from the console’s entire storage capacity or the size of all its firmware.</p>
+<p><img src="/assets/research/ps4-pro-research-journey/06-datasheet.webp" alt="Package and pin-function table from the W25Q256JV datasheet"></p>
+<p>I was wondering whether I would have to write another script, but flashrom already had a definition for this family!</p>
+<p><img src="/assets/research/ps4-pro-research-journey/07-flashrom.webp" alt="The Winbond flash-device definition inspected in flashrom"></p>
+<p><em>The <a href="https://github.com/flashrom/flashrom/blob/main/flashchips/winbond.c">flashrom Winbond definition</a> I checked at the time. I examined capacity and supported operations as well as the chip name.</em></p>
+<p>I used the datasheet to establish the physical chip’s specifications and compared that with how flashrom identified it. For the read operation, I used a <strong>Raspberry Pi and PCBite</strong>.</p>
+<p><img src="/assets/research/ps4-pro-research-journey/08-dump-setup.webp" alt="PCBite probes positioned on the PS4 Pro board while reading flash data"></p>
+<p>I worked on the extraction with a senior colleague and, fortunately, we obtained a dump.</p>
+<h2 id="section-3-obtaining-a-dump-was-different-from-understanding-it" tabindex="-1">3. Obtaining a dump was different from understanding it</h2>
+<p>I thought things might become easier from here. But <code>binwalk</code> did not immediately reveal the filesystem or recognizable signatures I had expected.</p>
+<p>My first reaction was to wonder whether an RTOS explained it. I also wondered whether the data was encrypted. However, <strong>the absence of recognizable signatures alone cannot establish the operating-system type or prove encryption</strong>. I first needed to know which region I had read and what format to expect there.</p>
+<p>The initial results were as follows.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Observation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Device</td>
+<td>PS4 Pro, NVG-004</td>
+</tr>
+<tr>
+<td>System versions</td>
+<td>13.50, with later work on 13.52</td>
+</tr>
+<tr>
+<td>Investigated chip</td>
+<td>Winbond W25Q256JV, 32MiB SPI NOR</td>
+</tr>
+<tr>
+<td>Acquired material</td>
+<td>Raw data read from flash</td>
+</tr>
+<tr>
+<td>Initial analysis</td>
+<td><code>binwalk</code> did not immediately identify the expected filesystem or signatures</td>
+</tr>
+</tbody>
+</table>
+<p>Having a file on disk did not mean I was ready to analyze accessible executables or a filesystem. <strong>Reading the data left another task: identifying what the data actually represented.</strong></p>
+<p>I had hoped this part would be straightforward. Apparently, this was where things started getting more complicated…</p>
+<h2 id="section-4-reviewing-raw13g-and-observing-goldhen" tabindex="-1">4. Reviewing raw13g and observing GoldHEN</h2>
+<p>Stored data alone did not give me enough insight into the console’s behavior, so I also examined the running system. I analyzed the public <code>raw13g</code> code and <strong>saw GoldHEN appear on my console</strong>.</p>
+<p>Once I saw the result on screen, I wanted to understand the code behind it. Where did the JavaScript files connect? What did the Worker do? How were the external binaries loaded?</p>
+<p>I covered those questions separately in <a href="/en/posts/ps4-raw13g-review/">[PS4] raw13g Code Review</a>. Here, I will continue with the subsequent device observations.</p>
+<p>At first, I wondered whether GoldHEN would give me a shell in the same way as a typical Linux device. Reading <a href="https://github.com/GoldHEN/GoldHEN/blob/master/README.md">GoldHEN’s feature documentation</a> and examining its behavior showed that the services had distinct roles.</p>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th style="text-align:right">Documented port</th>
+<th>Role distinguished in this research</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FTP Server</td>
+<td style="text-align:right">2121</td>
+<td>Listing and transferring accessible files</td>
+</tr>
+<tr>
+<td>Klog Server</td>
+<td style="text-align:right">3232</td>
+<td>Receiving log output</td>
+</tr>
+<tr>
+<td>BinLoader</td>
+<td style="text-align:right">9090</td>
+<td>Receiving and loading a separate program</td>
+</tr>
+</tbody>
+</table>
+<p>File transfer and log output are different capabilities from a command shell. A feature appearing in a menu, being enabled, and accepting an actual connection also need to be checked separately.</p>
+<p>The records of some services changing from closed to accepting connections are covered in the <a href="/en/posts/ps4-raw13g-review/#section-8-what-the-port-records-show">port-observation section of the earlier review</a>. From that point, I kept the on-screen result separate from observations of each service.</p>
+<h2 id="section-5-firmware-related-files-were-not-all-the-same-thing" tabindex="-1">5. Firmware-related files were not all the same thing</h2>
+<p>As I organized the material, the phrase “firmware dump” became too broad. An update package, flash data, a stored kernel file, and running kernel code were different kinds of evidence.</p>
+<table>
+<thead>
+<tr>
+<th>Material</th>
+<th>Meaning used in this post</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Raw SPI NOR dump</td>
+<td>Bytes read directly from the chip</td>
+</tr>
+<tr>
+<td>PUP</td>
+<td>An update package</td>
+</tr>
+<tr>
+<td>CoreOS slot material</td>
+<td>Slot-level material containing system components</td>
+</tr>
+<tr>
+<td>SELF</td>
+<td>Sony’s container format for an executable image and metadata</td>
+</tr>
+<tr>
+<td>Runtime kernel text</td>
+<td>A code region obtained from the running kernel</td>
+</tr>
+</tbody>
+</table>
+<p>I initially expected these firmware-related files to open in similar ways. Distinguishing their origins and formats helped me work out which tools and questions were appropriate for each one.</p>
+<p>I was able to separate internal SELF files from the CoreOS slot material acquired from the console. <strong>The SELF files from slot A declared version 13.52; those from slot B declared 13.50.</strong> Among them, the <code>80010002</code> object was identified as the AMD64 kernel SELF.</p>
+<table>
+<thead>
+<tr>
+<th>Material</th>
+<th style="text-align:right">File size</th>
+<th>State recorded in the analysis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Slot A <code>kernel.self</code></td>
+<td style="text-align:right">10,866,322 bytes</td>
+<td>Declares 13.52; internal segments retain encryption attributes</td>
+</tr>
+<tr>
+<td>Slot B <code>kernel.self</code></td>
+<td style="text-align:right">10,865,570 bytes</td>
+<td>Declares 13.50; internal segments retain encryption attributes</td>
+</tr>
+</tbody>
+</table>
+<p>The relationships between these artifacts are shown below. The SELF files separated from the slots and the ELF obtained from the running kernel are placed in separate groups.</p>
+<p><img src="/assets/research/ps4-pro-research-journey/09-material-structure-en.svg" alt="The relationship between kernel.self files in CoreOS slots A and B and kernel_text.elf acquired from the running 13.52 kernel"></p>
+<p><em>Arrows show containment or acquisition relationships. Stored CoreOS material and runtime code are grouped separately. The SELF retains encryption attributes on its internal segments; the runtime ELF contains the acquired R-X code region.</em></p>
+<p>There was another step left here, too. Reading the outer slot structure and identifying SELF headers did not make the internal executable code immediately readable. Separating a container and having analyzable code inside it were different results.</p>
+<h2 id="section-6-obtaining-the-running-kernel-s-code-region" tabindex="-1">6. Obtaining the running kernel’s code region</h2>
+<p>Separately from examining the stored SELF files, I <strong>obtained the text region of the running kernel on the 13.52 console and preserved it as <code>kernel_text.elf</code></strong>. Unlike the initial flash dump, this gave me an ELF suitable for code analysis.</p>
+<p>The acquired file has the following properties.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Confirmed value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File size</td>
+<td>13,625,176 bytes</td>
+</tr>
+<tr>
+<td>ELF format</td>
+<td>ELF64, little-endian</td>
+</tr>
+<tr>
+<td>Target architecture</td>
+<td>AMD64 / x86-64</td>
+</tr>
+<tr>
+<td>ELF OS ABI field</td>
+<td>FreeBSD</td>
+</tr>
+<tr>
+<td>Loadable segments</td>
+<td>One <code>PT_LOAD</code></td>
+</tr>
+<tr>
+<td>Segment permission flags</td>
+<td>Read and execute set; write not set (<code>R-X</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>I also retained its SHA-256 for file identification.</p>
+<p><code>44e2afd250f6bf60bef56dd73e3290c89cda330f2a0ccd980127e4c33ddeb67f</code></p>
+<p>Here, <code>PT_LOAD</code> identifies a program-header entry describing a loadable region. <code>R-X</code> means the read and execute flags are set. This file contains one such segment. Checking those properties lets me describe the result more precisely than simply saying I obtained a kernel file.</p>
+<p>This artifact is <strong>a kernel code image for static analysis</strong>. It is not a full kernel-memory dump preserving every aspect of the running device. It should not be treated as including the kernel’s writable data regions or the state of every process.</p>
+<p>The permission flags in the ELF header describe the file’s layout. On their own, they neither verify the acquisition tool’s entire behavior nor reconstruct every page permission at acquisition time.</p>
+<p>Still, this was considerable progress from where I had stopped after the initial <code>binwalk</code> output. I now had code to examine in tools such as IDA, with function calls I could follow to turn broad questions into more specific ones.</p>
+<h2 id="section-7-separating-the-layers-of-update-processing" tabindex="-1">7. Separating the layers of update processing</h2>
+<p>The PUP file format alone did not explain the entire update process either. Code requesting an update, code reading and verifying a package, and interfaces handling lower-level work had different roles.</p>
+<p>In <code>safemode.elf</code>, I found error strings containing <code>sceUpdaterVerifySign</code>, <code>sceUpdaterReadUpkg</code>, and <code>sceUpdaterUpdateUpkg</code>. Following references to those strings helped distinguish calls related to verification, package reading, and update processing.</p>
+<table>
+<thead>
+<tr>
+<th>Analysis clue</th>
+<th>What it helped establish</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Update-related error strings and their references</td>
+<td>What operation the code was attempting at a failure point</td>
+</tr>
+<tr>
+<td>References to <code>/dev/pup_update0</code></td>
+<td>A device interface for requesting lower-level update processing</td>
+</tr>
+<tr>
+<td>Code around device-control requests (<code>ioctl</code>)</td>
+<td>Requests separated into header, segment, and block processing</td>
+</tr>
+</tbody>
+</table>
+<p>The observed request structure is summarized below. The three branches below the device interface distinguish processing units; the calling code checks the returned result.</p>
+<p><img src="/assets/research/ps4-pro-research-journey/10-update-flow-en.svg" alt="Conceptual flow from PUP reading in safemode.elf through pup_update0 requests to header, segment, and block processing and returned results"></p>
+<p><em>This summarizes requests and result handling identified through static analysis. Header, segment, and block denote processing units rather than separate physical devices or a fixed sequence of three operations.</em></p>
+<p>Finding a string did not establish everything about a function’s role. I also needed to examine its callers, arguments, and return-value handling.</p>
+<p>An important distinction here was <strong>a call relationship identified through static analysis versus a path observed executing on the device</strong>. The presence of an update call in code is different from a claim that I performed an update through that path during this experiment. This part of the work records analysis of files and call structure.</p>
+<h2 id="section-8-revisiting-what-the-observations-showed" tabindex="-1">8. Revisiting what the observations showed</h2>
+<p>I also distinguished LaunchPad from BinLoader. The location where LaunchPad looked for stored programs and the location where BinLoader temporarily handled received files had different roles and lifetimes. Seeing a file in a list did not establish that it could be loaded successfully.</p>
+<p>The format-related notes needed another look as well. Some observations indicated an ELF requirement, while earlier acquisition records described a different transfer format. Instead of concluding that BinLoader always accepts only ELF, it was more accurate to record <strong>the version, loader implementation, and actual file format</strong> together.</p>
+<p>A similar issue appeared when comparing small memory fragments. If two 256-byte reads start just <code>0x10</code>, or 16 bytes, apart, <strong>240 bytes overlap</strong>. Repeated content may then result from reading the same memory twice rather than from a distinct structure in the data.</p>
+<p>Concatenating four fragments into a 1,024-byte file does not establish that 1,024 contiguous bytes were captured if those fragments overlapped or came from separate regions. Along with the file size, I needed to preserve each fragment’s starting position and extent.</p>
+<h2 id="section-9-bringing-the-code-and-the-console-together" tabindex="-1">9. Bringing the code and the console together</h2>
+<p>At first, I thought analysis would begin once I had read the flash. In practice, I also needed to identify the bytes, distinguish containers from executable code, and connect stored files with runtime material.</p>
+<p>The work progressed through <strong>obtaining a flash dump, identifying SELF files inside CoreOS, and acquiring runtime kernel code from 13.52</strong>. Reviewing raw13g helped me understand the software entry flow. The subsequent investigation focused on establishing what the acquired material actually showed.</p>
+<p>Next, I want to examine the kernel text alongside system modules and follow the update-processing calls further. I am also interested in what changes between versions and how behavior read from code connects with actual logs.</p>
+<p>There is still plenty to examine. But compared with the original thought that I wanted to analyze a PlayStation, I now have a much clearer idea of what material I have and what to look at next.</p>
+<p>I spent quite a while absorbed in NAS devices. It looks like the PlayStation will keep me occupied for a while as well.</p>
+<p><strong>Continue reading:</strong> <a href="/en/posts/ps4-raw13g-review/">[PS4] raw13g Code Review</a></p>
+<h2 id="section-references" tabindex="-1">References</h2>
+<ol>
+<li><a href="https://www.youtube.com/watch?v=euBlNq5kda0">Official PlayStation PS4 Pro teardown video</a></li>
+<li><a href="https://www.winbond.com/hq/support/documentation/?__locale=en&amp;category=%2F.categories%2Fresources%2Fdatasheet%2F&amp;family=%2Fproduct%2Fcode-storage-flash%2Fqspi-nor%2Findex.html&amp;line=%2Fproduct%2Fcode-storage-flash%2Findex.html&amp;pno=W25Q256JV">Winbond W25Q256JV documentation</a></li>
+<li><a href="https://github.com/flashrom/flashrom/blob/main/flashchips/winbond.c">flashrom Winbond chip definitions</a></li>
+<li><a href="https://github.com/andy-man/ps4-wee-tools">ps4-wee-tools board reference</a></li>
+<li><a href="https://github.com/GoldHEN/GoldHEN/blob/master/README.md">GoldHEN feature documentation</a></li>
+<li><a href="/en/posts/ps4-raw13g-review/">[PS4] raw13g Code Review</a></li>
+</ol>
+<p>File sizes and structural observations are based on the private research records <code>LIVE_COREOS_ACQUISITION.md</code>, <code>RUNTIME_TEXT_ACQUISITION.md</code>, the update-call analysis notes, and the retained artifacts.</p>
+</div><aside class="subscribe-card" aria-label="Follow new posts"><div><p class="subscribe-kicker">STAY CURIOUS</p><h2>Keep up with the next field note.</h2><p>Get new posts in your RSS reader.</p></div><a class="subscribe-button" href="/en/feed.xml" data-subscribe-open><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="19" r="1" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/></svg><span>Subscribe</span></a></aside><div class="article-end"><a href="/en/">← View all notes</a><a href="/ko/posts/ps4-pro-research-journey/" hreflang="ko">Read this post in Korean →</a></div></div></article></main>
+  <footer class="site-footer"><div class="shell footer-inner"><span class="footer-brand">ZZoMb1E <span>© 2026 whrds.log</span></span><span>Observe, verify, document.</span><div class="footer-tools"><a href="/en/feed.xml" data-subscribe-open>RSS subscribe ↗</a></div></div></footer>
+
+  <p class="content-notice" data-content-notice role="status" aria-live="polite" hidden>Copying and saving this page’s text, images, and code is restricted.</p>
+  <p class="print-notice">whrds.log · Printing and saving this page as PDF is restricted. Please read it on the blog.</p>
+  <dialog class="site-dialog subscribe-dialog" id="subscribe-dialog" aria-labelledby="subscribe-title" aria-describedby="subscribe-description">
+    <div class="dialog-heading"><div><p class="subscribe-kicker">RSS / WHRDS.LOG</p><h2 id="subscribe-title">Subscribe to new posts</h2></div><button class="dialog-close" type="button" data-dialog-close aria-label="Close">×</button></div>
+    <p id="subscribe-description">Add this feed to your RSS reader to follow new posts. Choose your preferred language.</p>
+    <div class="feed-languages" role="group" aria-label="Feed language"><button type="button" data-feed-language="ko" aria-pressed="false">한국어</button><button type="button" data-feed-language="en" aria-pressed="true">English</button></div>
+    <label class="feed-label" for="feed-url">Feed URL</label>
+    <div class="feed-copy-row"><input id="feed-url" type="url" readonly spellcheck="false" value="https://whrds.github.io/en/feed.xml" data-feed-origin="https://whrds.github.io"><button class="tool-button" type="button" data-copy-feed>Copy URL</button></div>
+    <p class="feed-status" data-feed-status role="status" aria-live="polite"></p>
+    <div class="feed-actions"><a class="tool-button" data-reader-link href="https://www.inoreader.com/?add_feed=https%3A%2F%2Fwhrds.github.io%2Fen%2Ffeed.xml" target="_blank" rel="noopener noreferrer">Subscribe in Inoreader ↗</a><a class="feed-raw-link" data-feed-link href="https://whrds.github.io/en/feed.xml">Open RSS feed ↗</a></div>
+    <p class="dialog-note">This feed URL works with other RSS readers too.</p>
+  </dialog>
+  <dialog class="site-dialog image-lightbox" id="image-lightbox" aria-labelledby="image-lightbox-title">
+    <div class="image-toolbar"><h2 id="image-lightbox-title">Image viewer</h2><div><button class="tool-button" type="button" data-image-scale aria-pressed="false">Zoom in</button><button class="dialog-close" type="button" data-dialog-close aria-label="Close">×</button></div></div>
+    <div class="image-viewport" tabindex="0" aria-label="Enlarged image, use arrow keys to scroll"><img data-lightbox-image alt="" draggable="false" hidden></div>
+    <p class="image-caption" data-image-caption></p>
+  </dialog>
+  <script src="/assets/app.js?v=98c0c0348b94" defer></script>
+  <script type="module" src="/assets/site-tools.js?v=98c0c0348b94"></script>
+</body></html>

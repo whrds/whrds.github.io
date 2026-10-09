@@ -14,6 +14,10 @@ The execution notes reported that GoldHEN appeared, but the screen alone did not
 
 The version parsing and logging code also caught my attention. These are easy to overlook when checking only the final result, so I will go through them as well.
 
+> **Before and after this code review**
+>
+> [[PS4] PS4 Pro Research: From a Flash Dump to Kernel Code Analysis](/en/posts/ps4-pro-research-journey/) covers preparing and opening the console, examining flash and CoreOS material, and obtaining runtime kernel code.
+
 ## 1. The analysis target
 
 The code comes from `raw13g/raw13g.github.io`. Since the repository can change, this is the commit used for the analysis. [1]
@@ -485,6 +489,8 @@ I started with the file structure and then followed the main functions. `jb.js` 
 At first, the number of files stood out. Once their roles were separated, it became easier to follow where each value went. Small functions such as number formatting or log shortening were also a useful reminder that a name alone can suggest something different from the actual behavior.
 
 The separate binaries' internals remain outside what this JavaScript review establishes. The discussion here follows the visible code and the existing execution records.
+
+**Related reading:** [[PS4] PS4 Pro Research: From a Flash Dump to Kernel Code Analysis](/en/posts/ps4-pro-research-journey/) — the hardware work that led into this code review.
 
 ## References
 
